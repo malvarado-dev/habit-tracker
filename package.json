@@ -1,0 +1,70 @@
+{
+  "name": "habit-tracker",
+  "version": "0.1.0",
+  "main": "expo-router/entry",
+  "dependencies": {
+    "@expo/metro-runtime": "~58.0.14",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "eslint-config-expo": "~58.0.4",
+    "expo": "~58.0.14",
+    "expo-constants": "~58.0.12",
+    "expo-linking": "~58.0.13",
+    "expo-router": "~58.0.23",
+    "expo-status-bar": "~58.0.3",
+    "jest-expo": "~58.0.11",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-native": "0.88.0",
+    "react-native-gesture-handler": "~3.3.0",
+    "react-native-reanimated": "4.7.1",
+    "react-native-safe-area-context": "~5.10.1",
+    "react-native-screens": "~4.30.0",
+    "react-native-web": "~0.21.4"
+  },
+  "devDependencies": {
+    "@jest/globals": "^30.5.2",
+    "@types/jest": "^30.0.0",
+    "@types/react": "~19.3.0",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "jest": "^30.5.2",
+    "lint-staged": "^16.4.0",
+    "prettier": "^3.9.10",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "lint": "expo lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "test": "jest",
+    "test:ci": "jest --ci --coverage",
+    "export:web": "expo export -p web",
+    "check": "npm run lint && npm run format:check && npm run typecheck && npm test",
+    "prepare": "husky"
+  },
+  "private": true,
+  "jest": {
+    "preset": "jest-expo",
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/dist/"
+    ],
+    "collectCoverageFrom": [
+      "src/rules/**/*.ts",
+      "!src/**/*.test.ts"
+    ]
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": "prettier --write"
+  }
+}

@@ -1,0 +1,22 @@
+name: Close outside pull requests
+
+# Outside contributions aren't accepted (see CONTRIBUTING.md).
+# pull_request_target runs this repo's own copy of the workflow and never runs the contributor's code.
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  close:
+    if: github.event.pull_request.user.login != github.repository_owner && github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Comment and close
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          gh pr close "$PR_URL" --comment "Thanks for your interest. This is a personal portfolio project and outside contributions aren't accepted, so this pull request has been closed automatically. See CONTRIBUTING.md."
