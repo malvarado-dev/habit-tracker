@@ -57,8 +57,12 @@
     ],
     "collectCoverageFrom": [
       "src/rules/**/*.ts",
+      "src/features/**/state.ts",
       "!src/**/*.test.ts"
-    ]
+    ],
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/src/$1"
+    }
   },
   "lint-staged": {
     "*.{ts,tsx,js}": [
