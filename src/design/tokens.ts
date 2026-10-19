@@ -180,9 +180,33 @@ export const wideLayout = {
   critterWidthRatio: 0.45,
   critterMaxWidth: 520,
   critterSink: 0.12,
-  historyColumns: 7,
-  historyRows: 5,
-  historyGap: 10,
+} as const;
+
+/** History (T16, canvas "History options · Stage 3"). Sizes in points. */
+export const history = {
+  /** Day cell: minimum height (fits the face plus the date) and corner radius. */
+  cellMinHeight: 52,
+  cellRadius: 12,
+  cellGap: 2,
+  /** Today's outline. */
+  todayBorder: 2,
+  /** Critter face in a day cell, and the larger one on the Day screen. */
+  faceWidth: 30,
+  dayFaceWidth: 56,
+  /** Future days and days outside the month are this faint. */
+  faintOpacity: 0.4,
+  /** Locked days on the Day screen: cards dimmed to this. */
+  lockedCardOpacity: 0.5,
+  /** Week panel progress dots. */
+  dot: 9,
+  dotStroke: 1.5,
+  dotGap: 5,
+  weekRowMinHeight: 28,
+  /** Room for "7 of 7" and "3 +1" so the dots line up. */
+  countMinWidth: 52,
+  /** The highlighted week row behind the week panel's week. */
+  weekRowRadius: 14,
+  panelRadius: 20,
 } as const;
 
 /** Sky brightness per live rank, 0 to 1 (SPEC-00: C dim, B a little glow, A bright, S rays). */

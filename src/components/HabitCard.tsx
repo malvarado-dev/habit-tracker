@@ -24,7 +24,7 @@ import type { GoalStyle } from '@/features/settings/settings';
 import { withAlpha } from '@/design/theme/theme';
 import { useTheme } from '@/design/theme/ThemeProvider';
 import { textStyle } from '@/design/fonts';
-import { habitCardSizes as size, shadows, tints, typography } from '@/design/tokens';
+import { habitCardSizes as size, history, shadows, tints, typography } from '@/design/tokens';
 import type { ThemeColors } from '@/design/tokens';
 import { MAX_STARS, STARS, type CheckIn, type Habit } from '@/rules/scoring';
 import { MIN_TAP_SIZE, radius, space } from '@/theme';
@@ -34,6 +34,8 @@ import { cardMotion } from './cardEffectLayout';
 import { cardAccessibilityLabel, iconLetter, statusText, weekProgressText } from './habitCardText';
 
 export type { GoalStyle } from '@/features/settings/settings';
+
+const LOCKED_OPACITY = history.lockedCardOpacity;
 
 interface HabitCardProps {
   habit: Habit;
@@ -46,10 +48,12 @@ interface HabitCardProps {
   goalStyle: GoalStyle;
   onTap: () => void;
   onSwipe: (checkIn: CheckIn) => void;
+  /** A locked day in History (T16): dimmed, and taps and swipes are off. */
+  locked?: boolean;
 }
 
 export function HabitCard(props: HabitCardProps) {
-  const { habit, checkIn, isDue, progress, goalStyle, onTap, onSwipe } = props;
+  const { habit, checkIn, isDue, progress, goalStyle, onTap, onSwipe, locked = false } = props;
   const styles = useStyles();
   const { colors: c } = useTheme();
   const swipeRef = useRef<SwipeableMethods>(null);
@@ -123,11 +127,14 @@ export function HabitCard(props: HabitCardProps) {
       renderLeftActions={() => <SwipeHint text="Nailed it" color={c.scoreNailedIt} start />}
       renderRightActions={() => <SwipeHint text="Skip" color={c.onSurfaceMuted} />}
       onSwipeableWillOpen={handleSwipe}
-      containerStyle={styles.swipeContainer}
+      enabled={!locked}
+      containerStyle={[styles.swipeContainer, locked && { opacity: LOCKED_OPACITY }]}
     >
       <Animated.View style={scaleStyle}>
         <Pressable
           onPress={onTap}
+          disabled={locked}
+          accessibilityState={{ disabled: locked }}
           testID={`habit-card-${id}`}
           accessibilityRole="button"
           accessibilityLabel={cardAccessibilityLabel(
@@ -137,14 +144,23 @@ export function HabitCard(props: HabitCardProps) {
             progress.done,
             progress.goal,
           )}
-          accessibilityHint="Tap to change the score. Swipe right for Nailed it, left for Skip."
-          accessibilityActions={[
-            { name: 'nailedIt', label: 'Nailed it' },
-            { name: 'notToday', label: 'Skip' },
-          ]}
-          onAccessibilityAction={(e) =>
-            onSwipe(e.nativeEvent.actionName === 'nailedIt' ? 'NailedIt' : 'NotToday')
+          accessibilityHint={
+            locked
+              ? 'This day is locked.'
+              : 'Tap to change the score. Swipe right for Nailed it, left for Skip.'
           }
+          accessibilityActions={
+            locked
+              ? []
+              : [
+                  { name: 'nailedIt', label: 'Nailed it' },
+                  { name: 'notToday', label: 'Skip' },
+                ]
+          }
+          onAccessibilityAction={(e) => {
+            if (locked) return;
+            onSwipe(e.nativeEvent.actionName === 'nailedIt' ? 'NailedIt' : 'NotToday');
+          }}
           style={({ pressed }) => [
             styles.card,
             { backgroundColor: c.surface },

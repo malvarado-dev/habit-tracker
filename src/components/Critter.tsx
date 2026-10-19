@@ -31,9 +31,11 @@ import { critterLabel, critterMood, randomGap, type CritterMood } from './critte
 
 const VIEW_W = 360;
 const VIEW_H = 260;
-const EYE_Y = 105;
-const EYE_R = 10;
-const EYES_X = [150, 210];
+export const EYE_Y = 105;
+export const EYE_R = 10;
+export const EYES_X = [150, 210];
+/** The dome. History's day faces (CritterFace) draw the same parts. */
+export const BODY_PATH = 'M0 260 L0 170 Q0 30 180 30 Q360 30 360 170 L360 260 Z';
 
 /** A rank moment to play once; `id` changes each time one starts. */
 export type Moment = { rank: Rank; id: number };
@@ -200,10 +202,7 @@ export function Critter({ width, level, woken, onWake, time, reactKey, moment }:
           style={[StyleSheet.absoluteFill, styles.body, bodyStyle]}
         >
           <Svg width={width} height={height} viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}>
-            <Path
-              d="M0 260 L0 170 Q0 30 180 30 Q360 30 360 170 L360 260 Z"
-              fill={critter.bodySunny}
-            />
+            <Path d={BODY_PATH} fill={critter.bodySunny} />
             {asleep ? <SleepyEyes /> : null}
             <Mouth mood={mood} />
           </Svg>
@@ -247,7 +246,7 @@ export function Critter({ width, level, woken, onWake, time, reactKey, moment }:
   );
 }
 
-function SleepyEyes() {
+export function SleepyEyes() {
   return (
     <>
       <Path
@@ -268,7 +267,7 @@ function SleepyEyes() {
   );
 }
 
-function Mouth({ mood }: { mood: CritterMood }) {
+export function Mouth({ mood }: { mood: CritterMood }) {
   if (mood === 'asleep') {
     return (
       <Path

@@ -1,4 +1,5 @@
-// The side menu (SPEC-00, T11): slides in from the left over Today with Profile and Habits.
+// The side menu (SPEC-00, T11): slides in from the left over Today with Profile, Habits, and
+// History (T16).
 // Tapping the shade or pressing back on Android closes it. Reduced motion: no slide.
 
 import { router } from 'expo-router';
@@ -25,6 +26,7 @@ const PANEL_WIDTH = 280;
 const ITEMS = [
   { label: 'Profile', path: '/profile', id: 'menu-profile' },
   { label: 'Habits', path: '/habits', id: 'menu-habits' },
+  { label: 'History', path: '/history', id: 'menu-history' },
 ] as const;
 
 export function SideMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -64,10 +66,10 @@ export function SideMenu({ open, onClose }: { open: boolean; onClose: () => void
 
   if (!open && (!mounted || reduceMotion)) return null;
 
-  const go = (path: '/profile' | '/habits') => {
+  const go = (path: (typeof ITEMS)[number]['path']) => {
     onClose();
-    // Habits names where Back goes; from the menu that's Today.
-    router.push(path === '/habits' ? { pathname: path, params: { from: 'today' } } : path);
+    // Habits and History name where Back goes; from the menu that's Today.
+    router.push(path === '/profile' ? path : { pathname: path, params: { from: 'today' } });
   };
 
   return (
