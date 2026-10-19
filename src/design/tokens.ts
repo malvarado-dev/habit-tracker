@@ -170,6 +170,8 @@ export const wideLayout = {
   minWidth: 900,
   /** And at least this tall, so a phone turned sideways stays single column. */
   minHeight: 600,
+  /** The whole wide layout stops growing here and centers, so big monitors don't stretch it (#51). */
+  maxWidth: 1280,
   pagePadding: 24,
   columnGap: 24,
   leftColumnWidth: 400,
@@ -178,7 +180,7 @@ export const wideLayout = {
   sceneRadius: 28,
   /** Critter width as a share of the Background card, with a cap. Its body runs off the card's bottom. */
   critterWidthRatio: 0.45,
-  critterMaxWidth: 520,
+  critterMaxWidth: 360,
   critterSink: 0.12,
 } as const;
 
