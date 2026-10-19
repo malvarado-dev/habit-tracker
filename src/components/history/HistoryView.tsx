@@ -32,13 +32,13 @@ type Props = {
 
 export function HistoryView({ onOpenDay }: Props) {
   const styles = useStyles();
-  const { state, today } = useTracker();
+  const { state, today, oldestDay } = useTracker();
   const [month, setMonth] = useState(() => monthOf(today));
   // The week panel shows the week of the last day opened, this week by default.
   const [focusDay, setFocusDay] = useState(today);
 
-  const weeks = monthGrid(month, state, today);
-  const { canPrev, canNext } = monthLimits(month, state.log, today);
+  const weeks = monthGrid(month, state, today, oldestDay);
+  const { canPrev, canNext } = monthLimits(month, state.log, today, oldestDay);
 
   const open = (date: DateKey) => {
     setFocusDay(date);
@@ -53,7 +53,7 @@ export function HistoryView({ onOpenDay }: Props) {
           glyph="‹"
           disabled={!canPrev}
           testID="history-prev-month"
-          onPress={() => setMonth((m) => stepMonth(m, -1, state.log, today))}
+          onPress={() => setMonth((m) => stepMonth(m, -1, state.log, today, oldestDay))}
         />
         <Text style={styles.month} accessibilityRole="header" testID="history-month">
           {monthTitle(month)}
@@ -63,7 +63,7 @@ export function HistoryView({ onOpenDay }: Props) {
           glyph="›"
           disabled={!canNext}
           testID="history-next-month"
-          onPress={() => setMonth((m) => stepMonth(m, 1, state.log, today))}
+          onPress={() => setMonth((m) => stepMonth(m, 1, state.log, today, oldestDay))}
         />
       </View>
 
@@ -151,7 +151,7 @@ function DayCellView({ cell, onOpen }: { cell: DayCell; onOpen: (date: DateKey) 
     );
   }
 
-  // Future days are faint and can't be opened.
+  // Future days, and in Test days older than its window, are faint and can't be opened.
   const openable = cell.kind === 'day';
   return (
     <Pressable

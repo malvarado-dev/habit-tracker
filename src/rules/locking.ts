@@ -19,8 +19,11 @@ export interface LockedDay {
 }
 
 /** The newest day that is locked when it's `today`. Every day up to and including it is locked. */
-export function lastLockedDay(today: DateKey): DateKey {
-  return addDays(today, -(calendar.openDaysBeforeToday + 1));
+export function lastLockedDay(
+  today: DateKey,
+  openDays: number = calendar.openDaysBeforeToday,
+): DateKey {
+  return addDays(today, -(openDays + 1));
 }
 
 /** Every habit ever kept, active or removed. The rules check each one's dates (T21). */
@@ -56,8 +59,12 @@ export interface LockState {
  * a day with none stays blank. Runs oldest first, and never touches a day that's already locked.
  * Returns the same object when nothing changes.
  */
-export function lockDays<S extends LockState>(state: S, today: DateKey): S {
-  const through = lastLockedDay(today);
+export function lockDays<S extends LockState>(
+  state: S,
+  today: DateKey,
+  openDays: number = calendar.openDaysBeforeToday,
+): S {
+  const through = lastLockedDay(today, openDays);
   if (state.lockedThrough !== null && state.lockedThrough >= through) return state;
 
   const newlyLocked = Object.keys(state.log)

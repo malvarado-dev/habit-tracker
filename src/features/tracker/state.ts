@@ -88,7 +88,7 @@ export type TrackerAction =
   | { type: 'setGoal'; habitId: string; goal: WeeklyGoal }
   | { type: 'removeHabit'; habitId: string; date: DateKey }
   | { type: 'restoreHabit'; habit: Habit; index: number }
-  | { type: 'lockDays'; today: DateKey };
+  | { type: 'lockDays'; today: DateKey; openDays?: number };
 
 function withCheckIn(
   state: TrackerState,
@@ -178,6 +178,6 @@ export function trackerReducer(state: TrackerState, action: TrackerAction): Trac
       return { ...state, habits, removed };
     }
     case 'lockDays':
-      return lockDays(state, action.today);
+      return lockDays(state, action.today, action.openDays);
   }
 }

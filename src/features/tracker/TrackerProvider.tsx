@@ -23,6 +23,8 @@ import {
   createAppState,
   loadAppState,
   modeToday,
+  oldestOpenableDay,
+  openDaysFor,
   savesFor,
   type AppAction,
   type AppState,
@@ -37,6 +39,10 @@ interface TrackerContextValue {
   /** The date the active tracker lives on. Real is always the real date; Test can be ahead. */
   today: DateKey;
   mode: Mode;
+  /** Days before today that can still be changed: 2 in Real, 45 in Test (T22). */
+  openDays: number;
+  /** The oldest day that can be opened, or null when every past day can (Real). */
+  oldestDay: DateKey | null;
   setMode: (mode: Mode) => void;
   /** Test tools (prototype only). Each does nothing in Real. */
   testTools: {
@@ -105,6 +111,8 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
       dispatch,
       today: modeToday(app, now),
       mode: app.mode,
+      openDays: openDaysFor(app.mode),
+      oldestDay: oldestOpenableDay(app.mode, modeToday(app, now)),
       setMode: (mode) => rawDispatch({ type: 'setMode', mode }),
       testTools: {
         dayOffset: app.mode === 'test' ? app.testOffset : 0,

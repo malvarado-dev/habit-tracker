@@ -12,4 +12,10 @@ export const calendar = {
 
   /** Today and this many days before it can still be changed. Older days lock for good. */
   openDaysBeforeToday: 2,
+
+  /**
+   * Test mode only (T22): today and this many days before it can be changed, so History can be
+   * filled in quickly. Older days can't be opened in Test. Real keeps openDaysBeforeToday.
+   */
+  testOpenDaysBeforeToday: 45,
 } as const;

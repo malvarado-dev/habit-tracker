@@ -130,13 +130,12 @@ describe('the pretend date lives only in Test', () => {
       tap('sleep', '2026-10-16'),
       { type: 'setMode', mode: 'test' },
       tap('sleep', '2026-10-19'),
-      { type: 'nextDay', realDate: REAL },
-      { type: 'nextDay', realDate: REAL },
-      { type: 'nextDay', realDate: REAL },
+      // Test keeps 45 days open (T22), so it takes 46 Next days to lock its 19th.
+      ...Array.from({ length: 46 }, () => ({ type: 'nextDay' as const, realDate: REAL })),
     ).app;
     // Real: the 16th is 3 days back, so it's locked; the 17th is still open.
     expect(withData.real.state.lockedThrough).toBe('2026-10-16');
-    // Test is 3 days ahead (the 22nd), so its 19th is now locked.
+    // Test is 46 days ahead (Dec 4), so its 19th is now locked.
     expect(withData.test.state.lockedThrough).toBe('2026-10-19');
     expect(withData.test.state.locked['2026-10-19']).toBeDefined();
   });
