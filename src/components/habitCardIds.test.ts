@@ -6,7 +6,9 @@ import { join } from 'path';
 // Acceptance (T5): every element on the Habit Card has a test ID, so Playwright and
 // Maestro can find it. Decorative-only pieces (swipe hint text, effect particles, the
 // icon letter inside its tested circle) are the listed exceptions.
-const source = readFileSync(join(__dirname, 'HabitCard.tsx'), 'utf8');
+const source = ['HabitCard.tsx', 'CardEffect.tsx']
+  .map((f) => readFileSync(join(__dirname, f), 'utf8'))
+  .join('\n');
 const ids = [
   'habit-card-',
   'habit-icon-',
@@ -17,6 +19,7 @@ const ids = [
   'habit-stars-',
   'habit-star-',
   'habit-label-',
+  'habit-dim-',
   'card-effect',
 ];
 

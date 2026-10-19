@@ -14,13 +14,42 @@ export const tuning = {
   card: {
     /** How far a swipe travels before it scores. */
     swipeThreshold: 110,
-    /** In-card score effect fade and grow. */
-    effectMs: 900,
-    /** Each particle rises this far (plus a stagger), then drifts up for driftMs. */
-    particleLift: 18,
-    particleLiftStagger: 6,
-    particleDriftTo: 30,
-    particleDriftMs: 400,
+    /** In-card score effects (T9). Distances and sizes are points; [min, max] ranges are random per particle. */
+    effects: {
+      /** How long one particle lives, from start to faded out. */
+      particleMs: 650,
+      /** Where the burst starts: this far in from the card's right edge, and this far down. */
+      originFromRight: 44,
+      originFromTop: 24,
+      /** Started: small sparkle. */
+      sparkleCount: 4,
+      sparkleDistance: [14, 24] as const,
+      sparkleSize: [8, 12] as const,
+      sparkleStaggerMs: 40,
+      /** On track: applause pop. A ring bursts out, then dots rise. */
+      popRingSize: 44,
+      popRingMs: 420,
+      popDotCount: 6,
+      popDotDistance: [18, 30] as const,
+      popDotSize: [4, 6] as const,
+      popDotDelayMs: 60,
+      /** Nailed it: fireworks in two waves with trails. */
+      fireworkFirstWave: 8,
+      fireworkSecondWave: 6,
+      fireworkWaveGapMs: 140,
+      fireworkDistance: [30, 52] as const,
+      fireworkSize: [3, 5] as const,
+      /** Card motion: On track pulse and Nailed it bounce (scale), and how long each takes. */
+      pulseScale: 1.03,
+      pulseMs: 160,
+      bounceScale: 1.05,
+      bounceDamping: 8,
+      /** Not today: the card eases to gray. */
+      dimMs: 250,
+      /** Reduced motion: the stars flash instead of particles. */
+      flashMs: 200,
+      flashOpacity: 0.35,
+    },
   },
 
   sky: {
