@@ -32,7 +32,6 @@ const MONTHS = [
 ];
 /** By saved weekday number: Monday is 0. */
 const WEEKDAY_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const WEEKDAY_LONG = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const WEEKDAY_LETTER = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 /** "October 2026" */
@@ -150,32 +149,56 @@ export function dayCellLabel(cell: DayCell): string {
   return `${date}, ${result.rank} rank`;
 }
 
+const MINUTES_PER_DAY = 24 * 60;
+
 /**
- * The line under the date on the Day screen. Today and the 2 days before are open; the day 2
- * days back locks tonight at midnight. Locking always uses the real date.
+ * The short line at the top of the Day screen's sheet (changed 2026-10-19, T24). An open day
+ * counts down to the midnight it locks: "Habits lock in 38hrs", then "Habits lock in 12mins" in
+ * the last hour. Real locks a day once it's more than 2 days old: "Habits locked in", cards off.
+ * Test keeps those older days changeable (T22), so they read "Habits locked in" but stay open.
+ * `now` is the clock time; only its hours and minutes are used, against the (pretend) today.
  */
 export function dayStatusText(
   date: DateKey,
-  realToday: DateKey,
+  today: DateKey,
   lockedThrough: DateKey | null,
   openDays: number = calendar.openDaysBeforeToday,
+  now: Date = new Date(),
 ) {
-  if (isLocked(date, lockedThrough) || daysBetween(date, realToday) > openDays) {
-    return { locked: true, text: `Locked. Only the last ${openDays} days can change.` };
+  const age = daysBetween(date, today);
+  if (isLocked(date, lockedThrough) || age > openDays) {
+    return { locked: true, text: 'Habits locked in' };
   }
-  const nightsLeft = openDays - daysBetween(date, realToday);
-  if (nightsLeft <= 0) return { locked: false, text: 'You can change this day until tonight' };
-  if (nightsLeft === 1)
-    return { locked: false, text: 'You can change this day until tomorrow night' };
-  // Within a week, name the night. Further out (Test's 45-day window), name the date.
-  if (nightsLeft < 7) {
-    const lockNight = WEEKDAY_LONG[(weekdayIndex(realToday) + nightsLeft) % 7];
-    return { locked: false, text: `You can change this day until ${lockNight} night` };
-  }
-  return {
-    locked: false,
-    text: `You can change this day until ${shortDate(addDays(realToday, nightsLeft))}`,
-  };
+  const realWindow = calendar.openDaysBeforeToday;
+  if (age > realWindow) return { locked: false, text: 'Habits locked in' };
+  return { locked: false, text: lockCountdown(realWindow - age, now) };
+}
+
+/** Time left until the midnight that ends `fullDaysAfterToday` days after today. */
+export function lockCountdown(fullDaysAfterToday: number, now: Date): string {
+  const sinceMidnight = now.getHours() * 60 + now.getMinutes();
+  const minutes = Math.max(1, (fullDaysAfterToday + 1) * MINUTES_PER_DAY - sinceMidnight);
+  if (minutes < 60) return `Habits lock in ${minutes}${minutes === 1 ? 'min' : 'mins'}`;
+  const hours = Math.floor(minutes / 60);
+  return `Habits lock in ${hours}${hours === 1 ? 'hr' : 'hrs'}`;
+}
+
+/**
+ * The Energy bar label on the Day screen (T24): "Today" for today, otherwise the date in the
+ * phone's format ("Thu, Oct 15" in the US), with the year added outside today's year.
+ * `locale` is undefined on the phone (its own setting); tests pin one.
+ */
+export function dayBarLabel(date: DateKey, today: DateKey, locale?: string): string {
+  if (date === today) return 'Today';
+  const [y, m, d] = date.split('-').map(Number);
+  const sameYear = date.slice(0, 4) === today.slice(0, 4);
+  return new Intl.DateTimeFormat(locale, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    ...(sameYear ? {} : { year: 'numeric' }),
+    timeZone: 'UTC',
+  }).format(new Date(Date.UTC(y!, m! - 1, d!)));
 }
 
 /**

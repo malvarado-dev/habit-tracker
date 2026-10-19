@@ -15,12 +15,9 @@ const scene = read('SceneLayout.tsx');
 const hook = read('useCritterAndMoment.ts');
 
 describe('acceptance: Day screen scene (T23)', () => {
-  it.each(['day-screen', 'day-back', 'day-sheet', 'day-title', 'day-status', 'day-habit-list'])(
-    'has test ID %s',
-    (id) => {
-      expect(dayScreen).toContain(`"${id}"`);
-    },
-  );
+  it.each(['day-screen', 'day-back', 'day-status', 'day-habit-list'])('has test ID %s', (id) => {
+    expect(dayScreen).toContain(`"${id}"`);
+  });
 
   it('the shared layout keeps the Background, critter, sheet, and History IDs', () => {
     for (const id of ['habit-sheet', 'background-card', 'wide-history', 'wide-page']) {

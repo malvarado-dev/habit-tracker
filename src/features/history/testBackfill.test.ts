@@ -113,27 +113,27 @@ describe('History in Test (T22)', () => {
     expect(real.kind).toBe('day');
   });
 
-  it('the Day screen line names the lock date for far days, and the window size when locked', () => {
-    expect(dayStatusText(OLDEST, REAL, null, 45)).toEqual({
+  it('Test: days past the real 2-day window read "Habits locked in" but stay open (T24)', () => {
+    const noon = new Date(2026, 9, 19, 12);
+    expect(dayStatusText(OLDEST, REAL, null, 45, noon)).toEqual({
       locked: false,
-      text: 'You can change this day until tonight',
+      text: 'Habits locked in',
     });
-    expect(dayStatusText('2026-10-01', REAL, null, 45)).toEqual({
+    expect(dayStatusText('2026-10-01', REAL, null, 45, noon)).toEqual({
       locked: false,
-      text: 'You can change this day until Sun, Nov 15',
+      text: 'Habits locked in',
     });
-    // 6 nights left: still named by weekday.
-    expect(dayStatusText('2026-09-10', REAL, null, 45).text).toBe(
-      'You can change this day until Sunday night',
-    );
-    expect(dayStatusText(TOO_OLD, REAL, null, 45)).toEqual({
+    // The last 2 days still count down in Test.
+    expect(dayStatusText(REAL, REAL, null, 45, noon).text).toMatch(/^Habits lock in \d+hrs$/);
+    // Past the 45-day window, and in Real past 2 days: locked.
+    expect(dayStatusText(TOO_OLD, REAL, null, 45, noon)).toEqual({
       locked: true,
-      text: 'Locked. Only the last 45 days can change.',
+      text: 'Habits locked in',
     });
-    // Real wording is unchanged.
-    expect(dayStatusText('2026-10-10', REAL, null).text).toBe(
-      'Locked. Only the last 2 days can change.',
-    );
+    expect(dayStatusText('2026-10-10', REAL, null, 2, noon)).toEqual({
+      locked: true,
+      text: 'Habits locked in',
+    });
   });
 
   it('screens pass the window through and explain a day that is too far back', () => {

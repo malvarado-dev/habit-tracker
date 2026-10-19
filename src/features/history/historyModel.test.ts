@@ -1,9 +1,12 @@
 import { describe, expect, it } from '@jest/globals';
+
+import { energyLabel } from '@/components/energyBarText';
 import { createInitialState, type TrackerState } from '@/features/tracker/state';
 import { lockDays } from '@/rules/locking';
 import {
   canOpenDay,
   dayCellLabel,
+  dayBarLabel,
   dayStatusText,
   firstMonth,
   monthGrid,
@@ -84,24 +87,66 @@ describe('month arrows', () => {
   });
 });
 
-describe('Day screen status line', () => {
-  it('open days say when they lock, using the real date', () => {
-    expect(dayStatusText('2026-10-17', TODAY, null).text).toBe(
-      'You can change this day until tonight',
+describe('acceptance: Day screen lock line (T24)', () => {
+  // TODAY is a Monday in this file; the clock time is what counts down.
+  const at = (h: number, m = 0) => new Date(2026, 9, 19, h, m);
+
+  it('today counts down to the midnight 2 days out', () => {
+    expect(dayStatusText(TODAY, TODAY, null, 2, at(10)).text).toBe('Habits lock in 62hrs');
+  });
+
+  it('yesterday and the day before count down too', () => {
+    expect(dayStatusText('2026-10-18', TODAY, null, 2, at(10)).text).toBe('Habits lock in 38hrs');
+    expect(dayStatusText('2026-10-17', TODAY, null, 2, at(10)).text).toBe('Habits lock in 14hrs');
+  });
+
+  it('the last hour shows minutes', () => {
+    expect(dayStatusText('2026-10-17', TODAY, null, 2, at(23, 48)).text).toBe(
+      'Habits lock in 12mins',
     );
-    expect(dayStatusText('2026-10-18', TODAY, null).text).toBe(
-      'You can change this day until tomorrow night',
-    );
-    expect(dayStatusText(TODAY, TODAY, null).text).toBe(
-      'You can change this day until Wednesday night',
+    expect(dayStatusText('2026-10-17', TODAY, null, 2, at(23, 59)).text).toBe(
+      'Habits lock in 1min',
     );
   });
 
-  it('older days are locked', () => {
-    expect(dayStatusText('2026-10-16', TODAY, null)).toEqual({
+  it('exactly one hour left reads 1hr', () => {
+    expect(dayStatusText('2026-10-17', TODAY, null, 2, at(23)).text).toBe('Habits lock in 1hr');
+  });
+
+  it('older days in Real are locked', () => {
+    expect(dayStatusText('2026-10-16', TODAY, null, 2, at(10))).toEqual({
       locked: true,
-      text: 'Locked. Only the last 2 days can change.',
+      text: 'Habits locked in',
     });
+  });
+
+  it('a saved lock wins over the window', () => {
+    expect(dayStatusText('2026-10-17', TODAY, '2026-10-17', 2, at(10)).locked).toBe(true);
+  });
+});
+
+describe('acceptance: Day screen bar label (T24)', () => {
+  it('today reads Today', () => {
+    expect(dayBarLabel(TODAY, TODAY, 'en-US')).toBe('Today');
+  });
+
+  it('another day this year reads like "Thu, Oct 15"', () => {
+    expect(dayBarLabel('2026-10-15', TODAY, 'en-US')).toBe('Thu, Oct 15');
+  });
+
+  it('a day outside this year adds the year', () => {
+    expect(dayBarLabel('2025-12-31', TODAY, 'en-US')).toBe('Wed, Dec 31, 2025');
+  });
+
+  it("follows the phone's region format", () => {
+    expect(dayBarLabel('2026-10-15', TODAY, 'en-GB')).toBe('Thu 15 Oct');
+  });
+
+  it('screen readers hear the date in place of today', () => {
+    expect(energyLabel(0.64, false, 'Thu, Oct 15')).toBe(
+      '64 percent of Thu, Oct 15. Marks at 50, 75, and 90 percent.',
+    );
+    expect(energyLabel(0.64, false)).toContain('percent of today.');
   });
 });
 
