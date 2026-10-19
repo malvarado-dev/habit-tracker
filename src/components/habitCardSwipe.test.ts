@@ -9,7 +9,7 @@ import { tuning } from '@/config/tuning';
 const source = readFileSync(join(__dirname, 'HabitCard.tsx'), 'utf8');
 
 describe('acceptance: swipes (T6)', () => {
-  it('full right is Nailed it and full left is Not today', () => {
+  it('full right is Nailed it and full left is Skip', () => {
     expect(source).toContain("SwipeDirection.RIGHT ? 'NailedIt' : 'NotToday'");
   });
 

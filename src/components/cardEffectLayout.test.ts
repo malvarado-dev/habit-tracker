@@ -27,7 +27,7 @@ describe('in-card score effects (SPEC-00, T9)', () => {
     expect(p.some((x) => x.delayMs === e.fireworkWaveGapMs)).toBe(true);
   });
 
-  it('Not today and Score needed have no particles', () => {
+  it('Skip and To do have no particles', () => {
     expect(effectParticles('NotToday', colors)).toEqual([]);
     expect(effectParticles(undefined, colors)).toEqual([]);
   });

@@ -44,7 +44,7 @@ export const tuning = {
       /** Card motion: the On track pulse (scale) and how long each half takes. */
       pulseScale: 1.03,
       pulseMs: 160,
-      /** Not today: the card eases to gray. */
+      /** Skip: the card eases to gray. */
       dimMs: 250,
       /** Reduced motion: the stars flash instead of particles. */
       flashMs: 200,

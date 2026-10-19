@@ -3,7 +3,7 @@
 
 import { earlierDaysThisWeek, weekdayIndex, type DateKey } from './dates';
 
-/** A check-in for one habit on one day. Names follow the Glossary. No entry = Score needed. */
+/** A check-in for one habit on one day. Names follow the Glossary. No entry = To do. */
 export type CheckIn = 'NotToday' | 'Started' | 'OnTrack' | 'NailedIt';
 
 /** Monday is 0, Sunday is 6 (weeks run Monday to Sunday). */
@@ -54,8 +54,8 @@ export const STARS: Record<CheckIn, number> = {
 };
 
 /**
- * What a tap on the card does. Counts up from Score needed, then Not today, then back
- * to Score needed, so the same tap also works as undo. Undefined means Score needed.
+ * What a tap on the card does. Counts up from To do, then Skip, then back
+ * to To do, so the same tap also works as undo. Undefined means To do.
  */
 export function nextCheckIn(current: CheckIn | undefined): CheckIn | undefined {
   switch (current) {
@@ -81,7 +81,7 @@ function counts(checkIn: CheckIn | undefined): checkIn is CheckIn {
   return checkIn !== undefined && STARS[checkIn] > 0;
 }
 
-/** Days earlier this week scored Started, On track, or Nailed it. Not today never counts. */
+/** Days earlier this week scored Started, On track, or Nailed it. Skip never counts. */
 export function daysDoneEarlierThisWeek(log: CheckInLog, habitId: string, date: DateKey): number {
   return earlierDaysThisWeek(date).filter((day) => counts(log[day]?.[habitId])).length;
 }
@@ -112,7 +112,7 @@ export function isDue(habit: Habit, log: CheckInLog, date: DateKey): boolean {
 export interface DailyResult {
   /** Habits due today. */
   dueCount: number;
-  /** Due habits with any check-in, including Not today. */
+  /** Due habits with any check-in, including Skip. */
   checkedInCount: number;
   /** Stars from due habits and optional (not due) habits. */
   earnedStars: number;
@@ -121,7 +121,7 @@ export interface DailyResult {
   hasCheckIn: boolean;
   /** Every due habit has a check-in. */
   isComplete: boolean;
-  /** Complete, and nothing counts toward a score (nothing due, or all Not today, and no optional scores). No rank. */
+  /** Complete, and nothing counts toward a score (nothing due, or all Skip, and no optional scores). No rank. */
   isRestDay: boolean;
   /** 0 to 1. Null when nothing counts yet. */
   score: number | null;
@@ -142,12 +142,12 @@ export function getDailyResult(habits: Habit[], log: CheckInLog, date: DateKey):
     if (isDue(habit, log, date)) {
       dueCount += 1;
       if (checkIn === undefined) {
-        // Score needed: still counts toward what's possible, so the score climbs as you check in.
+        // To do: still counts toward what's possible, so the score climbs as you check in.
         duePossible += MAX_STARS;
         continue;
       }
       checkedInCount += 1;
-      // Not today removes a due habit from today's math. It never lowers the rank.
+      // Skip removes a due habit from today's math. It never lowers the rank.
       if (checkIn === 'NotToday') continue;
       dueEarned += STARS[checkIn];
       duePossible += MAX_STARS;
@@ -179,7 +179,7 @@ export function getDailyResult(habits: Habit[], log: CheckInLog, date: DateKey):
 
 /**
  * How full the Energy bar is, 0 to 1: today's score, so every star moves it (decided 2026-10-18).
- * 100% means 3 stars on everything that counts today. Not today drops a habit from what's possible,
+ * 100% means 3 stars on everything that counts today. Skip drops a habit from what's possible,
  * and optional scores can only raise it. A Rest day shows a full bar.
  */
 export function getEnergy(result: DailyResult): number {

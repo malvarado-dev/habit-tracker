@@ -1,8 +1,8 @@
 // One habit card (design-spendio.md, Habit Card). A white pill: the weekly goal (progress
 // ring around a letter icon, or progress dots under the name), the name, three stars, and
-// one status slot. Tap cycles Started, On track, Nailed it, Not today, back to Score needed,
+// one status slot. Tap cycles Started, On track, Nailed it, Skip, back to To do,
 // so the same tap works as undo. Swipes are shortcuts, never the only way: full right = Nailed it,
-// full left = Not today. Short swipes were dropped in T6; vertical drags scroll and never score.
+// full left = Skip. Short swipes were dropped in T6; vertical drags scroll and never score.
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -37,7 +37,7 @@ export type GoalStyle = 'ring' | 'dots';
 interface HabitCardProps {
   habit: Habit;
   checkIn: CheckIn | undefined;
-  /** Due today: an unscored card says "Score needed". */
+  /** Due today: an unscored card says "To do". */
   isDue: boolean;
   /** Days this week scored Started or better, and the weekly goal. */
   progress: { done: number; goal: number };
@@ -67,7 +67,7 @@ export function HabitCard(props: HabitCardProps) {
   const dim = useSharedValue(checkIn === 'NotToday' ? 1 : 0);
   const flash = useSharedValue(1);
 
-  // Card motion, the Not today dim, and the reduced-motion star flash, once per score change.
+  // Card motion, the Skip dim, and the reduced-motion star flash, once per score change.
   useEffect(() => {
     if (burstId === 0) return;
     const dimTo = checkIn === 'NotToday' ? 1 : 0;
@@ -120,7 +120,7 @@ export function HabitCard(props: HabitCardProps) {
       overshootLeft={false}
       overshootRight={false}
       renderLeftActions={() => <SwipeHint text="Nailed it" color={c.scoreNailedIt} start />}
-      renderRightActions={() => <SwipeHint text="Not today" color={c.onSurfaceMuted} />}
+      renderRightActions={() => <SwipeHint text="Skip" color={c.onSurfaceMuted} />}
       onSwipeableWillOpen={handleSwipe}
       containerStyle={styles.swipeContainer}
     >
@@ -136,10 +136,10 @@ export function HabitCard(props: HabitCardProps) {
             progress.done,
             progress.goal,
           )}
-          accessibilityHint="Tap to change the score. Swipe right for Nailed it, left for Not today."
+          accessibilityHint="Tap to change the score. Swipe right for Nailed it, left for Skip."
           accessibilityActions={[
             { name: 'nailedIt', label: 'Nailed it' },
-            { name: 'notToday', label: 'Not today' },
+            { name: 'notToday', label: 'Skip' },
           ]}
           onAccessibilityAction={(e) =>
             onSwipe(e.nativeEvent.actionName === 'nailedIt' ? 'NailedIt' : 'NotToday')
@@ -300,7 +300,7 @@ function labelColor(c: ThemeColors, checkIn: CheckIn | undefined): string {
   }
 }
 
-/** Score needed = outlined gray, Not today = filled gray: different by shape, not shade alone. */
+/** To do = outlined gray, Skip = filled gray: different by shape, not shade alone. */
 function starColor(c: ThemeColors, checkIn: CheckIn | undefined, filled: boolean): string {
   if (checkIn === 'NotToday') return c.starNotToday;
   if (!filled) return c.starScoreNeeded;

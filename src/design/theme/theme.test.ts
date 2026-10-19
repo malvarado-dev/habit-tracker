@@ -76,7 +76,7 @@ describe('acceptance: a theme changes only the sheet, cards, text, and Energy ba
 
 describe('acceptance: AA contrast passes in both themes', () => {
   // [foreground, background, minimum]. Text needs 4.5:1; stars, rings, and the bar fill need 3:1.
-  // Rings sit on the white card and on the dimmed Not today card.
+  // Rings sit on the white card and on the dimmed Skip card.
   const pairs: [keyof ThemeColors, keyof ThemeColors, number][] = [
     ['onSurface', 'surface', 4.5],
     ['onSurface', 'surfaceDim', 4.5],

@@ -41,7 +41,7 @@ const SUN = '2026-10-18';
 const NEXT_MON = '2026-10-19';
 
 describe('nextCheckIn (tap cycle)', () => {
-  it('counts up from Score needed, then Not today, then back to Score needed', () => {
+  it('counts up from To do, then Skip, then back to To do', () => {
     expect(nextCheckIn(undefined)).toBe('Started');
     expect(nextCheckIn('Started')).toBe('OnTrack');
     expect(nextCheckIn('OnTrack')).toBe('NailedIt');
@@ -73,7 +73,7 @@ describe('SPEC-00 worked example: Run, Mon Wed Fri, weekly goal 3', () => {
     expect(getWeekProgress(run, log, day)).toEqual({ done, goal: 3 });
   });
 
-  it('Not today on a due day is not counted, so the day is a Rest day with no rank', () => {
+  it('Skip on a due day is not counted, so the day is a Rest day with no rank', () => {
     expect(getDailyResult([run], log, MON)).toMatchObject({ isRestDay: true, score: null });
   });
 
@@ -115,7 +115,7 @@ describe('due days', () => {
     expect(isDue(run, log, NEXT_MON)).toBe(true);
   });
 
-  it('Not today never fills a progress dot', () => {
+  it('Skip never fills a progress dot', () => {
     expect(getWeekProgress(run, { [MON]: { run: 'NotToday' } }, MON)).toEqual({ done: 0, goal: 3 });
   });
 });
@@ -136,7 +136,7 @@ describe('getDailyResult', () => {
     expect(getEnergy(result)).toBe(0);
   });
 
-  it('Not today on a due habit is removed from the math and never lowers the rank', () => {
+  it('Skip on a due habit is removed from the math and never lowers the rank', () => {
     const result = getDailyResult(
       [sleep, { ...sleep, id: 'diet', name: 'Diet' }],
       { [MON]: { sleep: 'NailedIt', diet: 'NotToday' } },
@@ -193,7 +193,7 @@ describe('Energy bar follows stars', () => {
     ).toBe(1);
   });
 
-  it('Not today drops a habit from what is possible', () => {
+  it('Skip drops a habit from what is possible', () => {
     const result = getDailyResult(
       [sleep, diet],
       { [MON]: { sleep: 'NailedIt', diet: 'NotToday' } },

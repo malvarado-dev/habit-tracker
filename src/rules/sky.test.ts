@@ -20,7 +20,7 @@ describe('getSkyLevel', () => {
     expect(getSkyLevel(full)).toBe('S');
   });
 
-  it('Not today wakes the sky but never lowers it', () => {
+  it('Skip wakes the sky but never lowers it', () => {
     const skipped = getDailyResult(habits, { [MON]: { sleep: 'NotToday', diet: 'NailedIt' } }, MON);
     expect(getSkyLevel(skipped)).toBe('S');
   });
