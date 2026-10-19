@@ -1,5 +1,6 @@
 // How bright the sky is. It mirrors the live rank without ever showing a letter (SPEC-00).
 
+import type { LockedDay } from './locking';
 import { getRank, type Rank } from './rank';
 import type { DailyResult } from './scoring';
 import { tuning } from '@/config/tuning';
@@ -11,6 +12,16 @@ export function getSkyLevel(result: DailyResult): SkyLevel {
   if (result.isRestDay) return 'rest';
   if (!result.hasCheckIn || result.score === null) return 'asleep';
   return getRank(result.score);
+}
+
+/**
+ * The Day screen's sky and critter (T23), from the same result History shows: the saved one on a
+ * locked day, the live one on an open day. No check-in is a quiet sky with the critter asleep.
+ */
+export function sceneLevel(day: LockedDay): SkyLevel {
+  if (day.outcome === 'rest') return 'rest';
+  if (day.outcome === 'rank' && day.rank) return day.rank;
+  return 'asleep';
 }
 
 /** Which sky the Background shows (background.md). Time of day only, never the theme. */

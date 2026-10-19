@@ -1,7 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 
 import type { DailyResult } from './scoring';
-import { finishedRank, initialPlayed, rankToPlay } from './rankMoment';
+import { finishedRank, initialPlayed, playedOnReturn, rankToPlay } from './rankMoment';
 
 const day = (over: Partial<DailyResult>): DailyResult => ({
   dueCount: 4,
@@ -51,5 +51,31 @@ describe('acceptance: rank moment timing (T15)', () => {
   it('finishedRank is null until the day is done', () => {
     expect(finishedRank(day({ isComplete: false }))).toBeNull();
     expect(finishedRank(day({ score: 0.5 }))).toBe('B');
+  });
+});
+
+describe('acceptance: returning to a hidden screen never replays (T23)', () => {
+  const finished = (score: number) => day({ isComplete: true, hasCheckIn: true, score });
+
+  it('a day finished elsewhere counts as played', () => {
+    expect(playedOnReturn(finished(1), null)).toBe('S');
+  });
+
+  it('keeps the higher rank already played', () => {
+    expect(playedOnReturn(finished(0.6), 'A')).toBe('A');
+  });
+
+  it('raises the played rank when the day got better elsewhere', () => {
+    expect(playedOnReturn(finished(0.95), 'B')).toBe('S');
+  });
+
+  it('an unfinished day leaves the played rank alone', () => {
+    expect(playedOnReturn(day({ isComplete: false, hasCheckIn: true, score: 1 }), 'C')).toBe('C');
+  });
+
+  it('after returning, only a further rise plays', () => {
+    const played = playedOnReturn(finished(0.8), null);
+    expect(rankToPlay(finished(0.8), played)).toBeNull();
+    expect(rankToPlay(finished(0.95), played)).toBe('S');
   });
 });

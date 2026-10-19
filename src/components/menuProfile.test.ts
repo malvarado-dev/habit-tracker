@@ -13,8 +13,14 @@ const profile = read('../app/profile.tsx');
 
 describe('acceptance: menu and Profile (T11)', () => {
   it('both Today layouts open the side menu from the menu button', () => {
-    expect(today.match(/onPress=\{\(\) => setMenuOpen\(true\)\}/g)).toHaveLength(2);
-    expect(today.match(/\{menu\}/g)).toHaveLength(2);
+    // One menu button and one side menu, drawn by SceneLayout in both layouts (T23).
+    expect(today).toMatch(
+      /corner=\{\(onPage\) => \(\s*<MenuButton[^]*?onPage=\{onPage\}[^]*?setMenuOpen\(true\)/,
+    );
+    expect(today).toContain('overlay={<SideMenu');
+    const scene = read('SceneLayout.tsx');
+    expect(scene.match(/\{corner\((true|false)\)\}/g)).toHaveLength(2);
+    expect(scene.match(/\{overlay\}/g)).toHaveLength(2);
   });
 
   it('the menu button keeps its "Menu" label and 44 pt size', () => {

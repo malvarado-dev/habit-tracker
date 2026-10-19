@@ -27,3 +27,14 @@ export function rankToPlay(result: DailyResult, played: Rank | null): Rank | nul
   if (played !== null && ORDER[rank] <= ORDER[played]) return null;
   return rank;
 }
+
+/**
+ * Coming back to a screen that was hidden (T23): whatever was finished meanwhile, for example
+ * on the Day screen, counts as already played, so returning never replays it.
+ */
+export function playedOnReturn(result: DailyResult, played: Rank | null): Rank | null {
+  const rank = finishedRank(result);
+  if (rank === null) return played;
+  if (played === null || ORDER[rank] > ORDER[played]) return rank;
+  return played;
+}
