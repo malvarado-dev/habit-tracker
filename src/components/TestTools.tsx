@@ -1,7 +1,8 @@
 // Test tools (SPEC-00, T14, moved to its own screen in T17): prototype only. A Real / Test switch,
 // the date, and in Test only, Next day, Back to today, and Reset (tap twice). Real is your real
 // data on the real date; Test is a separate save, so History can be tried in full without
-// touching real tracking. Ring/Dots and Theme live in Profile, where the playtest records them.
+// touching real tracking. Ring/Dots and Theme live in Profile, where the playtest records them; a Profile settings link
+// opens it (T19).
 //
 // To remove after Stage 3:
 // 1. Delete this file, testToolsText.ts, testTools.test.ts, TestModeBanner.tsx,
@@ -12,6 +13,7 @@
 //    testTools. The real save shape (state.ts) has no test fields, so it doesn't change.
 // To only hide it, set SHOW_TEST_TOOLS to false in src/config/prototype.ts.
 
+import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -68,6 +70,16 @@ export function TestTools() {
       <Text style={styles.date} testID="test-tools-date" accessibilityLiveRegion="polite">
         {mode === 'test' ? pretendDateText(today, testTools.dayOffset) : realDateText(today)}
       </Text>
+
+      <Pressable
+        onPress={() => router.push({ pathname: '/profile', params: { from: 'test-tools' } })}
+        style={styles.button}
+        testID="test-tools-profile-link"
+        accessibilityRole="link"
+        accessibilityLabel="Profile settings, theme and weekly goal style"
+      >
+        <Text style={styles.buttonText}>Profile settings ›</Text>
+      </Pressable>
 
       {mode === 'test' ? (
         <View style={styles.row}>
@@ -150,6 +162,7 @@ const makeStyles = (c: ThemeColors) =>
     date: { ...textStyle('body', '600'), color: c.onSurface },
     row: { flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' },
     button: {
+      alignSelf: 'flex-start',
       minHeight: MIN_TAP_SIZE,
       paddingHorizontal: space.lg,
       justifyContent: 'center',
