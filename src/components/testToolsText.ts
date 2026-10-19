@@ -17,3 +17,15 @@ export function pretendDateText(today: DateKey, dayOffset: number): string {
     dayOffset === 0 ? 'today' : `${dayOffset} ${dayOffset === 1 ? 'day' : 'days'} ahead`;
   return `Testing as ${shortDate(today)} (${ahead})`;
 }
+
+/** "Today is Mon, Oct 19". Real is always the real date. */
+export function realDateText(today: DateKey): string {
+  return `Today is ${shortDate(today)}`;
+}
+
+/** One line under the Real / Test switch saying what each one is. */
+export function modeHelpText(mode: 'real' | 'test'): string {
+  return mode === 'real'
+    ? 'Your real data on the real date. Test tools are off.'
+    : 'A separate test save. Your real data is untouched.';
+}

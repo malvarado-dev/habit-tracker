@@ -1,5 +1,5 @@
 // The side menu (SPEC-00, T11): slides in from the left over Today with Profile, Habits, and
-// History (T16).
+// History (T16), then a divider and the prototype-only Test tools (T17).
 // Tapping the shade or pressing back on Android closes it. Reduced motion: no slide.
 
 import { router } from 'expo-router';
@@ -14,6 +14,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { SHOW_TEST_TOOLS } from '@/config/prototype';
 import { tuning } from '@/config/tuning';
 import { textStyle } from '@/design/fonts';
 import { withAlpha } from '@/design/theme/theme';
@@ -66,10 +67,14 @@ export function SideMenu({ open, onClose }: { open: boolean; onClose: () => void
 
   if (!open && (!mounted || reduceMotion)) return null;
 
-  const go = (path: (typeof ITEMS)[number]['path']) => {
+  const go = (path: (typeof ITEMS)[number]['path'] | '/test-tools') => {
     onClose();
     // Habits and History name where Back goes; from the menu that's Today.
-    router.push(path === '/profile' ? path : { pathname: path, params: { from: 'today' } });
+    router.push(
+      path === '/profile' || path === '/test-tools'
+        ? path
+        : { pathname: path, params: { from: 'today' } },
+    );
   };
 
   return (
@@ -109,6 +114,25 @@ export function SideMenu({ open, onClose }: { open: boolean; onClose: () => void
             <Text style={styles.chevron}>›</Text>
           </Pressable>
         ))}
+        {/* Prototype only (T17); see TestTools.tsx for how to remove. */}
+        {SHOW_TEST_TOOLS ? (
+          <>
+            <View style={styles.divider} importantForAccessibility="no" />
+            <Pressable
+              onPress={() => go('/test-tools')}
+              style={({ pressed }) => [styles.row, styles.testRow, pressed && styles.pressed]}
+              testID="menu-test-tools"
+              accessibilityRole="button"
+              accessibilityLabel="Test tools, prototype only"
+            >
+              <View>
+                <Text style={styles.rowText}>Test tools</Text>
+                <Text style={styles.rowSub}>Prototype only</Text>
+              </View>
+              <Text style={styles.chevron}>›</Text>
+            </Pressable>
+          </>
+        ) : null}
       </Animated.View>
     </View>
   );
@@ -148,4 +172,7 @@ const makeStyles = (c: ThemeColors) =>
     pressed: { opacity: 0.7 },
     rowText: { ...textStyle('habitName'), color: c.onSurface },
     chevron: { ...textStyle('habitName'), color: c.onSurfaceMuted },
+    divider: { height: 1, backgroundColor: c.border, marginVertical: space.sm },
+    testRow: { borderStyle: 'dashed', borderColor: c.onSurfaceMuted, paddingVertical: space.xs },
+    rowSub: { ...textStyle('caption'), color: c.onSurfaceMuted },
   });

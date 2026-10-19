@@ -206,6 +206,9 @@ export const weeklyGoalMet = {
   slotHeight: 24,
 } as const;
 
+/** Test mode strip at the bottom of every screen (T17, prototype only). */
+export const testBanner = { paddingVertical: 6 } as const;
+
 /** History (T16, canvas "History options · Stage 3"). Sizes in points. */
 export const history = {
   /** Day cell: minimum height (fits the face plus the date) and corner radius. */
