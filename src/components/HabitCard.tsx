@@ -14,7 +14,6 @@ import Animated, {
   useReducedMotion,
   useSharedValue,
   withSequence,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
@@ -86,11 +85,6 @@ export function HabitCard(props: HabitCardProps) {
       scale.value = withSequence(
         withTiming(fx.pulseScale, { duration: fx.pulseMs }),
         withTiming(1, { duration: fx.pulseMs }),
-      );
-    } else if (motion === 'bounce') {
-      scale.value = withSequence(
-        withTiming(fx.bounceScale, { duration: fx.pulseMs }),
-        withSpring(1, { damping: fx.bounceDamping }),
       );
     }
   }, [burstId, checkIn, reduceMotion, dim, flash, scale, fx]);
