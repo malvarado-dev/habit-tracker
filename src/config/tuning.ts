@@ -139,6 +139,12 @@ export const tuning = {
     /** Side menu slide in and out, and how dark the shade behind it gets (0 to 1). */
     slideMs: 220,
     shadeOpacity: 0.35,
+    /** Swipe left to close (T25): how far a drag moves before it counts as a swipe. */
+    swipeStartOffset: 12,
+    /** Letting go past this share of the panel width closes it (0 to 1). */
+    swipeCloseShare: 1 / 3,
+    /** A flick left this fast (points per second) closes it from any distance. */
+    swipeCloseVelocity: 500,
   },
 
   critter: {
