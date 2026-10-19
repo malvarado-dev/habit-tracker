@@ -3,8 +3,8 @@ import { EVERY_DAY, getDailyResult, type Habit } from './scoring';
 import { getSkyLevel, isDaytime, statusBarStyle } from './sky';
 
 const habits: Habit[] = [
-  { id: 'sleep', name: 'Sleep', goal: { kind: 'specificDays', days: EVERY_DAY } },
-  { id: 'diet', name: 'Diet', goal: { kind: 'specificDays', days: EVERY_DAY } },
+  { id: 'sleep', name: 'Sleep', goal: { kind: 'specificDays', days: EVERY_DAY }, color: 'habit1' },
+  { id: 'diet', name: 'Diet', goal: { kind: 'specificDays', days: EVERY_DAY }, color: 'habit1' },
 ];
 const MON = '2026-10-12';
 
@@ -30,6 +30,7 @@ describe('getSkyLevel', () => {
       id: 'ex',
       name: 'Exercise',
       goal: { kind: 'anyDays', timesPerWeek: 3 },
+      color: 'habit1',
     };
     const result = getDailyResult([exercise], { [MON]: { ex: 'NailedIt' } }, MON);
     expect(getSkyLevel(result)).toBe('S');

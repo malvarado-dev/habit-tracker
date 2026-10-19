@@ -17,10 +17,27 @@ export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 export type WeeklyGoal =
   { kind: 'specificDays'; days: Weekday[] } | { kind: 'anyDays'; timesPerWeek: number };
 
+/** One of the 8 curated habit colors (design-spendio.md, habit-1 to habit-8). */
+export type HabitColor =
+  'habit1' | 'habit2' | 'habit3' | 'habit4' | 'habit5' | 'habit6' | 'habit7' | 'habit8';
+
+export const HABIT_COLORS: HabitColor[] = [
+  'habit1',
+  'habit2',
+  'habit3',
+  'habit4',
+  'habit5',
+  'habit6',
+  'habit7',
+  'habit8',
+];
+
 export interface Habit {
   id: string;
   name: string;
   goal: WeeklyGoal;
+  /** Shown in the progress ring, the icon, and the dots. */
+  color: HabitColor;
 }
 
 /** Every check-in, keyed by date, then by habit id. */

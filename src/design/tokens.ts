@@ -129,3 +129,21 @@ export const typography = {
 
 export const rounded = { md: 12, lg: 20, xl: 24, '2xl': 28, full: 9999 } as const;
 export const spacing = { 1: 4, 2: 8, 3: 12, 4: 16, 6: 24, 8: 32 } as const;
+
+/** Habit Card sizes from design-spendio.md components (progress-ring, habit-icon, stars). */
+export const habitCardSizes = {
+  ring: 48,
+  ringStroke: 4,
+  icon: 36,
+  star: 18,
+  dot: 8,
+  dotStroke: 1.5,
+} as const;
+
+/** How strong tints are: the icon circle behind the letter, and the empty ring track. */
+export const tints = { icon: 0.13, ringTrack: 0.12 } as const;
+
+/** Card shadow from design-spendio.md Elevation & Depth: soft, warm, low. */
+export const shadows = {
+  card: '0px 4px 14px rgba(120, 100, 60, 0.08), 0px 1px 2px rgba(120, 100, 60, 0.06)',
+} as const;

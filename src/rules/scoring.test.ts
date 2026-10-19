@@ -14,14 +14,21 @@ const sleep: Habit = {
   id: 'sleep',
   name: 'Sleep',
   goal: { kind: 'specificDays', days: EVERY_DAY },
+  color: 'habit1',
 };
 const exercise: Habit = {
   id: 'exercise',
   name: 'Exercise',
   goal: { kind: 'anyDays', timesPerWeek: 3 },
+  color: 'habit1',
 };
 // SPEC-00 worked example: Run, Specific days Mon, Wed, Fri (weekly goal 3).
-const run: Habit = { id: 'run', name: 'Run', goal: { kind: 'specificDays', days: [0, 2, 4] } };
+const run: Habit = {
+  id: 'run',
+  name: 'Run',
+  goal: { kind: 'specificDays', days: [0, 2, 4] },
+  color: 'habit1',
+};
 
 // Week of Monday 2026-10-12 to Sunday 2026-10-18.
 const MON = '2026-10-12';

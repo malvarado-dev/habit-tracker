@@ -1,6 +1,12 @@
 import { describe, expect, it } from '@jest/globals';
 import { EVERY_DAY } from '@/rules/scoring';
-import { createInitialState, isTrackerState, trackerReducer, type TrackerState } from './state';
+import {
+  createInitialState,
+  isTrackerState,
+  leastUsedColor,
+  trackerReducer,
+  type TrackerState,
+} from './state';
 
 const MON = '2026-10-12';
 
@@ -52,6 +58,7 @@ describe('trackerReducer', () => {
       id: 'read',
       name: 'Reading',
       goal: { kind: 'specificDays', days: EVERY_DAY },
+      color: 'habit2',
     });
     const blank = apply(createInitialState(), { type: 'addHabit', id: 'x', name: '   ' });
     expect(blank.habits).toHaveLength(4);
@@ -107,6 +114,33 @@ describe('trackerReducer', () => {
       { type: 'reset' },
     );
     expect(state).toEqual(createInitialState());
+  });
+});
+
+describe('habit colors', () => {
+  it('the four starter habits each get their own color', () => {
+    const colors = createInitialState().habits.map((h) => h.color);
+    expect(new Set(colors).size).toBe(4);
+  });
+
+  it('a new habit gets the least-used color, earliest in the palette on a tie', () => {
+    const starters = createInitialState().habits; // uses habit1, habit3, habit5, habit6
+    expect(leastUsedColor(starters)).toBe('habit2');
+    expect(leastUsedColor([])).toBe('habit1');
+  });
+
+  it('once every color is used, it starts reusing the least-used one', () => {
+    let state = createInitialState();
+    for (let i = 0; i < 5; i++) {
+      state = trackerReducer(state, { type: 'addHabit', id: `h${i}`, name: `Habit ${i}` });
+    }
+    expect(state.habits.map((h) => h.color).slice(4)).toEqual([
+      'habit2',
+      'habit4',
+      'habit7',
+      'habit8',
+      'habit1',
+    ]);
   });
 });
 

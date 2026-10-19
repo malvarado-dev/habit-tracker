@@ -8,11 +8,19 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Celebration, type CelebrationKind } from '@/components/Celebration';
 import { CritterScene, type Beam } from '@/components/CritterScene';
-import { HabitCard } from '@/components/HabitCard';
+import { HabitCard, type GoalStyle } from '@/components/HabitCard';
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import type { DateKey } from '@/rules/dates';
 import { getRank } from '@/rules/rank';
-import { getDailyResult, getEnergy, nextCheckIn, STARS, type CheckIn } from '@/rules/scoring';
+import {
+  getDailyResult,
+  getEnergy,
+  getWeekProgress,
+  isDue,
+  nextCheckIn,
+  STARS,
+  type CheckIn,
+} from '@/rules/scoring';
 import { getSkyLevel, isDaytime } from '@/rules/sky';
 import { font, MIN_TAP_SIZE, radius, space, WIDE_LAYOUT_MIN_WIDTH } from '@/theme';
 import { tuning } from '@/config/tuning';
@@ -31,6 +39,8 @@ export default function HomeScreen() {
   const todayLog = state.log[today] ?? {};
 
   const [beam, setBeam] = useState<Beam | null>(null);
+  // Temporary, not saved: Profile's Weekly goal style setting arrives in T11.
+  const [goalStyle, setGoalStyle] = useState<GoalStyle>('ring');
   const [celebration, setCelebration] = useState<CelebrationKind | null>(null);
 
   const dayKey = !result.isComplete
@@ -85,6 +95,9 @@ export default function HomeScreen() {
             key={habit.id}
             habit={habit}
             checkIn={current}
+            isDue={isDue(habit, state.log, today)}
+            progress={getWeekProgress(habit, state.log, today)}
+            goalStyle={goalStyle}
             onTap={() => checkIn(habit.id, nextCheckIn(current), true)}
             onSwipe={(value) => checkIn(habit.id, value, false)}
           />
@@ -110,6 +123,8 @@ export default function HomeScreen() {
             </>
           )}
           <TestTools
+            goalStyle={goalStyle}
+            onGoalStyle={setGoalStyle}
             onNextDay={() => dispatch({ type: 'nextDay' })}
             onReset={() => {
               lastCelebrated.current = null;
@@ -144,7 +159,17 @@ function Header({ today }: { today: DateKey }) {
   );
 }
 
-function TestTools({ onNextDay, onReset }: { onNextDay: () => void; onReset: () => void }) {
+function TestTools({
+  goalStyle,
+  onGoalStyle,
+  onNextDay,
+  onReset,
+}: {
+  goalStyle: GoalStyle;
+  onGoalStyle: (style: GoalStyle) => void;
+  onNextDay: () => void;
+  onReset: () => void;
+}) {
   const styles = useStyles();
   const { preference, setPreference } = useTheme();
   const [confirmReset, setConfirmReset] = useState(false);
@@ -178,6 +203,30 @@ function TestTools({ onNextDay, onReset }: { onNextDay: () => void; onReset: () 
             {confirmReset ? 'Tap again to erase all' : 'Reset'}
           </Text>
         </Pressable>
+      </View>
+      {/* Temporary until the Weekly goal style row in Profile (T11). */}
+      <View
+        style={styles.testRow}
+        accessibilityRole="radiogroup"
+        accessibilityLabel="Weekly goal style"
+      >
+        {(['ring', 'dots'] as const).map((option) => {
+          const selected = goalStyle === option;
+          return (
+            <Pressable
+              key={option}
+              onPress={() => onGoalStyle(option)}
+              style={[styles.testButton, selected && styles.chipSelected]}
+              testID={`goal-style-${option}`}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: selected }}
+            >
+              <Text style={[styles.testButtonText, selected && styles.chipSelectedText]}>
+                {option === 'ring' ? 'Ring' : 'Dots'}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
       {/* Temporary until the Theme row in Profile (T11). */}
       <View style={styles.testRow} accessibilityRole="radiogroup" accessibilityLabel="Theme">
