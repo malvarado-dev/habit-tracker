@@ -19,6 +19,7 @@ colors:
   night-horizon: "#A9BC8E"
   night-moon: "#F4F1FF"
   star: "#FFFFFF"
+  day-sparkle: "#B45309"
   on-sky-day: "#1F1F1F"
   on-sky-dark: "#FFFFFF"
 ---
@@ -40,11 +41,13 @@ The Background fills the whole screen behind the habit sheet. The sun or moon si
 ## Elevation & Depth
 Flat. No glows around the sun, moon, or critter (removed 2026-10-18); rank shows through sky brightness, star brightness, and the S-rank rays or moon bounce.
 
+Rank moment (T15, 2026-10-19): once every due habit is scored, a one-time effect plays 2 seconds later and grows with the rank. C: the sun or moon pulses once. B: a bigger pulse with sparkles twinkling around it. A: the sky flashes brighter and sparkles burst out from the sun or moon. S: a bright flash, the sun's rays flare (day only), and sparkles shower across the sky. It replays only if a later change raises the rank, never on app open, never on a Rest day, and never takes touches. The flash brightens the sky only; the critter is drawn in front of it and stays solid. Sparkles are day-sparkle amber by day (3.5:1 on the day sky) and star white at dusk and night. Reduced motion: the sky brightens briefly, more at higher ranks, and nothing moves. Every value lives in tuning.moment.
+
 ## Shapes
-Round sun and moon, pill-shaped clouds, tiny round stars.
+Round sun, a crescent moon that opens to the right (so it never reads as the sun; decided 2026-10-19), pill-shaped clouds, tiny round stars, and four-point sparkles for the rank moment.
 
 ## Components
-Sky (day, dusk, night), sun, moon, cloud, star. Later: weather layers (rain, snow, fog) on top of the sky, driven by the user's city.
+Sky (day, dusk, night), sun, crescent moon, cloud, star, rank-moment sparkle. Later: weather layers (rain, snow, fog) on top of the sky, driven by the user's city.
 
 ## Do's and Don'ts
 Do:
