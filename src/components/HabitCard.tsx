@@ -28,14 +28,9 @@ import type { ThemeColors } from '@/design/tokens';
 import { MAX_STARS, STARS, type CheckIn, type Habit } from '@/rules/scoring';
 import { MIN_TAP_SIZE, radius, space } from '@/theme';
 
+import { CardEffect } from './CardEffect';
+import { cardMotion } from './cardEffectLayout';
 import { cardAccessibilityLabel, iconLetter, statusText, weekProgressText } from './habitCardText';
-
-/** The in-card effect for each score (SPEC-00). Not today has none; the card just dims. T9 replaces these. */
-const EFFECTS: Partial<Record<CheckIn, string[]>> = {
-  Started: ['✨', '✨', '✨'],
-  OnTrack: ['👏', '👏', '✨', '👏'],
-  NailedIt: ['🎆', '🎇', '🎆', '✨', '🎇', '🎆'],
-};
 
 export type GoalStyle = 'ring' | 'dots';
 
@@ -66,6 +61,50 @@ export function HabitCard(props: HabitCardProps) {
     setShownCheckIn(checkIn);
     setBurstId((n) => n + 1);
   }
+  const reduceMotion = useReducedMotion();
+  const fx = tuning.card.effects;
+  const scale = useSharedValue(1);
+  const dim = useSharedValue(checkIn === 'NotToday' ? 1 : 0);
+  const flash = useSharedValue(1);
+
+  // Card motion, the Not today dim, and the reduced-motion star flash, once per score change.
+  useEffect(() => {
+    if (burstId === 0) return;
+    const dimTo = checkIn === 'NotToday' ? 1 : 0;
+    dim.value = reduceMotion ? dimTo : withTiming(dimTo, { duration: fx.dimMs });
+    if (reduceMotion) {
+      if (checkIn && checkIn !== 'NotToday') {
+        flash.value = withSequence(
+          withTiming(fx.flashOpacity, { duration: fx.flashMs / 2 }),
+          withTiming(1, { duration: fx.flashMs / 2 }),
+        );
+      }
+      return;
+    }
+    const motion = cardMotion(checkIn);
+    if (motion === 'pulse') {
+      scale.value = withSequence(
+        withTiming(fx.pulseScale, { duration: fx.pulseMs }),
+        withTiming(1, { duration: fx.pulseMs }),
+      );
+    } else if (motion === 'bounce') {
+      scale.value = withSequence(
+        withTiming(fx.bounceScale, { duration: fx.pulseMs }),
+        withSpring(1, { damping: fx.bounceDamping }),
+      );
+    }
+  }, [burstId, checkIn, reduceMotion, dim, flash, scale, fx]);
+
+  const scaleStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const dimStyle = useAnimatedStyle(() => ({ opacity: dim.value }));
+  const flashStyle = useAnimatedStyle(() => ({ opacity: flash.value }));
+  const effectColors = {
+    started: c.scoreStartedStar,
+    onTrack: c.scoreOnTrackStar,
+    nailedIt: c.scoreNailedItStar,
+    habit: habitColor,
+  };
+
   const stars = checkIn ? STARS[checkIn] : 0;
   const name = habit.name.trim() || 'Untitled habit';
   const id = habit.id;
@@ -88,71 +127,80 @@ export function HabitCard(props: HabitCardProps) {
       onSwipeableWillOpen={handleSwipe}
       containerStyle={styles.swipeContainer}
     >
-      <Pressable
-        onPress={onTap}
-        testID={`habit-card-${id}`}
-        accessibilityRole="button"
-        accessibilityLabel={cardAccessibilityLabel(
-          name,
-          checkIn,
-          isDue,
-          progress.done,
-          progress.goal,
-        )}
-        accessibilityHint="Tap to change the score. Swipe right for Nailed it, left for Not today."
-        accessibilityActions={[
-          { name: 'nailedIt', label: 'Nailed it' },
-          { name: 'notToday', label: 'Not today' },
-        ]}
-        onAccessibilityAction={(e) =>
-          onSwipe(e.nativeEvent.actionName === 'nailedIt' ? 'NailedIt' : 'NotToday')
-        }
-        style={({ pressed }) => [
-          styles.card,
-          { backgroundColor: checkIn === 'NotToday' ? c.surfaceDim : c.surface },
-          pressed && styles.pressed,
-        ]}
-      >
-        <View importantForAccessibility="no-hide-descendants" style={styles.row}>
-          {goalStyle === 'ring' ? (
-            <ProgressRing id={id} color={habitColor} track={c.onSurface} {...progress}>
-              <LetterIcon id={id} name={name} color={habitColor} />
-            </ProgressRing>
-          ) : (
-            <LetterIcon id={id} name={name} color={habitColor} />
+      <Animated.View style={scaleStyle}>
+        <Pressable
+          onPress={onTap}
+          testID={`habit-card-${id}`}
+          accessibilityRole="button"
+          accessibilityLabel={cardAccessibilityLabel(
+            name,
+            checkIn,
+            isDue,
+            progress.done,
+            progress.goal,
           )}
+          accessibilityHint="Tap to change the score. Swipe right for Nailed it, left for Not today."
+          accessibilityActions={[
+            { name: 'nailedIt', label: 'Nailed it' },
+            { name: 'notToday', label: 'Not today' },
+          ]}
+          onAccessibilityAction={(e) =>
+            onSwipe(e.nativeEvent.actionName === 'nailedIt' ? 'NailedIt' : 'NotToday')
+          }
+          style={({ pressed }) => [
+            styles.card,
+            { backgroundColor: c.surface },
+            pressed && styles.pressed,
+          ]}
+        >
+          <Animated.View
+            pointerEvents="none"
+            testID={`habit-dim-${id}`}
+            style={[styles.dim, { backgroundColor: c.surfaceDim }, dimStyle]}
+          />
+          <View importantForAccessibility="no-hide-descendants" style={styles.row}>
+            {goalStyle === 'ring' ? (
+              <ProgressRing id={id} color={habitColor} track={c.onSurface} {...progress}>
+                <LetterIcon id={id} name={name} color={habitColor} />
+              </ProgressRing>
+            ) : (
+              <LetterIcon id={id} name={name} color={habitColor} />
+            )}
 
-          <View style={styles.textBlock}>
-            <Text style={styles.name} numberOfLines={1} testID={`habit-name-${id}`}>
-              {name}
-            </Text>
-            {goalStyle === 'dots' ? (
-              <ProgressDots id={id} color={habitColor} {...progress} />
-            ) : null}
-          </View>
-
-          <View style={styles.right}>
-            <View style={styles.stars} testID={`habit-stars-${id}`}>
-              {Array.from({ length: MAX_STARS }, (_, i) => (
-                <Text
-                  key={i}
-                  testID={`habit-star-${id}-${i + 1}`}
-                  style={[styles.star, { color: starColor(c, checkIn, i < stars) }]}
-                >
-                  {i < stars || checkIn === 'NotToday' ? '★' : '☆'}
-                </Text>
-              ))}
+            <View style={styles.textBlock}>
+              <Text style={styles.name} numberOfLines={1} testID={`habit-name-${id}`}>
+                {name}
+              </Text>
+              {goalStyle === 'dots' ? (
+                <ProgressDots id={id} color={habitColor} {...progress} />
+              ) : null}
             </View>
-            <Text
-              style={[styles.status, { color: labelColor(c, checkIn) }]}
-              testID={`habit-label-${id}`}
-            >
-              {statusText(checkIn, isDue)}
-            </Text>
+
+            <View style={styles.right}>
+              <Animated.View style={[styles.stars, flashStyle]} testID={`habit-stars-${id}`}>
+                {Array.from({ length: MAX_STARS }, (_, i) => (
+                  <Text
+                    key={i}
+                    testID={`habit-star-${id}-${i + 1}`}
+                    style={[styles.star, { color: starColor(c, checkIn, i < stars) }]}
+                  >
+                    {i < stars || checkIn === 'NotToday' ? '★' : '☆'}
+                  </Text>
+                ))}
+              </Animated.View>
+              <Text
+                style={[styles.status, { color: labelColor(c, checkIn) }]}
+                testID={`habit-label-${id}`}
+              >
+                {statusText(checkIn, isDue)}
+              </Text>
+            </View>
           </View>
-        </View>
-        {burstId > 0 ? <CardEffect key={burstId} checkIn={checkIn} /> : null}
-      </Pressable>
+          {burstId > 0 && !reduceMotion ? (
+            <CardEffect key={burstId} checkIn={checkIn} colors={effectColors} />
+          ) : null}
+        </Pressable>
+      </Animated.View>
     </ReanimatedSwipeable>
   );
 }
@@ -273,46 +321,6 @@ function SwipeHint({ text, color, start }: { text: string; color: string; start?
   );
 }
 
-/** A short burst of particles inside the card. Mounted fresh (new key) for each score change. */
-function CardEffect({ checkIn }: { checkIn: CheckIn | undefined }) {
-  const styles = useStyles();
-  const reduceMotion = useReducedMotion();
-  const progress = useSharedValue(0);
-  const particles = checkIn ? EFFECTS[checkIn] : undefined;
-
-  useEffect(() => {
-    progress.value = withTiming(1, { duration: tuning.card.effectMs });
-  }, [progress]);
-
-  const style = useAnimatedStyle(() => ({
-    opacity: 1 - progress.value,
-    transform: [{ scale: 0.6 + progress.value * 0.8 }],
-  }));
-
-  if (!particles || reduceMotion) return null;
-  return (
-    <Animated.View pointerEvents="none" style={[styles.effect, style]} testID="card-effect">
-      {particles.map((p, i) => (
-        <Particle key={i} symbol={p} index={i} total={particles.length} />
-      ))}
-    </Animated.View>
-  );
-}
-
-function Particle({ symbol, index, total }: { symbol: string; index: number; total: number }) {
-  const styles = useStyles();
-  const lift = useSharedValue(0);
-  useEffect(() => {
-    lift.value = withSequence(
-      withSpring(-tuning.card.particleLift - (index % 3) * tuning.card.particleLiftStagger),
-      withTiming(-tuning.card.particleDriftTo, { duration: tuning.card.particleDriftMs }),
-    );
-  }, [lift, index]);
-  const style = useAnimatedStyle(() => ({ transform: [{ translateY: lift.value }] }));
-  const left = `${10 + (80 / Math.max(total - 1, 1)) * index}%` as const;
-  return <Animated.Text style={[styles.particle, { left }, style]}>{symbol}</Animated.Text>;
-}
-
 function useStyles() {
   const { colors } = useTheme();
   return useMemo(() => makeStyles(colors), [colors]);
@@ -361,6 +369,5 @@ const makeStyles = (c: ThemeColors) =>
     status: { ...textStyle('label'), minHeight: typography.label.lineHeight },
     hint: { flex: 1, justifyContent: 'center', paddingHorizontal: space.lg },
     hintText: textStyle('label'),
-    effect: { ...StyleSheet.absoluteFill },
-    particle: { position: 'absolute', top: '45%', fontSize: 22 },
+    dim: { ...StyleSheet.absoluteFill },
   });
