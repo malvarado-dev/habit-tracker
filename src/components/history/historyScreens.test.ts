@@ -55,3 +55,12 @@ describe('acceptance: History (T16)', () => {
     expect(walk(join(__dirname, '../../app')).filter((f) => f.includes('.test.'))).toEqual([]);
   });
 });
+
+describe('acceptance: no week highlight in the calendar (T20)', () => {
+  const view = readFileSync(join(__dirname, 'HistoryView.tsx'), 'utf8');
+  it('calendar rows have no gray highlight; the panel title names the week', () => {
+    expect(view).not.toContain('focusRow');
+    expect(view).not.toContain('surfaceDim');
+    expect(view).toContain('{weekTitle(date)}');
+  });
+});

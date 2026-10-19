@@ -20,7 +20,7 @@ import {
   type DayCell,
 } from '@/features/history/historyModel';
 import { useTracker } from '@/features/tracker/TrackerProvider';
-import { monthOf, weekStart, type DateKey } from '@/rules/dates';
+import { monthOf, type DateKey } from '@/rules/dates';
 import { MIN_TAP_SIZE, radius, space } from '@/theme';
 
 import { CritterFace } from './CritterFace';
@@ -38,7 +38,6 @@ export function HistoryView({ onOpenDay }: Props) {
 
   const weeks = monthGrid(month, state, today);
   const { canPrev, canNext } = monthLimits(month, state.log, today);
-  const focusWeek = weekStart(focusDay);
 
   const open = (date: DateKey) => {
     setFocusDay(date);
@@ -76,10 +75,7 @@ export function HistoryView({ onOpenDay }: Props) {
           ))}
         </View>
         {weeks.map((week) => (
-          <View
-            key={week[0]!.date}
-            style={[styles.row, week[0]!.date === focusWeek && styles.focusRow]}
-          >
+          <View key={week[0]!.date} style={styles.row}>
             {week.map((cell) => (
               <DayCellView key={cell.date} cell={cell} onOpen={open} />
             ))}
@@ -251,7 +247,6 @@ const makeStyles = (c: ThemeColors) =>
       padding: size.cellGap,
       borderRadius: size.weekRowRadius,
     },
-    focusRow: { backgroundColor: c.surfaceDim },
     weekday: {
       ...textStyle('caption', '700'),
       flex: 1,
