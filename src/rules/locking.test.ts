@@ -101,7 +101,7 @@ describe('a locked day never changes', () => {
       goal: { kind: 'anyDays', timesPerWeek: 1 },
     });
     state = trackerReducer(state, { type: 'renameHabit', habitId: 'diet', name: 'Food' });
-    state = trackerReducer(state, { type: 'removeHabit', habitId: 'wellbeing' });
+    state = trackerReducer(state, { type: 'removeHabit', habitId: 'wellbeing', date: TODAY });
     expect(historyDay(state, LOCKED)).toEqual(locked().locked[LOCKED]);
   });
 

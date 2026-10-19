@@ -17,7 +17,7 @@ import { history as size, todayLayout, type ThemeColors } from '@/design/tokens'
 import { canOpenDay, dayStatusText, shortDate } from '@/features/history/historyModel';
 import { useSettings } from '@/features/settings/SettingsProvider';
 import { useTracker } from '@/features/tracker/TrackerProvider';
-import { historyDay } from '@/rules/locking';
+import { allHabits, historyDay } from '@/rules/locking';
 import { cardNeed, getEnergyBar } from '@/rules/energy';
 import { existsOn, getWeekProgress, nextCheckIn, type CheckIn } from '@/rules/scoring';
 import { MIN_TAP_SIZE, space } from '@/theme';
@@ -69,7 +69,7 @@ export default function DayScreen() {
   const result = historyDay(state, date);
   const dayLog = state.log[date] ?? {};
   // Same bar math as Today (T18). Locked days keep their saved rank face; the bar is live.
-  const bar = getEnergyBar(state.habits, state.log, date);
+  const bar = getEnergyBar(allHabits(state), state.log, date);
 
   const checkIn = (habitId: string, value: CheckIn | undefined, viaTap: boolean) => {
     if (status.locked) return;
@@ -105,8 +105,8 @@ export default function DayScreen() {
         <EnergyBar fill={bar.fill} isRestDay={bar.isRestDay} />
 
         <View style={styles.cards} testID="day-habit-list">
-          {/* Only habits that existed that day (#52). */}
-          {state.habits
+          {/* Only habits active that day, including ones removed since (#52, T21). */}
+          {allHabits(state)
             .filter((h) => existsOn(h, date))
             .map((habit) => {
               const current = dayLog[habit.id];

@@ -53,6 +53,11 @@ export interface Habit {
    * existed before the rule, which keep their full goal.
    */
   addedOn?: DateKey;
+  /**
+   * The day the habit was removed (T21). It doesn't count on this day or after. Missing on
+   * habits that are still active.
+   */
+  removedOn?: DateKey;
 }
 
 /** Every check-in, keyed by date, then by habit id. */
@@ -96,9 +101,14 @@ function counts(checkIn: CheckIn | undefined): checkIn is CheckIn {
   return checkIn !== undefined && STARS[checkIn] > 0;
 }
 
-/** The habit existed on this date. Days before it was added never count toward its week. */
+/**
+ * The habit was active on this date: on or after the day it was added, and before the day it
+ * was removed (T21). Days outside those dates never count toward its week or a day's score.
+ */
 export function existsOn(habit: Habit, date: DateKey): boolean {
-  return habit.addedOn === undefined || date >= habit.addedOn;
+  if (habit.addedOn !== undefined && date < habit.addedOn) return false;
+  if (habit.removedOn !== undefined && date >= habit.removedOn) return false;
+  return true;
 }
 
 /**
@@ -194,7 +204,7 @@ export function getDailyResult(habits: Habit[], log: CheckInLog, date: DateKey):
       if (checkIn === 'NotToday') continue;
       dueEarned += STARS[checkIn];
       duePossible += MAX_STARS;
-    } else if (counts(checkIn)) {
+    } else if (existsOn(habit, date) && counts(checkIn)) {
       optionalEarned += STARS[checkIn];
       optionalPossible += MAX_STARS;
     }

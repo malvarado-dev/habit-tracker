@@ -7,7 +7,7 @@
 import type { CheckInLog, Habit } from '@/rules/scoring';
 import type { TrackerState } from './state';
 
-export const CURRENT_VERSION = 6;
+export const CURRENT_VERSION = 7;
 
 /** v3 (before T16): habits, check-ins, and the test-tools day offset. */
 interface SaveV3 {
@@ -43,7 +43,7 @@ function isV4(v: Record<string, unknown>): v is SaveV4 & Record<string, unknown>
   );
 }
 
-function isV5Shape(v: Record<string, unknown>, version: 5 | 6): boolean {
+function isV5Shape(v: Record<string, unknown>, version: 5 | 6 | 7): boolean {
   return (
     v.version === version &&
     Array.isArray(v.habits) &&
@@ -54,8 +54,9 @@ function isV5Shape(v: Record<string, unknown>, version: 5 | 6): boolean {
 }
 
 const isV5 = (v: Record<string, unknown>) => isV5Shape(v, 5);
-const isV6 = (v: Record<string, unknown>): v is TrackerState & Record<string, unknown> =>
-  isV5Shape(v, 6);
+const isV6 = (v: Record<string, unknown>) => isV5Shape(v, 6);
+const isV7 = (v: Record<string, unknown>): v is TrackerState & Record<string, unknown> =>
+  isV5Shape(v, 7) && Array.isArray(v.removed);
 
 /** One step per version: takes a valid save of that version, returns the next version. */
 const UPGRADES: Record<number, (save: Record<string, unknown>) => Record<string, unknown>> = {
@@ -90,6 +91,12 @@ const UPGRADES: Record<number, (save: Record<string, unknown>) => Record<string,
   5: (save) => {
     if (!isV5(save)) throw new Error('Not a valid v5 save');
     return { ...save, version: 6 };
+  },
+  // v6 to v7 (T21): removed habits are kept with the day they were removed. Habits removed
+  // before this have no record, so nothing changes for them. Everything else is copied as it was.
+  6: (save) => {
+    if (!isV6(save)) throw new Error('Not a valid v6 save');
+    return { ...save, version: 7, removed: [] };
   },
 };
 
@@ -128,7 +135,7 @@ export function loadSave(raw: string | null): LoadResult {
     return { kind: 'unreadable', raw };
   }
 
-  if (!isV6(save)) return { kind: 'unreadable', raw };
+  if (!isV7(save)) return { kind: 'unreadable', raw };
   return { kind: 'loaded', state: save, upgradedFrom: from === CURRENT_VERSION ? null : from };
 }
 

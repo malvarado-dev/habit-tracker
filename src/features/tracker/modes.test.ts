@@ -152,7 +152,7 @@ describe('loading', () => {
     expect(app.testOffset).toBe(0);
   });
 
-  it('upgrades a v4 real save to v6 keeping all real data, and drops its pretend date', async () => {
+  it('upgrades a v4 real save to v7 keeping all real data, and drops its pretend date', async () => {
     const v4 = {
       version: 4,
       habits: createInitialState().habits,
@@ -164,8 +164,9 @@ describe('loading', () => {
     const store = fakeStore({ [REAL_KEY]: JSON.stringify(v4) });
     const app = await loadAppState(store, new Date());
     expect(app.real.state).toEqual({
-      version: 6,
+      version: 7,
       habits: v4.habits,
+      removed: [],
       log: v4.log,
       locked: v4.locked,
       lockedThrough: v4.lockedThrough,

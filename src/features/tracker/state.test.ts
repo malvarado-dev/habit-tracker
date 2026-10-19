@@ -103,7 +103,7 @@ describe('trackerReducer', () => {
   it('never removes the last habit', () => {
     let state = createInitialState();
     for (const habit of state.habits) {
-      state = trackerReducer(state, { type: 'removeHabit', habitId: habit.id });
+      state = trackerReducer(state, { type: 'removeHabit', habitId: habit.id, date: '2026-10-19' });
     }
     expect(state.habits).toHaveLength(1);
   });
@@ -149,17 +149,25 @@ describe('acceptance: Habits and Edit habit (T12)', () => {
   it('the last habit cannot be removed', () => {
     let state = createInitialState();
     for (const id of ['sleep', 'diet', 'exercise']) {
-      state = trackerReducer(state, { type: 'removeHabit', habitId: id });
+      state = trackerReducer(state, { type: 'removeHabit', habitId: id, date: '2026-10-19' });
     }
     expect(state.habits.map((h) => h.id)).toEqual(['wellbeing']);
-    state = trackerReducer(state, { type: 'removeHabit', habitId: 'wellbeing' });
+    state = trackerReducer(state, {
+      type: 'removeHabit',
+      habitId: 'wellbeing',
+      date: '2026-10-19',
+    });
     expect(state.habits.map((h) => h.id)).toEqual(['wellbeing']);
   });
 
   it('Undo restores a removed habit with its history, in the same spot', () => {
     const before = scored();
     const habit = before.habits[1]!;
-    const removed = trackerReducer(before, { type: 'removeHabit', habitId: 'diet' });
+    const removed = trackerReducer(before, {
+      type: 'removeHabit',
+      habitId: 'diet',
+      date: '2026-10-19',
+    });
     const restored = trackerReducer(removed, { type: 'restoreHabit', habit, index: 1 });
     expect(restored.habits).toEqual(before.habits);
     expect(restored.log[day]?.diet).toBe('Started');
@@ -168,11 +176,14 @@ describe('acceptance: Habits and Edit habit (T12)', () => {
   it('Undo twice does not add the habit twice', () => {
     const before = scored();
     const habit = before.habits[1]!;
-    const once = trackerReducer(trackerReducer(before, { type: 'removeHabit', habitId: 'diet' }), {
-      type: 'restoreHabit',
-      habit,
-      index: 1,
-    });
+    const once = trackerReducer(
+      trackerReducer(before, { type: 'removeHabit', habitId: 'diet', date: '2026-10-19' }),
+      {
+        type: 'restoreHabit',
+        habit,
+        index: 1,
+      },
+    );
     expect(trackerReducer(once, { type: 'restoreHabit', habit, index: 1 }).habits).toHaveLength(4);
   });
 
