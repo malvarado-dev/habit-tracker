@@ -1,10 +1,9 @@
 // The critter (critter.md): a flat sunny dome with eyes and a mouth, its body running behind the
 // habit sheet. Idle motion is subtle: slow breathing, a blink every few seconds, and an
 // occasional glance. Asleep before the first check-in; the first check-in wakes it with a hop.
-// It hops a little on each score, its mouth follows the live rank, and a soft halo behind it
-// grows with today's score. Tap plays a small wiggle.
+// It hops a little on each score and its mouth follows the live rank. Tap plays a small wiggle.
 // Reduced motion: breathing at half strength and blinking stay; glancing, hops, and the wiggle
-// are off, and the halo changes without fading.
+// are off.
 
 import { useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
@@ -25,7 +24,7 @@ import { tuning } from '@/config/tuning';
 import { critter } from '@/design/tokens';
 import type { SkyLevel } from '@/rules/sky';
 
-import { critterGlow, critterLabel, critterMood, randomGap, type CritterMood } from './critterMood';
+import { critterLabel, critterMood, randomGap, type CritterMood } from './critterMood';
 
 const VIEW_W = 360;
 const VIEW_H = 260;
@@ -36,13 +35,11 @@ const EYES_X = [150, 210];
 type Props = {
   width: number;
   level: SkyLevel;
-  /** Today's daily score, 0 to 1, or null when nothing counts yet. */
-  score: number | null;
   /** Changes whenever a habit is scored, so the critter can hop. */
   reactKey: string;
 };
 
-export function Critter({ width, level, score, reactKey }: Props) {
+export function Critter({ width, level, reactKey }: Props) {
   const reduceMotion = useReducedMotion();
   const mood = critterMood(level);
   const asleep = mood === 'asleep';
@@ -56,7 +53,6 @@ export function Critter({ width, level, score, reactKey }: Props) {
   const breath = useSharedValue(0);
   const blink = useSharedValue(0);
   const glance = useSharedValue(0);
-  const glow = useSharedValue(critterGlow(level, score));
 
   // Breathing: never stops, slower asleep, half strength with reduced motion.
   useEffect(() => {
@@ -144,12 +140,6 @@ export function Critter({ width, level, score, reactKey }: Props) {
     }
   }, [mood, reactKey, reduceMotion, asleep, hop, stretch, c]);
 
-  // Halo follows today's score.
-  const glowTarget = critterGlow(level, score);
-  useEffect(() => {
-    glow.value = reduceMotion ? glowTarget : withTiming(glowTarget, { duration: c.glowFadeMs });
-  }, [glowTarget, reduceMotion, glow, c.glowFadeMs]);
-
   const breathStrength = reduceMotion ? c.reducedMotionBreathStrength : 1;
 
   const outerStyle = useAnimatedStyle(() => ({
@@ -162,7 +152,6 @@ export function Critter({ width, level, score, reactKey }: Props) {
   const eyesStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: glance.value * s }, { scaleY: 1 - 0.9 * blink.value }],
   }));
-  const glowStyle = useAnimatedStyle(() => ({ opacity: glow.value }));
 
   const wiggle = () => {
     if (reduceMotion) return;
@@ -174,8 +163,6 @@ export function Critter({ width, level, score, reactKey }: Props) {
     );
   };
 
-  const haloSize = width * c.glowSize;
-
   return (
     <Pressable
       onPress={wiggle}
@@ -185,22 +172,6 @@ export function Critter({ width, level, score, reactKey }: Props) {
       accessibilityHint="Tap to make it wiggle."
     >
       <Animated.View style={[{ width, height }, outerStyle]}>
-        <Animated.View
-          testID="critter-glow"
-          pointerEvents="none"
-          style={[
-            styles.halo,
-            {
-              width: haloSize,
-              height: haloSize,
-              borderRadius: haloSize / 2,
-              left: (width - haloSize) / 2,
-              top: height * 0.55 - haloSize / 2,
-              backgroundColor: critter.bodySunny,
-            },
-            glowStyle,
-          ]}
-        />
         <Animated.View
           testID="critter-body"
           style={[StyleSheet.absoluteFill, styles.body, bodyStyle]}
@@ -315,7 +286,6 @@ function Mouth({ mood }: { mood: CritterMood }) {
 }
 
 const styles = StyleSheet.create({
-  halo: { position: 'absolute' },
   body: { transformOrigin: 'bottom' },
   eyes: { position: 'absolute', left: 0 },
   eye: { position: 'absolute', top: 0 },

@@ -71,11 +71,6 @@ export const tuning = {
     /** Small hop each time a habit is scored. */
     scoreHop: 7,
     scoreHopMs: 140,
-    /** Halo behind the critter: opacity at the lowest and highest score, fade time, and size. */
-    glowMin: 0.12,
-    glowMax: 0.45,
-    glowFadeMs: 600,
-    glowSize: 1.35,
   },
 
   celebration: {

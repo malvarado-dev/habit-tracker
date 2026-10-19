@@ -38,7 +38,7 @@ Flat. No outlines, shading, or shadows.
 Built from interchangeable parts: a body shape (dome, drop, bean), eyes (dots, ovals, arcs), and a mouth that changes with mood (asleep, okay, happy, delighted). Personality can be data, like blink speed or bounce size, with no new art.
 
 ## Components
-Idle motion is subtle: slow breathing, a blink every few seconds, and an occasional glance. A tap plays a small wiggle. The first check-in wakes the critter with a small hop and stretch, and it hops a little on each score. The mouth follows the live rank: okay below B, happy at B and A, delighted at S. A soft halo in the body color sits behind the critter and grows with the day's score (on trial in the prototype; it may move to the Background). Reduced motion keeps blinking and breathing at half strength, and turns off glancing, hops, and the wiggle; the halo changes without fading. In the app, parts are assembled in code or Rive, never as AI-generated images.
+Idle motion is subtle: slow breathing, a blink every few seconds, and an occasional glance. A tap plays a small wiggle. The first check-in wakes the critter with a small hop and stretch, and it hops a little on each score. The mouth follows the live rank: okay below B, happy at B and A, delighted at S. No glow or halo around the critter (removed 2026-10-18). Reduced motion keeps blinking and breathing at half strength, and turns off glancing, hops, and the wiggle. In the app, parts are assembled in code or Rive, never as AI-generated images.
 
 ## Do's and Don'ts
 Do:
