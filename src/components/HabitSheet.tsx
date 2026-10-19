@@ -7,6 +7,7 @@ import { ScrollView, StyleSheet } from 'react-native';
 import { EnergyBar } from '@/components/EnergyBar';
 import { HabitCard } from '@/components/HabitCard';
 import { TestTools } from '@/components/TestTools';
+import { SHOW_TEST_TOOLS } from '@/config/prototype';
 import { useSettings } from '@/features/settings/SettingsProvider';
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import {
@@ -21,7 +22,7 @@ import { space } from '@/theme';
 
 export function HabitSheet({ bottomPadding }: { bottomPadding: number }) {
   const { state, dispatch, today } = useTracker();
-  const { goalStyle, setGoalStyle } = useSettings();
+  const { goalStyle } = useSettings();
   const result = getDailyResult(state.habits, state.log, today);
   const todayLog = state.log[today] ?? {};
 
@@ -61,12 +62,16 @@ export function HabitSheet({ bottomPadding }: { bottomPadding: number }) {
             />
           );
         })}
-        <TestTools
-          goalStyle={goalStyle}
-          onGoalStyle={setGoalStyle}
-          onNextDay={() => dispatch({ type: 'nextDay' })}
-          onReset={() => dispatch({ type: 'reset' })}
-        />
+        {/* Prototype only (T14); see TestTools.tsx for how to remove. */}
+        {SHOW_TEST_TOOLS ? (
+          <TestTools
+            today={today}
+            dayOffset={state.dayOffset}
+            onNextDay={() => dispatch({ type: 'nextDay' })}
+            onBackToToday={() => dispatch({ type: 'backToToday' })}
+            onReset={() => dispatch({ type: 'reset' })}
+          />
+        ) : null}
       </ScrollView>
     </>
   );

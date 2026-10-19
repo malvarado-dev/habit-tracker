@@ -1,103 +1,77 @@
-// Test-only tools (SPEC-00): Next day, Reset, and temporary Ring/Dots and Theme switches.
-// Clearly labeled, and removed after Stage 3. T14 finishes this area.
+// Test tools (SPEC-00, T14): prototype only, so a week can be played in minutes.
+// Shows the pretend date, Next day, Back to today, and Reset (tap twice to confirm).
+// Ring/Dots and Theme live in Profile, where the playtest records each tester's pick.
+//
+// To remove after Stage 3:
+// 1. Delete this file, testToolsText.ts, testTools.test.ts, and src/config/prototype.ts.
+// 2. In HabitSheet.tsx, delete the SHOW_TEST_TOOLS block and its two imports.
+// 3. In features/tracker/state.ts, delete the nextDay and backToToday actions and dayOffset.
+// To only hide it, set SHOW_TEST_TOOLS to false in src/config/prototype.ts.
 
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import type { GoalStyle } from '@/components/HabitCard';
-import { THEME_LABELS, THEME_PREFERENCES } from '@/design/theme/theme';
+import { textStyle } from '@/design/fonts';
 import { useTheme } from '@/design/theme/ThemeProvider';
 import type { ThemeColors } from '@/design/tokens';
-import { font, MIN_TAP_SIZE, radius, space } from '@/theme';
+import type { DateKey } from '@/rules/dates';
+import { MIN_TAP_SIZE, radius, space } from '@/theme';
 
-export function TestTools({
-  goalStyle,
-  onGoalStyle,
-  onNextDay,
-  onReset,
-}: {
-  goalStyle: GoalStyle;
-  onGoalStyle: (style: GoalStyle) => void;
+import { pretendDateText } from './testToolsText';
+
+export function TestTools(props: {
+  today: DateKey;
+  dayOffset: number;
   onNextDay: () => void;
+  onBackToToday: () => void;
   onReset: () => void;
 }) {
   const styles = useStyles();
-  const { preference, setPreference } = useTheme();
   const [confirmReset, setConfirmReset] = useState(false);
+  const ahead = props.dayOffset > 0;
+
   return (
-    <View style={styles.testTools} testID="test-tools">
-      <Text style={styles.testTitle}>Test tools (prototype only)</Text>
-      <View style={styles.testRow}>
+    <View style={styles.box} testID="test-tools">
+      <Text style={styles.title}>Test tools · prototype only</Text>
+      <Text style={styles.date} testID="test-tools-date" accessibilityLiveRegion="polite">
+        {pretendDateText(props.today, props.dayOffset)}
+      </Text>
+      <View style={styles.row}>
         <Pressable
-          onPress={onNextDay}
-          style={styles.testButton}
+          onPress={props.onNextDay}
+          style={styles.button}
           testID="next-day-button"
           accessibilityRole="button"
+          accessibilityLabel="Next day"
         >
-          <Text style={styles.testButtonText}>Next day ›</Text>
+          <Text style={styles.buttonText}>Next day ›</Text>
+        </Pressable>
+        <Pressable
+          onPress={props.onBackToToday}
+          disabled={!ahead}
+          style={[styles.button, !ahead && styles.off]}
+          testID="back-to-today-button"
+          accessibilityRole="button"
+          accessibilityLabel="Back to today, keeps your check-ins"
+          accessibilityState={{ disabled: !ahead }}
+        >
+          <Text style={styles.buttonText}>Back to today</Text>
         </Pressable>
         <Pressable
           onPress={() => {
-            if (confirmReset) {
-              setConfirmReset(false);
-              onReset();
-            } else {
-              setConfirmReset(true);
-            }
+            if (!confirmReset) return setConfirmReset(true);
+            setConfirmReset(false);
+            props.onReset();
           }}
-          style={[styles.testButton, confirmReset && styles.testButtonDanger]}
+          style={[styles.button, confirmReset && styles.confirm]}
           testID="reset-button"
           accessibilityRole="button"
           accessibilityLabel={confirmReset ? 'Tap again to erase everything' : 'Reset'}
         >
-          <Text style={[styles.testButtonText, confirmReset && styles.testButtonDangerText]}>
+          <Text style={[styles.buttonText, confirmReset && styles.confirmText]}>
             {confirmReset ? 'Tap again to erase all' : 'Reset'}
           </Text>
         </Pressable>
-      </View>
-      {/* Temporary until the Weekly goal style row in Profile (T11). */}
-      <View
-        style={styles.testRow}
-        accessibilityRole="radiogroup"
-        accessibilityLabel="Weekly goal style"
-      >
-        {(['ring', 'dots'] as const).map((option) => {
-          const selected = goalStyle === option;
-          return (
-            <Pressable
-              key={option}
-              onPress={() => onGoalStyle(option)}
-              style={[styles.testButton, selected && styles.chipSelected]}
-              testID={`goal-style-${option}`}
-              accessibilityRole="radio"
-              accessibilityState={{ checked: selected }}
-            >
-              <Text style={[styles.testButtonText, selected && styles.chipSelectedText]}>
-                {option === 'ring' ? 'Ring' : 'Dots'}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-      {/* Temporary until the Theme row in Profile (T11). */}
-      <View style={styles.testRow} accessibilityRole="radiogroup" accessibilityLabel="Theme">
-        {THEME_PREFERENCES.map((option) => {
-          const selected = preference === option;
-          return (
-            <Pressable
-              key={option}
-              onPress={() => setPreference(option)}
-              style={[styles.testButton, selected && styles.chipSelected]}
-              testID={`theme-option-${option}`}
-              accessibilityRole="radio"
-              accessibilityState={{ checked: selected }}
-            >
-              <Text style={[styles.testButtonText, selected && styles.chipSelectedText]}>
-                {THEME_LABELS[option]}
-              </Text>
-            </Pressable>
-          );
-        })}
       </View>
     </View>
   );
@@ -110,29 +84,29 @@ function useStyles() {
 
 const makeStyles = (c: ThemeColors) =>
   StyleSheet.create({
-    testTools: {
+    box: {
       marginTop: space.xl,
       padding: space.md,
       borderRadius: radius.md,
       borderWidth: 1,
       borderStyle: 'dashed',
-      borderColor: c.border,
+      borderColor: c.onSurfaceMuted,
       gap: space.sm,
     },
-    testTitle: { fontSize: font.small, color: c.onSurfaceMuted, fontWeight: '700' },
-    testRow: { flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' },
-    testButton: {
+    title: { ...textStyle('caption'), color: c.onSurfaceMuted },
+    date: { ...textStyle('body'), color: c.onSurface },
+    row: { flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' },
+    button: {
       minHeight: MIN_TAP_SIZE,
       paddingHorizontal: space.lg,
       justifyContent: 'center',
-      borderRadius: radius.sm,
+      borderRadius: radius.pill,
       backgroundColor: c.surface,
       borderWidth: 1,
       borderColor: c.border,
     },
-    testButtonText: { color: c.onSurface, fontWeight: '700' },
-    chipSelected: { backgroundColor: c.inverse, borderColor: c.inverse },
-    chipSelectedText: { color: c.onInverse },
-    testButtonDanger: { borderColor: c.onSurface },
-    testButtonDangerText: { color: c.onSurface },
+    buttonText: { ...textStyle('label'), color: c.onSurface },
+    off: { opacity: 0.4 },
+    confirm: { borderColor: c.danger },
+    confirmText: { color: c.danger },
   });
