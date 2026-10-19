@@ -1,4 +1,4 @@
-// Full-screen moments: the egg hatching, and the end-of-day rank. Every rank celebrates;
+// Full-screen moment: the end-of-day rank. Every rank celebrates;
 // C still celebrates showing up (Glossary). Tap anywhere to close.
 
 import { useEffect } from 'react';
@@ -14,7 +14,7 @@ import type { Rank } from '@/rules/rank';
 import { colors, font, radius, space } from '@/theme';
 import { tuning } from '@/config/tuning';
 
-export type CelebrationKind = { type: 'hatch' } | { type: 'rest' } | { type: 'rank'; rank: Rank };
+export type CelebrationKind = { type: 'rest' } | { type: 'rank'; rank: Rank };
 
 const RANK_STYLE: Record<Rank, { effect: string; message: string }> = {
   S: { effect: '🎆🎇🎆', message: 'Incredible day!' },
@@ -34,15 +34,13 @@ export function Celebration({ kind, onClose }: { kind: CelebrationKind; onClose:
   const popStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
   const content =
-    kind.type === 'hatch'
-      ? { big: '🐣', title: 'Your critter hatched!', body: 'Keep checking in to help it grow.' }
-      : kind.type === 'rest'
-        ? { big: '🌙', title: 'Rest day', body: 'Nothing due today. Enjoy it.' }
-        : {
-            big: kind.rank,
-            title: `${RANK_STYLE[kind.rank].effect}`,
-            body: RANK_STYLE[kind.rank].message,
-          };
+    kind.type === 'rest'
+      ? { big: '🌙', title: 'Rest day', body: 'Nothing due today. Enjoy it.' }
+      : {
+          big: kind.rank,
+          title: `${RANK_STYLE[kind.rank].effect}`,
+          body: RANK_STYLE[kind.rank].message,
+        };
 
   return (
     <Pressable

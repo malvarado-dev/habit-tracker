@@ -7,16 +7,8 @@ export const tuning = {
   celebrationDelayMs: 2000,
 
   rank: {
-    /**
-     * Lowest daily score (0 to 1) for each rank. Anything lower is C.
-     * SPEC-00 has one set for everyone (S 90, A 75, B 50). The per-mode sets stay until T2
-     * removes modes from the rules, so behavior doesn't change in this ticket.
-     */
-    cutoffs: {
-      Beginner: { S: 0.8, A: 0.6, B: 0.35 },
-      Challenger: { S: 0.9, A: 0.75, B: 0.5 },
-      Pro: { S: 0.95, A: 0.85, B: 0.65 },
-    },
+    /** Lowest daily score (0 to 1) for each rank. Anything lower is C. One set for everyone. */
+    cutoffs: { S: 0.9, A: 0.75, B: 0.5 },
   },
 
   card: {

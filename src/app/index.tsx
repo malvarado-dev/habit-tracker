@@ -12,14 +12,7 @@ import { HabitCard } from '@/components/HabitCard';
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import type { DateKey } from '@/rules/dates';
 import { getRank } from '@/rules/rank';
-import {
-  getDailyResult,
-  getEnergy,
-  isTargetMetEarlier,
-  nextCheckIn,
-  STARS,
-  type CheckIn,
-} from '@/rules/scoring';
+import { getDailyResult, getEnergy, nextCheckIn, STARS, type CheckIn } from '@/rules/scoring';
 import { getSkyLevel, isDaytime } from '@/rules/sky';
 import {
   cardColors,
@@ -38,10 +31,8 @@ export default function HomeScreen() {
   const isWide = width >= WIDE_LAYOUT_MIN_WIDTH;
 
   const result = getDailyResult(state.habits, state.log, today);
-  const skyLevel = getSkyLevel(result, state.mode);
+  const skyLevel = getSkyLevel(result);
   const todayLog = state.log[today] ?? {};
-  const active = state.habits.filter((h) => !isTargetMetEarlier(h, state.log, today));
-  const doneForWeek = state.habits.filter((h) => isTargetMetEarlier(h, state.log, today));
 
   const [beam, setBeam] = useState<Beam | null>(null);
   const [celebration, setCelebration] = useState<CelebrationKind | null>(null);
@@ -50,7 +41,7 @@ export default function HomeScreen() {
     ? null
     : result.isRestDay
       ? `${today}-rest`
-      : `${today}-${result.score === null ? 'none' : getRank(result.score, state.mode)}`;
+      : `${today}-${result.score === null ? 'none' : getRank(result.score)}`;
 
   // Don't replay a celebration for a day that was already finished when the app opened.
   const lastCelebrated = useRef<string | null>(dayKey);
@@ -62,15 +53,14 @@ export default function HomeScreen() {
       setCelebration(
         result.isRestDay || result.score === null
           ? { type: 'rest' }
-          : { type: 'rank', rank: getRank(result.score, state.mode) },
+          : { type: 'rank', rank: getRank(result.score) },
       );
     }, tuning.celebrationDelayMs);
     return () => clearTimeout(timer);
-  }, [dayKey, result.isRestDay, result.score, state.mode]);
+  }, [dayKey, result.isRestDay, result.score]);
 
-  const checkIn = (habitId: string, value: CheckIn, viaTap: boolean) => {
-    if (!state.hatched) setCelebration({ type: 'hatch' });
-    setBeam((prev) => ({ id: (prev?.id ?? 0) + 1, stars: STARS[value] }));
+  const checkIn = (habitId: string, value: CheckIn | undefined, viaTap: boolean) => {
+    setBeam((prev) => ({ id: (prev?.id ?? 0) + 1, stars: value ? STARS[value] : 0 }));
     dispatch(
       viaTap
         ? { type: 'tapHabit', date: today, habitId }
@@ -80,12 +70,11 @@ export default function HomeScreen() {
 
   const scene = (
     <CritterScene
-      hatched={state.hatched}
       skyLevel={skyLevel}
       isDay={isDaytime(new Date().getHours())}
       energy={getEnergy(result)}
       checkedInCount={result.checkedInCount}
-      activeCount={result.activeCount}
+      dueCount={result.dueCount}
       glow={result.score ?? 0}
       beam={beam}
     />
@@ -93,7 +82,7 @@ export default function HomeScreen() {
 
   const habits = (
     <View style={styles.cards}>
-      {active.map((habit) => {
+      {state.habits.map((habit) => {
         const current = todayLog[habit.id];
         return (
           <HabitCard
@@ -106,11 +95,6 @@ export default function HomeScreen() {
           />
         );
       })}
-      {doneForWeek.length > 0 ? (
-        <Text style={styles.doneForWeek} testID="done-for-week">
-          Done for the week: {doneForWeek.map((h) => h.name).join(', ')} ✓
-        </Text>
-      ) : null}
     </View>
   );
 
@@ -118,7 +102,7 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={[styles.page, isWide && styles.pageWide]}>
-          <Header today={today} mode={state.mode} />
+          <Header today={today} />
           {isWide ? (
             <View style={styles.wideRow}>
               <View style={styles.wideColumn}>{habits}</View>
@@ -131,7 +115,7 @@ export default function HomeScreen() {
             </>
           )}
           <TestTools
-            onNextDay={() => dispatch({ type: 'nextDay', today })}
+            onNextDay={() => dispatch({ type: 'nextDay' })}
             onReset={() => {
               lastCelebrated.current = null;
               dispatch({ type: 'reset' });
@@ -144,7 +128,7 @@ export default function HomeScreen() {
   );
 }
 
-function Header({ today, mode }: { today: DateKey; mode: string }) {
+function Header({ today }: { today: DateKey }) {
   return (
     <View style={styles.header}>
       <Text style={styles.date} testID="today-date" accessibilityRole="header">
@@ -153,11 +137,11 @@ function Header({ today, mode }: { today: DateKey; mode: string }) {
       <Link href="/habits" asChild>
         <Pressable
           style={styles.modeButton}
-          testID="mode-label"
+          testID="habits-link"
           accessibilityRole="button"
-          accessibilityLabel={`${mode} mode. Opens Habits and Mode.`}
+          accessibilityLabel="Habits"
         >
-          <Text style={styles.modeText}>{mode} mode ›</Text>
+          <Text style={styles.modeText}>Habits ›</Text>
         </Pressable>
       </Link>
     </View>
@@ -236,7 +220,6 @@ const styles = StyleSheet.create({
   },
   modeText: { fontSize: font.small, fontWeight: '700', color: colors.accent },
   cards: { gap: space.md },
-  doneForWeek: { color: colors.textMuted, fontSize: font.small, textAlign: 'center' },
   testTools: {
     marginTop: space.xl,
     padding: space.md,
