@@ -10,6 +10,7 @@ const habits = read('../../app/habits.tsx');
 const edit = read('../../app/habit/[id].tsx');
 const menu = read('../../components/SideMenu.tsx');
 const profile = read('../../app/profile.tsx');
+const form = read('../../components/HabitForm.tsx');
 
 describe('acceptance: Habits and Edit habit screens (T12)', () => {
   it('Back on Habits names Today or Profile, depending on where it was opened', () => {
@@ -26,22 +27,24 @@ describe('acceptance: Habits and Edit habit screens (T12)', () => {
   });
 
   it('there is no plus and minus stepper', () => {
-    expect(edit).not.toMatch(/target-(up|down)/);
+    expect(edit + form).not.toMatch(/target-(up|down)/);
   });
 
   it.each(['habits-back', 'habits-row-', 'habits-undo"'])('Habits has test ID %s', (id) => {
     expect(habits).toContain(id);
   });
 
-  it.each([
-    'edit-habit-back',
-    'edit-habit-name"',
-    'edit-goal-',
-    'edit-preset-',
-    'edit-day-',
-    'edit-times-',
-    'edit-habit-remove',
-  ])('Edit habit has test ID %s', (id) => {
-    expect(edit).toContain(id);
-  });
+  it.each(['edit-habit-back', 'idPrefix="edit"', 'edit-habit-remove'])(
+    'Edit habit has test ID %s',
+    (id) => {
+      expect(edit).toContain(id);
+    },
+  );
+
+  it.each(['-habit-name`', '-goal-${kind}', '-preset-', '-day-', '-times-', '-goal-result'])(
+    'the shared form gives every control a test ID (%s)',
+    (id) => {
+      expect(form).toContain(id);
+    },
+  );
 });

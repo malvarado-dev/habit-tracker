@@ -205,3 +205,39 @@ describe('acceptance: Habits and Edit habit (T12)', () => {
     expect(back.log).toEqual(before.log);
   });
 });
+
+describe('acceptance: Add habit (T13)', () => {
+  it('a new habit gets the least-used habit color and its picked goal', () => {
+    const goal = { kind: 'anyDays', timesPerWeek: 3 } as const;
+    const s = trackerReducer(createInitialState(), {
+      type: 'addHabit',
+      id: 'running',
+      name: 'Running',
+      goal,
+    });
+    expect(s.habits.at(-1)).toMatchObject({ name: 'Running', color: 'habit2', goal });
+  });
+
+  it('blank and duplicate names are never added', () => {
+    let s = createInitialState();
+    s = trackerReducer(s, { type: 'addHabit', id: 'a', name: '  ' });
+    s = trackerReducer(s, { type: 'addHabit', id: 'b', name: ' sleep ' });
+    expect(s.habits).toHaveLength(4);
+  });
+
+  it('15 habits is the most', () => {
+    let s = createInitialState();
+    for (let i = 0; i < 20; i++)
+      s = trackerReducer(s, { type: 'addHabit', id: `h${i}`, name: `H${i}` });
+    expect(s.habits).toHaveLength(15);
+  });
+
+  it('a rename to a blank or duplicate name keeps the last valid name', () => {
+    let s = createInitialState();
+    s = trackerReducer(s, { type: 'renameHabit', habitId: 'diet', name: '' });
+    s = trackerReducer(s, { type: 'renameHabit', habitId: 'diet', name: 'SLEEP' });
+    expect(s.habits[1]!.name).toBe('Diet');
+    s = trackerReducer(s, { type: 'renameHabit', habitId: 'diet', name: '  Meal  prep ' });
+    expect(s.habits[1]!.name).toBe('Meal prep');
+  });
+});
