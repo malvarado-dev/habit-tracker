@@ -1,7 +1,14 @@
 // Daily scoring rules from SPEC-00. Plain TypeScript with no screens attached, so every
 // rule here can be unit tested on its own.
 
-import { earlierDaysThisWeek, weekdayIndex, type DateKey } from './dates';
+import {
+  daysLeftInWeek,
+  daysOfWeek,
+  earlierDaysThisWeek,
+  weekdayIndex,
+  weekStart,
+  type DateKey,
+} from './dates';
 
 /** A check-in for one habit on one day. Names follow the Glossary. No entry = To do. */
 export type CheckIn = 'NotToday' | 'Started' | 'OnTrack' | 'NailedIt';
@@ -41,6 +48,11 @@ export interface Habit {
   goal: WeeklyGoal;
   /** Shown in the progress ring, the icon, and the dots. */
   color: HabitColor;
+  /**
+   * The day the habit was added (#52), so its first week can be scaled. Missing on habits that
+   * existed before the rule, which keep their full goal.
+   */
+  addedOn?: DateKey;
 }
 
 /** Every check-in, keyed by date, then by habit id. */
@@ -84,9 +96,36 @@ function counts(checkIn: CheckIn | undefined): checkIn is CheckIn {
   return checkIn !== undefined && STARS[checkIn] > 0;
 }
 
+/** The habit existed on this date. Days before it was added never count toward its week. */
+export function existsOn(habit: Habit, date: DateKey): boolean {
+  return habit.addedOn === undefined || date >= habit.addedOn;
+}
+
+/**
+ * The habit's goal for the week `date` falls in (#52). In the week it was added, the goal is
+ * scaled to the days left, counting the day it was added. Specific days: the planned days left.
+ * Any days: times per week x days left / 7, rounded up, at least 1, never more than the days
+ * left. Every other week, and habits with no added date, use the full goal.
+ */
+export function weekGoal(habit: Habit, date: DateKey): number {
+  const full = goalCount(habit.goal);
+  const added = habit.addedOn;
+  if (added === undefined || weekStart(added) !== weekStart(date)) return full;
+  const daysLeft = daysLeftInWeek(added);
+  if (habit.goal.kind === 'specificDays') {
+    const planned = habit.goal.days;
+    const left = daysOfWeek(added).filter((d) => d >= added);
+    return left.filter((d) => planned.includes(weekdayIndex(d) as Weekday)).length;
+  }
+  const scaled = Math.ceil((habit.goal.timesPerWeek * daysLeft) / 7);
+  return Math.min(daysLeft, Math.max(1, scaled));
+}
+
 /** Days earlier this week scored Started, On track, or Nailed it. Skip never counts. */
-export function daysDoneEarlierThisWeek(log: CheckInLog, habitId: string, date: DateKey): number {
-  return earlierDaysThisWeek(date).filter((day) => counts(log[day]?.[habitId])).length;
+export function daysDoneEarlierThisWeek(log: CheckInLog, habit: Habit, date: DateKey): number {
+  return earlierDaysThisWeek(date).filter(
+    (day) => existsOn(habit, day) && counts(log[day]?.[habit.id]),
+  ).length;
 }
 
 /** Weekly goal progress including today, for the progress ring: "2 of 4 this week." */
@@ -95,10 +134,10 @@ export function getWeekProgress(
   log: CheckInLog,
   date: DateKey,
 ): { done: number; goal: number } {
-  const today = counts(log[date]?.[habit.id]) ? 1 : 0;
+  const today = existsOn(habit, date) && counts(log[date]?.[habit.id]) ? 1 : 0;
   return {
-    done: daysDoneEarlierThisWeek(log, habit.id, date) + today,
-    goal: goalCount(habit.goal),
+    done: daysDoneEarlierThisWeek(log, habit, date) + today,
+    goal: weekGoal(habit, date),
   };
 }
 
@@ -108,8 +147,9 @@ export function getWeekProgress(
  */
 export function isDue(habit: Habit, log: CheckInLog, date: DateKey): boolean {
   if (habit.goal.kind === 'anyDays') return false;
+  if (!existsOn(habit, date)) return false;
   if (!habit.goal.days.includes(weekdayIndex(date) as Weekday)) return false;
-  return daysDoneEarlierThisWeek(log, habit.id, date) < goalCount(habit.goal);
+  return daysDoneEarlierThisWeek(log, habit, date) < weekGoal(habit, date);
 }
 
 export interface DailyResult {

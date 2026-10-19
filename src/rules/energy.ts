@@ -7,17 +7,18 @@ import type { DateKey } from './dates';
 import {
   daysDoneEarlierThisWeek,
   getWeekProgress,
-  goalCount,
+  existsOn,
   isDue,
   MAX_STARS,
   STARS,
   type CheckInLog,
   type Habit,
+  weekGoal,
 } from './scoring';
 
 /** The weekly goal was met on earlier days this week, before today. */
 export function goalMetBefore(habit: Habit, log: CheckInLog, date: DateKey): boolean {
-  return daysDoneEarlierThisWeek(log, habit.id, date) >= goalCount(habit.goal);
+  return daysDoneEarlierThisWeek(log, habit, date) >= weekGoal(habit, date);
 }
 
 /**
@@ -26,7 +27,7 @@ export function goalMetBefore(habit: Habit, log: CheckInLog, date: DateKey): boo
  */
 export function countsToday(habit: Habit, log: CheckInLog, date: DateKey): boolean {
   if (isDue(habit, log, date)) return true;
-  return habit.goal.kind === 'anyDays' && !goalMetBefore(habit, log, date);
+  return habit.goal.kind === 'anyDays' && existsOn(habit, date) && !goalMetBefore(habit, log, date);
 }
 
 export interface EnergyBarResult {

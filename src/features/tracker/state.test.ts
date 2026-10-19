@@ -43,14 +43,25 @@ describe('trackerReducer', () => {
   });
 
   it('adds a trimmed habit and ignores a blank one', () => {
-    const added = apply(createInitialState(), { type: 'addHabit', id: 'read', name: '  Reading ' });
+    const added = apply(createInitialState(), {
+      type: 'addHabit',
+      date: '2026-10-19',
+      id: 'read',
+      name: '  Reading ',
+    });
     expect(added.habits.at(-1)).toEqual({
       id: 'read',
       name: 'Reading',
       goal: { kind: 'specificDays', days: EVERY_DAY },
       color: 'habit2',
+      addedOn: '2026-10-19',
     });
-    const blank = apply(createInitialState(), { type: 'addHabit', id: 'x', name: '   ' });
+    const blank = apply(createInitialState(), {
+      type: 'addHabit',
+      date: '2026-10-19',
+      id: 'x',
+      name: '   ',
+    });
     expect(blank.habits).toHaveLength(4);
   });
 
@@ -113,7 +124,12 @@ describe('habit colors', () => {
   it('once every color is used, it starts reusing the least-used one', () => {
     let state = createInitialState();
     for (let i = 0; i < 5; i++) {
-      state = trackerReducer(state, { type: 'addHabit', id: `h${i}`, name: `Habit ${i}` });
+      state = trackerReducer(state, {
+        type: 'addHabit',
+        date: '2026-10-19',
+        id: `h${i}`,
+        name: `Habit ${i}`,
+      });
     }
     expect(state.habits.map((h) => h.color).slice(4)).toEqual([
       'habit2',
@@ -182,6 +198,7 @@ describe('acceptance: Add habit (T13)', () => {
     const goal = { kind: 'anyDays', timesPerWeek: 3 } as const;
     const s = trackerReducer(createInitialState(), {
       type: 'addHabit',
+      date: '2026-10-19',
       id: 'running',
       name: 'Running',
       goal,
@@ -191,15 +208,15 @@ describe('acceptance: Add habit (T13)', () => {
 
   it('blank and duplicate names are never added', () => {
     let s = createInitialState();
-    s = trackerReducer(s, { type: 'addHabit', id: 'a', name: '  ' });
-    s = trackerReducer(s, { type: 'addHabit', id: 'b', name: ' sleep ' });
+    s = trackerReducer(s, { type: 'addHabit', date: '2026-10-19', id: 'a', name: '  ' });
+    s = trackerReducer(s, { type: 'addHabit', date: '2026-10-19', id: 'b', name: ' sleep ' });
     expect(s.habits).toHaveLength(4);
   });
 
   it('15 habits is the most', () => {
     let s = createInitialState();
     for (let i = 0; i < 20; i++)
-      s = trackerReducer(s, { type: 'addHabit', id: `h${i}`, name: `H${i}` });
+      s = trackerReducer(s, { type: 'addHabit', date: '2026-10-19', id: `h${i}`, name: `H${i}` });
     expect(s.habits).toHaveLength(15);
   });
 

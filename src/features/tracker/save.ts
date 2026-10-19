@@ -7,7 +7,7 @@
 import type { CheckInLog, Habit } from '@/rules/scoring';
 import type { TrackerState } from './state';
 
-export const CURRENT_VERSION = 5;
+export const CURRENT_VERSION = 6;
 
 /** v3 (before T16): habits, check-ins, and the test-tools day offset. */
 interface SaveV3 {
@@ -43,15 +43,19 @@ function isV4(v: Record<string, unknown>): v is SaveV4 & Record<string, unknown>
   );
 }
 
-function isV5(v: Record<string, unknown>): v is TrackerState & Record<string, unknown> {
+function isV5Shape(v: Record<string, unknown>, version: 5 | 6): boolean {
   return (
-    v.version === 5 &&
+    v.version === version &&
     Array.isArray(v.habits) &&
     isObject(v.log) &&
     isObject(v.locked) &&
     (v.lockedThrough === null || typeof v.lockedThrough === 'string')
   );
 }
+
+const isV5 = (v: Record<string, unknown>) => isV5Shape(v, 5);
+const isV6 = (v: Record<string, unknown>): v is TrackerState & Record<string, unknown> =>
+  isV5Shape(v, 6);
 
 /** One step per version: takes a valid save of that version, returns the next version. */
 const UPGRADES: Record<number, (save: Record<string, unknown>) => Record<string, unknown>> = {
@@ -72,7 +76,7 @@ const UPGRADES: Record<number, (save: Record<string, unknown>) => Record<string,
   // shape, so the real save can never be moved off today. Everything else is copied as it was.
   4: (save) => {
     if (!isV4(save)) throw new Error('Not a valid v4 save');
-    const v5: TrackerState = {
+    const v5 = {
       version: 5,
       habits: save.habits,
       log: save.log,
@@ -80,6 +84,12 @@ const UPGRADES: Record<number, (save: Record<string, unknown>) => Record<string,
       lockedThrough: save.lockedThrough,
     };
     return v5 as unknown as Record<string, unknown>;
+  },
+  // v5 to v6 (#52): habits can remember the day they were added. Existing habits get no date, so
+  // they keep their full goals. Everything is copied exactly as it was.
+  5: (save) => {
+    if (!isV5(save)) throw new Error('Not a valid v5 save');
+    return { ...save, version: 6 };
   },
 };
 
@@ -118,7 +128,7 @@ export function loadSave(raw: string | null): LoadResult {
     return { kind: 'unreadable', raw };
   }
 
-  if (!isV5(save)) return { kind: 'unreadable', raw };
+  if (!isV6(save)) return { kind: 'unreadable', raw };
   return { kind: 'loaded', state: save, upgradedFrom: from === CURRENT_VERSION ? null : from };
 }
 

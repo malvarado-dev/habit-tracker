@@ -19,7 +19,7 @@ import { cleanName, nameProblem } from '@/features/habits/habitName';
 
 export interface TrackerState {
   /** Bumped when the saved shape changes. Older saves are upgraded step by step (save.ts). */
-  version: 5;
+  version: 6;
   habits: Habit[];
   log: CheckInLog;
   /** Results saved for good when each day locked (T16). Days with no check-in have no entry. */
@@ -62,10 +62,14 @@ export function cleanGoal(goal: WeeklyGoal): WeeklyGoal | null {
   return days.length === 0 ? null : { kind: 'specificDays', days };
 }
 
-export function createInitialState(): TrackerState {
+/**
+ * A fresh start. `addedOn` is the tracker's own date (Test uses its pretend date), so the starter
+ * habits get a scaled first week (#52). Left out, they keep full goals.
+ */
+export function createInitialState(addedOn?: DateKey): TrackerState {
   return {
-    version: 5,
-    habits: DEFAULT_HABITS,
+    version: 6,
+    habits: addedOn ? DEFAULT_HABITS.map((h) => ({ ...h, addedOn })) : DEFAULT_HABITS,
     log: {},
     locked: {},
     lockedThrough: null,
@@ -75,7 +79,7 @@ export function createInitialState(): TrackerState {
 export type TrackerAction =
   | { type: 'tapHabit'; date: DateKey; habitId: string }
   | { type: 'setCheckIn'; date: DateKey; habitId: string; checkIn: CheckIn | undefined }
-  | { type: 'addHabit'; id: string; name: string; goal?: WeeklyGoal }
+  | { type: 'addHabit'; id: string; name: string; goal?: WeeklyGoal; date: DateKey }
   | { type: 'renameHabit'; habitId: string; name: string }
   | { type: 'setGoal'; habitId: string; goal: WeeklyGoal }
   | { type: 'removeHabit'; habitId: string }
@@ -131,6 +135,8 @@ export function trackerReducer(state: TrackerState, action: TrackerAction): Trac
             name: cleanName(action.name),
             goal,
             color: leastUsedColor(state.habits),
+            // Its first week is scaled to the days left from here (#52).
+            addedOn: action.date,
           },
         ],
       };

@@ -14,7 +14,7 @@ import {
   type DateKey,
 } from '@/rules/dates';
 import { historyDay, isLocked, type LockState, type LockedDay } from '@/rules/locking';
-import { goalCount, STARS, type CheckInLog, type Habit } from '@/rules/scoring';
+import { existsOn, STARS, weekGoal, type CheckInLog, type Habit } from '@/rules/scoring';
 
 const MONTHS = [
   'January',
@@ -152,24 +152,28 @@ export interface WeekRow {
 /** One row per habit for the week a date falls in. Count only (best-N star quality is Later). */
 export function weekRows(habits: Habit[], log: CheckInLog, date: DateKey): WeekRow[] {
   const days = daysOfWeek(date);
-  return habits.map((habit) => {
-    const goal = goalCount(habit.goal);
-    const done = days.filter((d) => {
-      const checkIn = log[d]?.[habit.id];
-      return checkIn !== undefined && STARS[checkIn] > 0;
-    }).length;
-    const label = done > goal ? `${goal} +${done - goal}` : `${done} of ${goal}`;
-    const name = habit.name || 'Unnamed habit';
-    return {
-      habitId: habit.id,
-      name,
-      color: habit.color,
-      goal,
-      done,
-      label,
-      a11yLabel: `${name}, ${done > goal ? `goal met, ${done - goal} extra` : `${done} of ${goal}`} this week`,
-    };
-  });
+  // A habit added after this week ended has no row for it.
+  return habits
+    .filter((habit) => existsOn(habit, days[6]!))
+    .map((habit) => {
+      const goal = weekGoal(habit, date);
+      const done = days.filter((d) => {
+        if (!existsOn(habit, d)) return false;
+        const checkIn = log[d]?.[habit.id];
+        return checkIn !== undefined && STARS[checkIn] > 0;
+      }).length;
+      const label = done > goal ? `${goal} +${done - goal}` : `${done} of ${goal}`;
+      const name = habit.name || 'Unnamed habit';
+      return {
+        habitId: habit.id,
+        name,
+        color: habit.color,
+        goal,
+        done,
+        label,
+        a11yLabel: `${name}, ${done > goal ? `goal met, ${done - goal} extra` : `${done} of ${goal}`} this week`,
+      };
+    });
 }
 
 /** "Week of Oct 11", the week's first day. */

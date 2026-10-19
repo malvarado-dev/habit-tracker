@@ -4,7 +4,7 @@
 // real date; only Test has a pretend date (Next day). Plain TypeScript, no screens, so every
 // safety rule is unit tested. Prototype only: removed with the Test tools after Stage 3.
 
-import { addDays, type DateKey } from '@/rules/dates';
+import { addDays, toDateKey, type DateKey } from '@/rules/dates';
 import { backupKey, loadSave } from './save';
 import { createInitialState, trackerReducer, type TrackerAction, type TrackerState } from './state';
 
@@ -43,7 +43,7 @@ export type AppAction =
   /** Test only. Ignored in Real. */
   | { type: 'nextDay'; realDate: DateKey }
   | { type: 'backToToday' }
-  | { type: 'resetTest' };
+  | { type: 'resetTest'; realDate: DateKey };
 
 function lockSlot(slot: Slot, today: DateKey): Slot {
   const state = trackerReducer(slot.state, { type: 'lockDays', today });
@@ -85,7 +85,12 @@ export function appReducer(app: AppState, action: AppAction): AppState {
     case 'resetTest':
       // Erases only the test save. Real is never touched.
       if (app.mode !== 'test') return app;
-      return { ...app, test: { ...app.test, state: createInitialState() }, testOffset: 0 };
+      // The fresh starter habits are added on the real date, since the pretend date goes back to it.
+      return {
+        ...app,
+        test: { ...app.test, state: createInitialState(action.realDate) },
+        testOffset: 0,
+      };
   }
 }
 
@@ -110,7 +115,8 @@ export interface KeyValueStore {
  * copied to a backup key first; if that copy fails, saving stays off so nothing is lost.
  */
 export async function loadSlot(store: KeyValueStore, key: string, now: Date): Promise<Slot> {
-  const fresh = { state: createInitialState(), canSave: true };
+  // A fresh start adds the starter habits today, so their first week is scaled (#52).
+  const fresh = { state: createInitialState(toDateKey(now)), canSave: true };
   let raw: string | null;
   try {
     raw = await store.getItem(key);
