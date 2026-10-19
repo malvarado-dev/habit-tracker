@@ -137,16 +137,6 @@ export function Background({ time, level }: { time: SkyTime; level: SkyLevel }) 
           </Animated.View>
         ) : null}
         <View
-          style={[
-            styles.glow,
-            {
-              width: sun * 2,
-              height: sun * 2,
-              backgroundColor: withAlpha(BODY[time], glow * 0.45),
-            },
-          ]}
-        />
-        <View
           testID={time === 'day' ? 'sun' : 'moon'}
           style={{ width: sun, height: sun, borderRadius: sun / 2, backgroundColor: BODY[time] }}
         />
@@ -172,7 +162,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  glow: { position: 'absolute', borderRadius: 9999 },
   ray: {
     position: 'absolute',
     left: '50%',

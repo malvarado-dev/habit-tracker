@@ -38,7 +38,7 @@ None. The Background has no text besides the status bar.
 The Background fills the whole screen behind the habit sheet. The sun or moon sits upper right; clouds and stars stay in the top third so they never sit behind the critter's face.
 
 ## Elevation & Depth
-Flat, with soft glows around the sun and moon only.
+Flat. No glows around the sun, moon, or critter (removed 2026-10-18); rank shows through sky brightness, star brightness, and the S-rank rays or moon bounce.
 
 ## Shapes
 Round sun and moon, pill-shaped clouds, tiny round stars.
