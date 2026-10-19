@@ -81,7 +81,12 @@ export default function HomeScreen() {
         style={[styles.critter, { top: sheetTop + todayLayout.critterOverlap - critterHeight }]}
         pointerEvents="box-none"
       >
-        <Critter width={critterWidth} asleep={skyLevel === 'asleep'} />
+        <Critter
+          width={critterWidth}
+          level={skyLevel}
+          score={result.score}
+          reactKey={JSON.stringify(todayLog)}
+        />
       </View>
 
       <View style={[styles.menu, { top: insets.top + space.sm, left: insets.left + space.lg }]}>
