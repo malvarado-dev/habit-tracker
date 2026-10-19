@@ -300,8 +300,7 @@ const makeStyles = (c: ThemeColors) =>
       borderWidth: 1,
       borderColor: c.border,
     },
-    // onSurface, not inverse: the same near-black in light, and a light fill in dark so the
-    // picked days stand out on the dark sheet.
+    // chip-selected (design-system.md): near-black in light, near-white in dark.
     selected: { backgroundColor: c.onSurface, borderColor: c.onSurface },
     chipText: { ...textStyle('label'), color: c.onSurface },
     selectedText: { color: c.surfaceSheet },
@@ -316,8 +315,7 @@ const makeStyles = (c: ThemeColors) =>
       borderWidth: 1,
       borderColor: c.border,
     },
-    // No danger token yet; the Started label color is a deep pink that passes AA on the card.
-    removeText: { ...textStyle('label'), color: c.scoreStarted },
+    removeText: { ...textStyle('label'), color: c.danger },
     disabled: { opacity: 0.4 },
     pressed: { opacity: 0.7 },
   });

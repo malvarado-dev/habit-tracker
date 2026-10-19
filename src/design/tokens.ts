@@ -30,6 +30,7 @@ export const lightTheme = {
   scoreNailedItStar: '#D97706',
   starScoreNeeded: '#8E8E93',
   starNotToday: '#6B7280',
+  danger: '#B91C1C',
   track: '#1F1F1F',
 } as const;
 
@@ -67,6 +68,7 @@ export const darkTheme: ThemeColors = {
   scoreNailedItStar: '#D97706',
   starScoreNeeded: '#A3A396',
   starNotToday: '#8E8E82',
+  danger: '#FCA5A5',
   track: '#1A1B16',
 };
 
