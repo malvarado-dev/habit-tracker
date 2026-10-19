@@ -2,7 +2,7 @@
 // this week's progress per habit, and rows for Habits, Weekly goal style, and Theme.
 // The two settings open inline choices and are saved on the device.
 
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -27,6 +27,9 @@ export default function ProfileScreen() {
   const { goalStyle, setGoalStyle } = useSettings();
   const { state, today } = useTracker();
   const [open, setOpen] = useState<Open>(null);
+  const params = useLocalSearchParams<{ from?: string }>();
+  // Back names the screen Profile was opened from: Test tools (T19), else Today.
+  const backLabel = params.from === 'test-tools' ? 'Test tools' : 'Today';
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
@@ -38,9 +41,9 @@ export default function ProfileScreen() {
           style={styles.back}
           testID="profile-back"
           accessibilityRole="button"
-          accessibilityLabel="Back to Today"
+          accessibilityLabel={`Back to ${backLabel}`}
         >
-          <Text style={styles.backText}>‹ Today</Text>
+          <Text style={styles.backText}>‹ {backLabel}</Text>
         </Pressable>
 
         <View style={styles.avatar} testID="profile-avatar" />

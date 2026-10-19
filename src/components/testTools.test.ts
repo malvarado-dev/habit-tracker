@@ -12,6 +12,7 @@ const sheet = read('HabitSheet.tsx');
 const menu = read('SideMenu.tsx');
 const banner = read('TestModeBanner.tsx');
 const layout = read('../app/_layout.tsx');
+const profile = read('../app/profile.tsx');
 
 describe('Test tools text (T14, T17)', () => {
   it('names the pretend day and how far ahead it is', () => {
@@ -76,6 +77,20 @@ describe('acceptance: Test tools screen (T17)', () => {
     expect(tools).not.toMatch(/goal-style-|theme-option-/);
   });
 
+  it('links to Profile settings in both Real and Test (T19)', () => {
+    const link = tools.indexOf('testID="test-tools-profile-link"');
+    expect(link).toBeGreaterThan(0);
+    expect(link).toBeLessThan(tools.indexOf("{mode === 'test' ? ("));
+    expect(tools).toContain("pathname: '/profile', params: { from: 'test-tools' }");
+    expect(tools).toContain('Profile settings');
+  });
+
+  it('Profile Back names Test tools when opened from it, else Today (T19)', () => {
+    expect(profile).toContain("params.from === 'test-tools' ? 'Test tools' : 'Today'");
+    expect(profile).toContain('‹ {backLabel}');
+    expect(profile).toContain('accessibilityLabel={`Back to ${backLabel}`}');
+  });
+
   it.each([
     [tools, 'test-tools'],
     [tools, 'test-tools-date'],
@@ -83,6 +98,7 @@ describe('acceptance: Test tools screen (T17)', () => {
     [tools, 'next-day-button'],
     [tools, 'back-to-today-button'],
     [tools, 'reset-button'],
+    [tools, 'test-tools-profile-link'],
     [screen, 'test-tools-back'],
     [banner, 'test-mode-banner'],
   ])('has test ID %#', (source, id) => {
