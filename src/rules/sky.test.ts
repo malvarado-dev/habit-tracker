@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 import { EVERY_DAY, getDailyResult, type Habit } from './scoring';
-import { getSkyLevel, getSkyTime, statusBarStyle } from './sky';
+import { getSkyLevel, getSkyTime, sceneLevel, statusBarStyle } from './sky';
 
 const habits: Habit[] = [
   { id: 'sleep', name: 'Sleep', goal: { kind: 'specificDays', days: EVERY_DAY }, color: 'habit1' },
@@ -60,5 +60,27 @@ describe('statusBarStyle', () => {
     expect(statusBarStyle('day')).toBe('dark');
     expect(statusBarStyle('dusk')).toBe('light');
     expect(statusBarStyle('night')).toBe('light');
+  });
+});
+
+describe('acceptance: Day screen sky and critter (T23)', () => {
+  const stars = { earnedStars: 0, possibleStars: 0 };
+
+  it('a day with no check-in is a quiet sky with the critter asleep', () => {
+    expect(sceneLevel({ outcome: 'none', ...stars })).toBe('asleep');
+  });
+
+  it('a Rest day shows the Rest sky', () => {
+    expect(sceneLevel({ outcome: 'rest', ...stars })).toBe('rest');
+  });
+
+  it.each(['C', 'B', 'A', 'S'] as const)('a %s day shows that rank', (rank) => {
+    expect(sceneLevel({ outcome: 'rank', rank, ...stars })).toBe(rank);
+  });
+
+  it('matches Today for the same open day', () => {
+    const log = { [MON]: { sleep: 'NailedIt' as const } };
+    const live = getSkyLevel(getDailyResult(habits, log, MON));
+    expect(sceneLevel({ outcome: 'rank', rank: 'B', ...stars })).toBe(live);
   });
 });

@@ -10,11 +10,14 @@ import { textStyle, urbanist } from '@/design/fonts';
 const today = readFileSync(join(__dirname, '../app/index.tsx'), 'utf8');
 
 const sheet = readFileSync(join(__dirname, 'HabitSheet.tsx'), 'utf8');
+// Today's layout lives in SceneLayout since T23, shared with the Day screen.
+const scene = readFileSync(join(__dirname, 'SceneLayout.tsx'), 'utf8');
 
 describe('acceptance: cards scroll while the Background stays still', () => {
   it('the Background and critter are on Today, never inside the scrolling habit sheet', () => {
-    expect(today).toContain('<Background');
-    expect(today).toContain('<Critter');
+    expect(today).toContain('<SceneLayout');
+    expect(scene).toContain('<Background');
+    expect(scene).toContain('<Critter');
     expect(sheet).not.toContain('<Background');
     expect(sheet).not.toContain('<Critter');
   });
@@ -30,8 +33,8 @@ describe('acceptance: cards scroll while the Background stays still', () => {
   });
 
   it('both layouts put the habit sheet in a testable container', () => {
-    expect(today.match(/testID="habit-sheet"/g)).toHaveLength(2);
-    expect(today).toContain('testID="background-card"');
+    expect(scene.match(/testID="habit-sheet"/g)).toHaveLength(2);
+    expect(scene).toContain('testID="background-card"');
   });
 
   it('there is no header on Today (SPEC-00)', () => {

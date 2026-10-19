@@ -31,8 +31,9 @@ describe('acceptance: History (T16)', () => {
   });
 
   it('wide shows the real History, not the placeholder', () => {
-    expect(today).toContain('<HistoryView');
-    expect(today).not.toContain('HistoryPlaceholder');
+    const scene = read('../SceneLayout.tsx');
+    expect(scene).toContain('<HistoryView');
+    expect(scene + today).not.toContain('HistoryPlaceholder');
   });
 
   it('colors come from the theme or the critter palette, never raw hex', () => {
@@ -41,9 +42,10 @@ describe('acceptance: History (T16)', () => {
     }
   });
 
-  it('the Day screen has no Background, sky, or celebration', () => {
-    for (const mod of ['components/Background', 'useCritterAndMoment', 'components/Critter']) {
-      expect(dayScreen).not.toContain(`/${mod}'`);
+  it('the Day screen uses the same scene and celebration as Today (T23, replaces T16 rule)', () => {
+    for (const mod of ['components/SceneLayout', 'components/useCritterAndMoment']) {
+      expect(dayScreen).toContain(`/${mod}'`);
+      expect(today).toContain(`/${mod}'`);
     }
   });
 
