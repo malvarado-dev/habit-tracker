@@ -316,17 +316,18 @@ function SwipeHint({ text, color, start }: { text: string; color: string; start?
 }
 
 function useStyles() {
-  const { colors } = useTheme();
-  return useMemo(() => makeStyles(colors), [colors]);
+  const { colors, scheme } = useTheme();
+  return useMemo(() => makeStyles(colors, scheme), [colors, scheme]);
 }
 
-const makeStyles = (c: ThemeColors) =>
+const makeStyles = (c: ThemeColors, scheme: 'light' | 'dark') =>
   StyleSheet.create({
     swipeContainer: { borderRadius: radius.pill },
     card: {
       minHeight: MIN_TAP_SIZE + space.lg,
       borderRadius: radius.pill,
-      borderWidth: StyleSheet.hairlineWidth,
+      // A hairline reads on the light sheet; dark needs a full point to hold the edge.
+      borderWidth: scheme === 'dark' ? 1 : StyleSheet.hairlineWidth,
       borderColor: c.border,
       boxShadow: shadows.card,
       // design-spendio.html: 8 px around the ring, 18 px before the stars.

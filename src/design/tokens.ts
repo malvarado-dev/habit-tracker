@@ -46,7 +46,7 @@ export const spendioDark: ThemeColors = {
   surfaceDim: '#26281F',
   onSurface: '#F2F1EA',
   onSurfaceMuted: '#C9C7B8',
-  border: '#ECE8DF',
+  border: '#73786A',
   primary: '#F5F04A',
   onPrimary: '#1F1F1F',
   inverse: '#1F1F1F',
