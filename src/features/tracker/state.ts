@@ -3,53 +3,74 @@
 // so it's easy to test.
 
 import type { DateKey } from '@/rules/dates';
-import { DEFAULT_MODE, type Mode } from '@/rules/rank';
-import { nextCheckIn, type CheckIn, type CheckInLog, type Habit } from '@/rules/scoring';
+import {
+  EVERY_DAY,
+  nextCheckIn,
+  type CheckIn,
+  HABIT_COLORS,
+  type CheckInLog,
+  type Habit,
+  type HabitColor,
+  type WeeklyGoal,
+  type Weekday,
+} from '@/rules/scoring';
 
 export interface TrackerState {
   /** Bumped when the saved shape changes, so old saves can be thrown away safely. */
-  version: 1;
+  version: 3;
   habits: Habit[];
-  mode: Mode;
   log: CheckInLog;
-  /** The mode each finished day was played in. Past days keep their mode (SPEC-00). */
-  dayModes: Record<DateKey, Mode>;
-  /** True once the first check-in has hatched the egg. */
-  hatched: boolean;
   /** Test tools only: how many days ahead of the real date the app is pretending to be. */
   dayOffset: number;
 }
 
 export const DEFAULT_HABITS: Habit[] = [
-  { id: 'sleep', name: 'Sleep', weeklyTarget: 7 },
-  { id: 'diet', name: 'Diet', weeklyTarget: 7 },
-  { id: 'exercise', name: 'Exercise', weeklyTarget: 3 },
-  { id: 'wellbeing', name: 'Wellbeing', weeklyTarget: 7 },
+  { id: 'sleep', name: 'Sleep', goal: { kind: 'specificDays', days: EVERY_DAY }, color: 'habit1' },
+  { id: 'diet', name: 'Diet', goal: { kind: 'specificDays', days: EVERY_DAY }, color: 'habit3' },
+  { id: 'exercise', name: 'Exercise', goal: { kind: 'anyDays', timesPerWeek: 3 }, color: 'habit5' },
+  {
+    id: 'wellbeing',
+    name: 'Wellbeing',
+    goal: { kind: 'specificDays', days: EVERY_DAY },
+    color: 'habit6',
+  },
 ];
 
-export const MIN_TARGET = 1;
-export const MAX_TARGET = 7;
+/** A new habit gets the least-used habit color; ties go to the earliest in the palette. */
+export function leastUsedColor(habits: Habit[]): HabitColor {
+  const uses = (color: HabitColor) => habits.filter((h) => h.color === color).length;
+  return HABIT_COLORS.reduce((best, color) => (uses(color) < uses(best) ? color : best));
+}
+
+export const MIN_TIMES = 1;
+export const MAX_TIMES = 7;
+
+/** Keeps a goal valid: Specific days needs at least 1 day; Any days is 1 to 7 times. */
+export function cleanGoal(goal: WeeklyGoal): WeeklyGoal | null {
+  if (goal.kind === 'anyDays') {
+    const times = Math.round(goal.timesPerWeek);
+    return { kind: 'anyDays', timesPerWeek: Math.min(MAX_TIMES, Math.max(MIN_TIMES, times)) };
+  }
+  const days = [...new Set(goal.days)].filter((d) => d >= 0 && d <= 6).sort() as Weekday[];
+  return days.length === 0 ? null : { kind: 'specificDays', days };
+}
 
 export function createInitialState(): TrackerState {
   return {
-    version: 1,
+    version: 3,
     habits: DEFAULT_HABITS,
-    mode: DEFAULT_MODE,
     log: {},
-    dayModes: {},
-    hatched: false,
     dayOffset: 0,
   };
 }
 
 export type TrackerAction =
   | { type: 'tapHabit'; date: DateKey; habitId: string }
-  | { type: 'setCheckIn'; date: DateKey; habitId: string; checkIn: CheckIn }
-  | { type: 'setMode'; mode: Mode }
-  | { type: 'nextDay'; today: DateKey }
+  | { type: 'setCheckIn'; date: DateKey; habitId: string; checkIn: CheckIn | undefined }
+  | { type: 'nextDay' }
   | { type: 'addHabit'; id: string; name: string }
   | { type: 'renameHabit'; habitId: string; name: string }
-  | { type: 'setWeeklyTarget'; habitId: string; weeklyTarget: number }
+  | { type: 'setGoal'; habitId: string; goal: WeeklyGoal }
   | { type: 'removeHabit'; habitId: string }
   | { type: 'reset' };
 
@@ -57,13 +78,13 @@ function withCheckIn(
   state: TrackerState,
   date: DateKey,
   habitId: string,
-  checkIn: CheckIn,
+  checkIn: CheckIn | undefined,
 ): TrackerState {
-  return {
-    ...state,
-    hatched: true, // the first check-in of any kind hatches the egg
-    log: { ...state.log, [date]: { ...state.log[date], [habitId]: checkIn } },
-  };
+  const day = { ...state.log[date] };
+  if (checkIn === undefined)
+    delete day[habitId]; // back to Score needed
+  else day[habitId] = checkIn;
+  return { ...state, log: { ...state.log, [date]: day } };
 }
 
 function updateHabit(state: TrackerState, habitId: string, change: Partial<Habit>): TrackerState {
@@ -81,25 +102,30 @@ export function trackerReducer(state: TrackerState, action: TrackerAction): Trac
     }
     case 'setCheckIn':
       return withCheckIn(state, action.date, action.habitId, action.checkIn);
-    case 'setMode':
-      return { ...state, mode: action.mode };
     case 'nextDay':
-      return {
-        ...state,
-        dayModes: { ...state.dayModes, [action.today]: state.mode },
-        dayOffset: state.dayOffset + 1,
-      };
+      return { ...state, dayOffset: state.dayOffset + 1 };
     case 'addHabit': {
       const name = action.name.trim();
       if (!name) return state;
-      return { ...state, habits: [...state.habits, { id: action.id, name, weeklyTarget: 7 }] };
+      return {
+        ...state,
+        habits: [
+          ...state.habits,
+          {
+            id: action.id,
+            name,
+            goal: { kind: 'specificDays', days: EVERY_DAY },
+            color: leastUsedColor(state.habits),
+          },
+        ],
+      };
     }
     case 'renameHabit':
       // Empty names are allowed while typing; the screen shows a hint instead of blocking.
       return updateHabit(state, action.habitId, { name: action.name });
-    case 'setWeeklyTarget': {
-      const weeklyTarget = Math.min(MAX_TARGET, Math.max(MIN_TARGET, action.weeklyTarget));
-      return updateHabit(state, action.habitId, { weeklyTarget });
+    case 'setGoal': {
+      const goal = cleanGoal(action.goal);
+      return goal ? updateHabit(state, action.habitId, { goal }) : state;
     }
     case 'removeHabit':
       // At least one habit always stays (Glossary).
@@ -115,9 +141,8 @@ export function isTrackerState(value: unknown): value is TrackerState {
   if (typeof value !== 'object' || value === null) return false;
   const v = value as Partial<TrackerState>;
   return (
-    v.version === 1 &&
+    v.version === 3 &&
     Array.isArray(v.habits) &&
-    typeof v.mode === 'string' &&
     typeof v.log === 'object' &&
     typeof v.dayOffset === 'number'
   );

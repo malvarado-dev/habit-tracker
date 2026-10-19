@@ -7,16 +7,8 @@ export const tuning = {
   celebrationDelayMs: 2000,
 
   rank: {
-    /**
-     * Lowest daily score (0 to 1) for each rank. Anything lower is C.
-     * SPEC-00 has one set for everyone (S 90, A 75, B 50). The per-mode sets stay until T2
-     * removes modes from the rules, so behavior doesn't change in this ticket.
-     */
-    cutoffs: {
-      Beginner: { S: 0.8, A: 0.6, B: 0.35 },
-      Challenger: { S: 0.9, A: 0.75, B: 0.5 },
-      Pro: { S: 0.95, A: 0.85, B: 0.65 },
-    },
+    /** Lowest daily score (0 to 1) for each rank. Anything lower is C. One set for everyone. */
+    cutoffs: { S: 0.9, A: 0.75, B: 0.5 },
   },
 
   card: {
@@ -32,6 +24,10 @@ export const tuning = {
   },
 
   sky: {
+    /** Hours (0 to 23, phone's local time) when the day, dusk, and night skies start. */
+    dayStartHour: 6,
+    duskStartHour: 17,
+    nightStartHour: 20,
     /** One full turn of the S-rank sun rays. */
     raySpinMs: 12000,
     /** S-rank moon bounce, each way. */
@@ -43,13 +39,9 @@ export const tuning = {
   },
 
   critter: {
-    /** Old first-build beam from the sky to the critter. T5 replaces this. */
-    beamTravelMs: 650,
-    beamVisibleMs: 550,
-    beamFadeMs: 150,
-    hopDelayMs: 600,
-    hopHeight: 14,
-    hopPerStar: 4,
+    /** Small wiggle when the critter is tapped: how far it turns, and each half of the wiggle. */
+    wiggleDegrees: 6,
+    wiggleMs: 90,
   },
 
   celebration: {

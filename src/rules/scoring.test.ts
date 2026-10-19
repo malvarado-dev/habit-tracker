@@ -1,15 +1,34 @@
 import { describe, expect, it } from '@jest/globals';
 import {
+  EVERY_DAY,
   getDailyResult,
   getEnergy,
-  isFreeSkip,
+  getWeekProgress,
+  isDue,
   nextCheckIn,
   type CheckInLog,
   type Habit,
 } from './scoring';
 
-const exercise: Habit = { id: 'exercise', name: 'Exercise', weeklyTarget: 3 };
-const sleep: Habit = { id: 'sleep', name: 'Sleep', weeklyTarget: 7 };
+const sleep: Habit = {
+  id: 'sleep',
+  name: 'Sleep',
+  goal: { kind: 'specificDays', days: EVERY_DAY },
+  color: 'habit1',
+};
+const exercise: Habit = {
+  id: 'exercise',
+  name: 'Exercise',
+  goal: { kind: 'anyDays', timesPerWeek: 3 },
+  color: 'habit1',
+};
+// SPEC-00 worked example: Run, Specific days Mon, Wed, Fri (weekly goal 3).
+const run: Habit = {
+  id: 'run',
+  name: 'Run',
+  goal: { kind: 'specificDays', days: [0, 2, 4] },
+  color: 'habit1',
+};
 
 // Week of Monday 2026-10-12 to Sunday 2026-10-18.
 const MON = '2026-10-12';
@@ -18,122 +37,154 @@ const WED = '2026-10-14';
 const THU = '2026-10-15';
 const FRI = '2026-10-16';
 const SAT = '2026-10-17';
+const SUN = '2026-10-18';
+const NEXT_MON = '2026-10-19';
 
 describe('nextCheckIn (tap cycle)', () => {
-  it('cycles On track, Nailed it, Not today, Started, then On track again', () => {
-    expect(nextCheckIn(undefined)).toBe('OnTrack');
+  it('counts up from Score needed, then Not today, then back to Score needed', () => {
+    expect(nextCheckIn(undefined)).toBe('Started');
+    expect(nextCheckIn('Started')).toBe('OnTrack');
     expect(nextCheckIn('OnTrack')).toBe('NailedIt');
     expect(nextCheckIn('NailedIt')).toBe('NotToday');
-    expect(nextCheckIn('NotToday')).toBe('Started');
-    expect(nextCheckIn('Started')).toBe('OnTrack');
+    expect(nextCheckIn('NotToday')).toBeUndefined();
   });
 });
 
-describe('weekly target rule (SPEC-00 worked example: Exercise, 3 days a week)', () => {
+describe('SPEC-00 worked example: Run, Mon Wed Fri, weekly goal 3', () => {
   const log: CheckInLog = {
-    [MON]: { exercise: 'NotToday' },
-    [TUE]: { exercise: 'NailedIt' },
-    [WED]: { exercise: 'NotToday' },
-    [THU]: { exercise: 'NotToday' },
-    [FRI]: { exercise: 'NotToday' },
-    [SAT]: { exercise: 'NotToday' },
+    [MON]: { run: 'NotToday' },
+    [TUE]: { run: 'NailedIt' },
+    [WED]: { run: 'NailedIt' },
+    [FRI]: { run: 'NotToday' },
   };
 
   it.each([
-    [MON, true],
-    [WED, true],
-    [THU, true],
-    [FRI, true],
-    [SAT, false],
-  ])('Not today on %s is free: %s', (date, expected) => {
-    expect(isFreeSkip(exercise, log, date)).toBe(expected);
+    // day, due, score (null = not counted or not asked), progress dots done
+    [MON, true, null, 0],
+    [TUE, false, 1, 1],
+    [WED, true, 1, 2],
+    [THU, false, null, 2],
+    [FRI, true, null, 2],
+    [SAT, false, null, 2],
+    [SUN, false, null, 2],
+  ])('%s: due %s, score %s, %s of 3', (day, due, score, done) => {
+    expect(isDue(run, log, day)).toBe(due);
+    expect(getDailyResult([run], log, day).score).toBe(score);
+    expect(getWeekProgress(run, log, day)).toEqual({ done, goal: 3 });
   });
 
-  it('a free skip leaves nothing to score, so the day is a Rest day', () => {
-    const result = getDailyResult([exercise], log, FRI);
-    expect(result.isRestDay).toBe(true);
-    expect(result.score).toBeNull();
+  it('Not today on a due day is not counted, so the day is a Rest day with no rank', () => {
+    expect(getDailyResult([run], log, MON)).toMatchObject({ isRestDay: true, score: null });
   });
 
-  it('a skip that misses the target counts as 0 of 3', () => {
-    const result = getDailyResult([exercise], log, SAT);
-    expect(result).toMatchObject({ earnedStars: 0, possibleStars: 3, score: 0 });
-    expect(result.isRestDay).toBe(false);
-  });
-
-  it('Not today is never free on a 7-day habit', () => {
-    expect(isFreeSkip(sleep, {}, MON)).toBe(false);
+  it('a non-due day with an optional score gets a rank from that score', () => {
+    expect(getDailyResult([run], log, TUE)).toMatchObject({ isRestDay: false, score: 1 });
   });
 });
 
-describe('collapsing once the weekly target is met', () => {
-  const log: CheckInLog = {
-    [MON]: { exercise: 'Started' },
-    [TUE]: { exercise: 'OnTrack' },
-    [WED]: { exercise: 'NailedIt' },
-  };
-
-  it('stays active on the day the target is reached', () => {
-    expect(getDailyResult([exercise], log, WED).activeCount).toBe(1);
+describe('due days', () => {
+  it('an Any days habit is never due', () => {
+    for (const day of [MON, TUE, WED, THU, FRI, SAT, SUN]) {
+      expect(isDue(exercise, {}, day)).toBe(false);
+    }
   });
 
-  it('drops off the list for the rest of the week', () => {
-    const result = getDailyResult([exercise, sleep], log, THU);
-    expect(result.activeCount).toBe(1);
-    expect(result.possibleStars).toBe(3);
+  it('a Specific days habit stops being due once its goal is met on earlier days', () => {
+    const met: CheckInLog = {
+      [MON]: { run: 'Started' },
+      [TUE]: { run: 'OnTrack' },
+      [WED]: { run: 'NailedIt' },
+    };
+    expect(isDue(run, met, FRI)).toBe(false);
   });
 
-  it('comes back the next Monday', () => {
-    expect(getDailyResult([exercise], log, '2026-10-19').activeCount).toBe(1);
+  it('a met goal keeps the habit scorable, and it still counts toward progress', () => {
+    const met: CheckInLog = {
+      [MON]: { run: 'Started' },
+      [TUE]: { run: 'OnTrack' },
+      [WED]: { run: 'NailedIt' },
+      [FRI]: { run: 'NailedIt' },
+    };
+    expect(getDailyResult([run], met, FRI).score).toBe(1);
+    expect(getWeekProgress(run, met, FRI)).toEqual({ done: 4, goal: 3 });
   });
 
-  it('a Not today day does not count toward the target', () => {
-    const skipped: CheckInLog = { [MON]: { exercise: 'NotToday' } };
-    expect(isFreeSkip(exercise, skipped, TUE)).toBe(true);
-    expect(getDailyResult([exercise], skipped, TUE).activeCount).toBe(1);
+  it('progress resets the next Monday', () => {
+    const log: CheckInLog = { [MON]: { run: 'NailedIt' } };
+    expect(getWeekProgress(run, log, NEXT_MON)).toEqual({ done: 0, goal: 3 });
+    expect(isDue(run, log, NEXT_MON)).toBe(true);
+  });
+
+  it('Not today never fills a progress dot', () => {
+    expect(getWeekProgress(run, { [MON]: { run: 'NotToday' } }, MON)).toEqual({ done: 0, goal: 3 });
   });
 });
 
 describe('getDailyResult', () => {
   const habits = [sleep, exercise];
 
-  it('starts the day at zero with everything still possible', () => {
+  it('starts the day at zero with every due habit still possible', () => {
     const result = getDailyResult(habits, {}, MON);
     expect(result).toMatchObject({
-      activeCount: 2,
+      dueCount: 1,
       checkedInCount: 0,
       earnedStars: 0,
-      possibleStars: 6,
+      possibleStars: 3,
       isComplete: false,
       score: 0,
     });
     expect(getEnergy(result)).toBe(0);
   });
 
-  it('counts unscored habits as possible, so the score climbs as you check in', () => {
-    const result = getDailyResult(habits, { [MON]: { sleep: 'NailedIt' } }, MON);
-    expect(result.score).toBe(0.5);
-    expect(getEnergy(result)).toBe(0.5);
-  });
-
-  it('a free skip is removed from the math entirely', () => {
+  it('Not today on a due habit is removed from the math and never lowers the rank', () => {
     const result = getDailyResult(
-      habits,
-      { [MON]: { sleep: 'OnTrack', exercise: 'NotToday' } },
+      [sleep, { ...sleep, id: 'diet', name: 'Diet' }],
+      { [MON]: { sleep: 'NailedIt', diet: 'NotToday' } },
       MON,
     );
-    expect(result).toMatchObject({ earnedStars: 2, possibleStars: 3, isComplete: true });
-    expect(result.score).toBeCloseTo(2 / 3);
+    expect(result).toMatchObject({ earnedStars: 3, possibleStars: 3, score: 1 });
   });
 
-  it('is complete only when every active habit has a check-in', () => {
-    const result = getDailyResult(habits, { [MON]: { sleep: 'Started' } }, MON);
-    expect(result.isComplete).toBe(false);
+  it('an optional score can raise the day', () => {
+    const result = getDailyResult(
+      habits,
+      { [MON]: { sleep: 'Started', exercise: 'NailedIt' } },
+      MON,
+    );
+    // Due alone is 1 of 3. With the optional Nailed it, 4 of 6.
+    expect(result.score).toBeCloseTo(4 / 6);
   });
 
-  it('with no habits, the day is a complete Rest day with a full energy bar', () => {
-    const result = getDailyResult([], {}, MON);
-    expect(result.isRestDay).toBe(true);
+  it('an optional score can never lower the day', () => {
+    const result = getDailyResult(
+      habits,
+      { [MON]: { sleep: 'NailedIt', exercise: 'Started' } },
+      MON,
+    );
+    expect(result).toMatchObject({ score: 1, earnedStars: 3, possibleStars: 3 });
+  });
+
+  it('is complete only when every due habit has a check-in', () => {
+    expect(getDailyResult(habits, { [MON]: { exercise: 'NailedIt' } }, MON).isComplete).toBe(false);
+    expect(getDailyResult(habits, { [MON]: { sleep: 'Started' } }, MON).isComplete).toBe(true);
+  });
+
+  it('nothing due and nothing scored is a Rest day with a full Energy bar', () => {
+    const result = getDailyResult([exercise], {}, MON);
+    expect(result).toMatchObject({ isRestDay: true, score: null, dueCount: 0 });
     expect(getEnergy(result)).toBe(1);
+  });
+});
+
+describe('Energy bar', () => {
+  it('counts due habits only, and Not today counts as checked in', () => {
+    const habits = [sleep, { ...sleep, id: 'diet', name: 'Diet' }, exercise];
+    const result = getDailyResult(
+      habits,
+      { [MON]: { sleep: 'NotToday', exercise: 'NailedIt' } },
+      MON,
+    );
+    expect(result).toMatchObject({ dueCount: 2, checkedInCount: 1 });
+    expect(getEnergy(result)).toBe(0.5);
   });
 });

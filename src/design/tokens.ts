@@ -16,11 +16,11 @@ export const spendioLight = {
   onInverse: '#FFFFFF',
   habit1: '#A855F7',
   habit2: '#3B82F6',
-  habit3: '#16A34A',
+  habit3: '#15943F',
   habit4: '#DB2777',
   habit5: '#EA580C',
   habit6: '#0D9488',
-  habit7: '#65A30D',
+  habit7: '#58900B',
   habit8: '#6366F1',
   scoreStarted: '#BE185D',
   scoreStartedStar: '#EC4899',
@@ -129,3 +129,35 @@ export const typography = {
 
 export const rounded = { md: 12, lg: 20, xl: 24, '2xl': 28, full: 9999 } as const;
 export const spacing = { 1: 4, 2: 8, 3: 12, 4: 16, 6: 24, 8: 32 } as const;
+
+/** Habit Card sizes from design-spendio.md components (progress-ring, habit-icon, stars). */
+export const habitCardSizes = {
+  ring: 48,
+  ringStroke: 4,
+  icon: 36,
+  star: 18,
+  dot: 8,
+  dotStroke: 1.5,
+} as const;
+
+/** How strong tints are: the icon circle behind the letter, and the empty ring track. */
+export const tints = { icon: 0.13, ringTrack: 0.12 } as const;
+
+/** Card shadow from design-spendio.md Elevation & Depth: soft, warm, low. */
+export const shadows = {
+  card: '0px 4px 14px rgba(120, 100, 60, 0.08), 0px 1px 2px rgba(120, 100, 60, 0.06)',
+} as const;
+
+/** Today phone layout (SPEC-00): the habit sheet starts this far down the screen. */
+export const todayLayout = {
+  sheetTopRatio: 0.4,
+  /** How far the critter's face sits above the sheet; its body runs behind the sheet. */
+  critterOverlap: 56,
+  critterWidthRatio: 0.62,
+  critterMaxWidth: 280,
+  sheetMaxWidth: 560,
+  sunSize: 64,
+} as const;
+
+/** Sky brightness per live rank, 0 to 1 (SPEC-00: C dim, B a little glow, A bright, S rays). */
+export const skyGlow = { asleep: 0.1, rest: 0.3, C: 0.2, B: 0.4, A: 0.65, S: 0.9 } as const;

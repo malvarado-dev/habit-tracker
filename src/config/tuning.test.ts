@@ -31,11 +31,11 @@ describe('acceptance: no hardcoded colors or timings in screens', () => {
 
 describe('acceptance: changing tuning changes the app', () => {
   it('a rank cutoff edit changes the rank the rules return', () => {
-    const cutoffs = tuning.rank.cutoffs.Challenger as { S: number };
+    const cutoffs = tuning.rank.cutoffs as { S: number };
     const original = cutoffs.S;
-    expect(getRank(0.85, 'Challenger')).toBe('A');
+    expect(getRank(0.85)).toBe('A');
     cutoffs.S = 0.8;
-    expect(getRank(0.85, 'Challenger')).toBe('S');
+    expect(getRank(0.85)).toBe('S');
     cutoffs.S = original;
   });
 });
