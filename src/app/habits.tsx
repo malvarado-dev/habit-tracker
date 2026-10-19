@@ -191,6 +191,9 @@ const makeStyles = (c: ThemeColors) =>
       paddingRight: space.sm,
       borderRadius: radius.pill,
       backgroundColor: c.inverse,
+      // undo-bar: a 1 pt border keeps the edge visible on the dark sheet.
+      borderWidth: 1,
+      borderColor: c.border,
     },
     undoText: { ...textStyle('body'), color: c.onInverse, flex: 1 },
     undoButton: {

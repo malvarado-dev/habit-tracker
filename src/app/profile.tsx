@@ -296,7 +296,7 @@ const makeStyles = (c: ThemeColors) =>
       borderWidth: 1,
       borderColor: c.border,
     },
-    chipOn: { backgroundColor: c.inverse, borderColor: c.inverse },
+    chipOn: { backgroundColor: c.onSurface, borderColor: c.onSurface },
     chipText: { ...textStyle('label'), color: c.onSurface },
-    chipTextOn: { color: c.onInverse },
+    chipTextOn: { color: c.surfaceSheet },
   });

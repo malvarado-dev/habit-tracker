@@ -29,6 +29,7 @@ colors:
   score-nailed-it-star: "#D97706"
   star-score-needed: "#8E8E93"
   star-not-today: "#6B7280"
+  danger: "#B91C1C"
   surface-dark: "#3A3D33"
   surface-sheet-dark: "#2A2C24"
   surface-dim-dark: "#26281F"
@@ -49,6 +50,7 @@ colors:
   score-nailed-it-dark: "#FACC15"
   star-score-needed-dark: "#A3A396"
   star-not-today-dark: "#8E8E82"
+  danger-dark: "#FCA5A5"
 typography:
   display:
     fontFamily: Urbanist
@@ -149,8 +151,8 @@ components:
     rounded: "{rounded.full}"
     size: 44px
   chip-selected:
-    backgroundColor: "{colors.inverse}"
-    textColor: "{colors.on-inverse}"
+    backgroundColor: "{colors.on-surface}"
+    textColor: "{colors.surface-sheet}"
     typography: "{typography.label}"
     rounded: "{rounded.full}"
     size: 44px
@@ -160,9 +162,18 @@ components:
     typography: "{typography.label}"
     rounded: "{rounded.full}"
     height: 52px
+  button-remove:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.danger}"
+    borderColor: "{colors.border}"
+    typography: "{typography.label}"
+    rounded: "{rounded.full}"
+    height: 52px
   undo-bar:
     backgroundColor: "{colors.inverse}"
     textColor: "{colors.on-inverse}"
+    borderColor: "{colors.border}"
+    borderWidth: 1px
     typography: "{typography.body}"
     rounded: "{rounded.full}"
     padding: "{spacing.3}"
@@ -174,7 +185,7 @@ components:
 A light, fresh look for Habit Tracker. The shared Background sits above, and white pill cards sit on a solid warm white habit sheet, and each habit has its own color shown in its icon and progress ring. The tone stays playful, cozy, and rewarding. It must never feel game-loud, guilt-driven, or cluttered. Very light gray text and thin small type fail contrast, so this system avoids both.
 
 ## Colors
-The sky belongs to the shared Background (background.md), not this theme; this theme covers the habit sheet, cards, text, and Energy bar. Cards stay white so habit colors pop. Dark mode (tokens ending in -dark) swaps the sheet to olive-charcoal and the cards to dark olive pills with a 1 px border-dark edge (3:1 on the sheet, since the card itself is only 1.3:1), with brighter habit and score colors that pass AA on dark; lemon and the critter stay the same. Each habit color is a mid-tone, not a pastel, so its ring passes 3:1 on white; pale tints of it fill the icon circle. Lemon primary is the signature accent; it is only ever used on the dark inverse color or with dark text on top, because lemon on white is about 1.2:1. Score labels use deep pink, green, and amber at 5:1 or better on white, and their stars use brighter versions that pass 3:1. To do stars are outlined and Skip stars are filled gray, so the two states differ by shape, not just shade.
+The sky belongs to the shared Background (background.md), not this theme; this theme covers the habit sheet, cards, text, and Energy bar. Cards stay white so habit colors pop. Dark mode (tokens ending in -dark) swaps the sheet to olive-charcoal and the cards to dark olive pills with a 1 px border-dark edge (3:1 on the sheet, since the card itself is only 1.3:1), with brighter habit and score colors that pass AA on dark; lemon and the critter stay the same. Each habit color is a mid-tone, not a pastel, so its ring passes 3:1 on white; pale tints of it fill the icon circle. Lemon primary is the signature accent; it is only ever used on the dark inverse color or with dark text on top, because lemon on white is about 1.2:1. Score labels use deep pink, green, and amber at 5:1 or better on white, and their stars use brighter versions that pass 3:1. To do stars are outlined and Skip stars are filled gray, so the two states differ by shape, not just shade. Danger (deep red, 6.5:1 on white; light red in dark, 5.8:1 on dark cards) is only for destructive actions like Remove habit, never for scores.
 
 ## Typography
 Urbanist: geometric and friendly, with wide, airy letters. Thin weight (300) only at display size and above; everything 16 px and below is 500 to 700, because thin small text is hard to read. Nothing goes below 12 px.
@@ -189,7 +200,7 @@ Depth comes from light, not dark: cards use a soft, warm, low shadow (0 4px 14px
 Fully rounded everything: pill cards, chips, buttons, the Energy bar, and the Undo bar. The habit sheet uses 28 px top corners. Icons sit in circles inside their progress ring.
 
 ## Components
-The Habit Card is a white pill: a progress ring with the habit icon inside, the name, the status slot, and three stars on the right. The ring fills for each day this week scored Started, On track, or Nailed it, in the habit's color; screen readers hear "3 of 4 this week." The ring is the default; progress bubbles under the name are a Settings option being tested. Skip turns the card light gray and shows filled gray stars. The Energy bar is a dark pill with a smooth lemon fill and a checkered flag, no handle. The fill is today's score, so every star moves it, and a full bar means 3 stars on everything that counts today. The flag is an 18 px pole and checker in on-surface and the sheet color, so it is dark on the light sheet and light on the dark sheet, standing on the bar at the S rank cutoff (90%) like a finish line. Crossing the flag waves it and sweeps a shimmer across the fill; reaching 100% also brightens the fill briefly and pops a few sparkles off the end. Both are subtle, play only on an upward crossing, and reduce to the brighten with reduced motion. On a Rest day the bar shows full. Chips are white pills that turn dark when selected. The primary button is a lemon pill with dark text. The Undo bar is a dark pill. The habit sheet is fixed, with no grab handle; cards scroll inside it. The critter is not part of this theme: its look and colors come from the shared critter palette in critter.md, so a user's critter looks the same in every theme. The sky comes from the shared Background (background.md), not this theme.
+The Habit Card is a white pill: a progress ring with the habit icon inside, the name, the status slot, and three stars on the right. The ring fills for each day this week scored Started, On track, or Nailed it, in the habit's color; screen readers hear "3 of 4 this week." The ring is the default; progress bubbles under the name are a Settings option being tested. Skip turns the card light gray and shows filled gray stars. The Energy bar is a dark pill with a smooth lemon fill and a checkered flag, no handle. The fill is today's score, so every star moves it, and a full bar means 3 stars on everything that counts today. The flag is an 18 px pole and checker in on-surface and the sheet color, so it is dark on the light sheet and light on the dark sheet, standing on the bar at the S rank cutoff (90%) like a finish line. Crossing the flag waves it and sweeps a shimmer across the fill; reaching 100% also brightens the fill briefly and pops a few sparkles off the end. Both are subtle, play only on an upward crossing, and reduce to the brighten with reduced motion. On a Rest day the bar shows full. Chips and day buttons are pills on the card color; selected ones fill with the text color (on-surface) and use the sheet color for their label, so they are near-black in light and near-white in dark. The primary button is a lemon pill with dark text. The Remove habit button is a card-color pill with danger text. The Undo bar is a dark pill with a 1 px border, which keeps its edge visible on the dark sheet. The habit sheet is fixed, with no grab handle; cards scroll inside it. The critter is not part of this theme: its look and colors come from the shared critter palette in critter.md, so a user's critter looks the same in every theme. The sky comes from the shared Background (background.md), not this theme.
 
 ## Do's and Don'ts
 Do:
