@@ -147,3 +147,17 @@ export const tints = { icon: 0.13, ringTrack: 0.12 } as const;
 export const shadows = {
   card: '0px 4px 14px rgba(120, 100, 60, 0.08), 0px 1px 2px rgba(120, 100, 60, 0.06)',
 } as const;
+
+/** Today phone layout (SPEC-00): the habit sheet starts this far down the screen. */
+export const todayLayout = {
+  sheetTopRatio: 0.4,
+  /** How far the critter's face sits above the sheet; its body runs behind the sheet. */
+  critterOverlap: 56,
+  critterWidthRatio: 0.62,
+  critterMaxWidth: 280,
+  sheetMaxWidth: 560,
+  sunSize: 64,
+} as const;
+
+/** Sky brightness per live rank, 0 to 1 (SPEC-00: C dim, B a little glow, A bright, S rays). */
+export const skyGlow = { asleep: 0.1, rest: 0.3, C: 0.2, B: 0.4, A: 0.65, S: 0.9 } as const;
