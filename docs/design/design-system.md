@@ -136,11 +136,23 @@ components:
     backgroundColor: "{colors.primary}"
     rounded: "{rounded.full}"
     height: 8px
-  energy-flag:
-    size: 18px
-    lightColor: "{colors.surface-sheet}"
-    darkColor: "{colors.on-surface}"
-    placement: standing on top of the energy-bar at the S rank cutoff (90%), pole touching the bar
+  energy-bar-label:
+    textColor: "{colors.on-surface}"
+    typography: "{typography.habit-name}"
+    weight: 700
+    content: "Today" on the left (Today only), the percentage on the right
+  energy-tick:
+    width: 3px
+    rounded: "{rounded.full}"
+    color: "{colors.on-inverse}"
+    passedColor: "{colors.on-primary}"
+    placement: inside the energy-bar at the B, A, and S rank cutoffs (50, 75, 90%); the S tick runs 3px past the bar
+  weekly-goal-met:
+    textColor: "{colors.on-surface}"
+    habitNameColor: the habit's color
+    size: 19px
+    weight: 700
+    placement: centered under the energy-bar, plain text, no box
   menu-button:
     textColor: "{colors.on-surface}"
     rounded: "{rounded.full}"
@@ -201,7 +213,7 @@ Depth comes from light, not dark: cards use a soft, warm, low shadow (0 4px 14px
 Fully rounded everything: pill cards, chips, buttons, the Energy bar, and the Undo bar. The habit sheet uses 28 px top corners. Icons sit in circles inside their progress ring.
 
 ## Components
-The Habit Card is a white pill: a progress ring with the habit icon inside, the name, the status slot, and three stars on the right. The ring fills for each day this week scored Started, On track, or Nailed it, in the habit's color; screen readers hear "3 of 4 this week." The ring is the default; progress bubbles under the name are a Settings option being tested. Skip turns the card light gray and crosses out each outlined gray star with a diagonal slash. The Energy bar is a dark pill with a smooth lemon fill and a checkered flag, no handle. The fill is today's score, so every star moves it, and a full bar means 3 stars on everything that counts today. The flag is an 18 px pole and checker in on-surface and the sheet color, so it is dark on the light sheet and light on the dark sheet, standing on the bar at the S rank cutoff (90%) like a finish line. Crossing the flag waves it and sweeps a shimmer across the fill; reaching 100% also brightens the fill briefly and pops a few sparkles off the end. Both are subtle, play only on an upward crossing, and reduce to the brighten with reduced motion. On a Rest day the bar shows full. Chips and day buttons are pills on the card color; selected ones fill with the text color (on-surface) and use the sheet color for their label, so they are near-black in light and near-white in dark. The primary button is a lemon pill with dark text. The Remove habit button is a card-color pill with danger text. The Undo bar is a dark pill with a 1 px border, which keeps its edge visible on the dark sheet. The habit sheet is fixed, with no grab handle; cards scroll inside it. The critter is not part of this theme: its look and colors come from the shared critter palette in critter.md, so a user's critter looks the same in every theme. The sky comes from the shared Background (background.md), not this theme.
+The Habit Card is a white pill: a progress ring with the habit icon inside, the name, the status slot, and three stars on the right. The ring fills for each day this week scored Started, On track, or Nailed it, in the habit's color; screen readers hear "3 of 4 this week." The ring is the default; progress bubbles under the name are a Settings option being tested. Skip turns the card light gray and crosses out each outlined gray star with a diagonal slash. The Energy bar is a dark pill with a smooth lemon fill, with "Today" on the left and the percentage on the right above it, both in on-surface at the same size. Three thin ticks sit inside the bar at the B, A, and S rank cutoffs (50, 75, 90%); the S tick is a little taller. A tick is light on the dark track until the fill passes it, then dark on the lemon fill. No letters and no flag. The fill counts habits due today plus Any days habits still owed this week, so every counted star moves it the same amount; a habit whose weekly goal is already met doesn't move it. Crossing the S tick sweeps a shimmer across the fill; reaching 100% also brightens the fill briefly and pops a few sparkles off the end. Both are subtle, play only on an upward crossing, and reduce to the brighten with reduced motion. On a Rest day the bar shows full. When a habit's weekly goal is met, "Weekly goal met · Habit" fades in under the bar as plain text, 19 px bold, with the habit name in its habit color (every habit color passes 3:1 as large text on both sheets), and the bar gets a soft lemon glow. Text only fades, never scales, so it stays sharp. Chips and day buttons are pills on the card color; selected ones fill with the text color (on-surface) and use the sheet color for their label, so they are near-black in light and near-white in dark. The primary button is a lemon pill with dark text. The Remove habit button is a card-color pill with danger text. The Undo bar is a dark pill with a 1 px border, which keeps its edge visible on the dark sheet. The habit sheet is fixed, with no grab handle; cards scroll inside it. The critter is not part of this theme: its look and colors come from the shared critter palette in critter.md, so a user's critter looks the same in every theme. The sky comes from the shared Background (background.md), not this theme.
 
 ## Do's and Don'ts
 Do:

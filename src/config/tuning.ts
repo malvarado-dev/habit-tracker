@@ -102,11 +102,8 @@ export const tuning = {
   energy: {
     /** Energy bar fill glides to its new width this fast. Reduced motion jumps instead. */
     fillMs: 450,
-    /** Celebrations when the fill crosses the flag (S) and when it reaches 100%. They start once the fill arrives. */
+    /** Celebrations when the fill crosses the top tick (S) and when it reaches 100%. They start once the fill arrives. */
     celebrate: {
-      /** Flag wave: how far it tilts each way (degrees) and each tilt's time. */
-      flagTiltDegrees: 8,
-      flagWaveMs: 130,
       /** A light band sweeps once across the fill. Width in points. */
       shimmerMs: 650,
       shimmerWidth: 28,
@@ -118,6 +115,13 @@ export const tuning = {
       sparkleDistance: [10, 20] as const,
       sparkleSize: [6, 9] as const,
       sparkleMs: 600,
+    },
+    /** "Weekly goal met · Habit" under the bar (T18): how long it stays, its fade in and out, and the bar's soft glow. */
+    goalMet: {
+      showMs: 1900,
+      fadeMs: 280,
+      glowMs: 900,
+      glowOpacity: 0.55,
     },
   },
 

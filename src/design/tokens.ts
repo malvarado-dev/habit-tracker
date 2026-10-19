@@ -182,6 +182,28 @@ export const wideLayout = {
   critterSink: 0.12,
 } as const;
 
+/** Energy bar (design-system.md energy-bar, T18). Sizes in points. */
+export const energyBar = {
+  trackHeight: 14,
+  trackPadding: 3,
+  fillHeight: 8,
+  /** Tick marks at the B, A, and S cutoffs; the top (S) tick runs this far past the track. */
+  tickWidth: 3,
+  topTickOverhang: 3,
+  /** Gap between the "Today · 64%" row and the track. */
+  labelGap: 6,
+  /** The soft glow ring around the track for Weekly goal met. */
+  glowSpread: 5,
+} as const;
+
+/** "Weekly goal met · Habit" under the Energy bar (T18). 19 pt bold is large text, so habit colors pass 3:1. */
+export const weeklyGoalMet = {
+  fontSize: 19,
+  lineHeight: 24,
+  /** The slot keeps this height even when empty, so the cards never jump. */
+  slotHeight: 24,
+} as const;
+
 /** History (T16, canvas "History options · Stage 3"). Sizes in points. */
 export const history = {
   /** Day cell: minimum height (fits the face plus the date) and corner radius. */

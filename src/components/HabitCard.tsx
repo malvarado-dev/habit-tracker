@@ -31,7 +31,13 @@ import { MIN_TAP_SIZE, radius, space } from '@/theme';
 
 import { CardEffect } from './CardEffect';
 import { cardMotion } from './cardEffectLayout';
-import { cardAccessibilityLabel, iconLetter, statusText, weekProgressText } from './habitCardText';
+import {
+  cardAccessibilityLabel,
+  iconLetter,
+  statusText,
+  weekProgressText,
+  type CardNeed,
+} from './habitCardText';
 
 export type { GoalStyle } from '@/features/settings/settings';
 
@@ -40,8 +46,8 @@ const LOCKED_OPACITY = history.lockedCardOpacity;
 interface HabitCardProps {
   habit: Habit;
   checkIn: CheckIn | undefined;
-  /** Due today: an unscored card says "To do". */
-  isDue: boolean;
+  /** Unscored, the card says "To do" (counts toward today's Energy bar), "Goal met", or nothing. */
+  need: CardNeed;
   /** Days this week scored Started or better, and the weekly goal. */
   progress: { done: number; goal: number };
   /** Ring is the default; Dots is the Profile option (SPEC-00). */
@@ -53,7 +59,7 @@ interface HabitCardProps {
 }
 
 export function HabitCard(props: HabitCardProps) {
-  const { habit, checkIn, isDue, progress, goalStyle, onTap, onSwipe, locked = false } = props;
+  const { habit, checkIn, need, progress, goalStyle, onTap, onSwipe, locked = false } = props;
   const styles = useStyles();
   const { colors: c } = useTheme();
   const swipeRef = useRef<SwipeableMethods>(null);
@@ -140,7 +146,7 @@ export function HabitCard(props: HabitCardProps) {
           accessibilityLabel={cardAccessibilityLabel(
             name,
             checkIn,
-            isDue,
+            need,
             progress.done,
             progress.goal,
           )}
@@ -214,7 +220,7 @@ export function HabitCard(props: HabitCardProps) {
                 style={[styles.status, { color: labelColor(c, checkIn) }]}
                 testID={`habit-label-${id}`}
               >
-                {statusText(checkIn, isDue)}
+                {statusText(checkIn, need)}
               </Text>
             </View>
           </View>

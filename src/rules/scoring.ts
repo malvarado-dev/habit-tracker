@@ -179,12 +179,3 @@ export function getDailyResult(habits: Habit[], log: CheckInLog, date: DateKey):
     score,
   };
 }
-
-/**
- * How full the Energy bar is, 0 to 1: today's score, so every star moves it (decided 2026-10-18).
- * 100% means 3 stars on everything that counts today. Skip drops a habit from what's possible,
- * and optional scores can only raise it. A Rest day shows a full bar.
- */
-export function getEnergy(result: DailyResult): number {
-  return result.score === null ? 1 : result.score;
-}
