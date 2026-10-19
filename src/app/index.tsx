@@ -3,17 +3,18 @@
 // scroll inside it while the Background stays put. No header; the subtle menu button sits top
 // left. Wide (T10, desktop web and iPad landscape): the page is the sheet color, with the
 // habits on the left and, on the right, the Background as a rounded card with the critter
-// above the History placeholder.
+// above History (T16), which replaced the placeholder.
 
+import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { StyleSheet, useWindowDimensions, View } from 'react-native';
+import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Background } from '@/components/Background';
 import { Critter } from '@/components/Critter';
 import { useCritterAndMoment } from '@/components/useCritterAndMoment';
 import { HabitSheet } from '@/components/HabitSheet';
-import { HistoryPlaceholder } from '@/components/HistoryPlaceholder';
+import { HistoryView } from '@/components/history/HistoryView';
 import { MenuButton } from '@/components/MenuButton';
 import { SideMenu } from '@/components/SideMenu';
 import { layoutMode } from '@/components/todayLayoutMode';
@@ -63,7 +64,17 @@ export default function HomeScreen() {
               <Critter width={critterWidth} {...critterProps} />
             </View>
           </View>
-          <HistoryPlaceholder />
+          <ScrollView
+            style={styles.history}
+            contentContainerStyle={styles.historyContent}
+            testID="wide-history"
+          >
+            <HistoryView
+              onOpenDay={(date) =>
+                router.push({ pathname: '/day/[date]', params: { date, from: 'today' } })
+              }
+            />
+          </ScrollView>
         </View>
         {menu}
       </View>
@@ -132,4 +143,6 @@ const makeStyles = (c: ThemeColors) =>
     leftColumn: { width: wide.leftColumnWidth, gap: space.lg },
     rightColumn: { flex: 1, gap: wide.columnGap },
     scene: { borderRadius: wide.sceneRadius, overflow: 'hidden' },
+    history: { flex: 1 },
+    historyContent: { paddingBottom: space.lg },
   });

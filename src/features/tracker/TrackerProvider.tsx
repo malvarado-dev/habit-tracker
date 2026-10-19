@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   createContext,
   useContext,
+  useCallback,
   useEffect,
   useMemo,
   useReducer,
@@ -14,13 +15,8 @@ import {
 } from 'react';
 
 import { addDays, toDateKey, type DateKey } from '@/rules/dates';
-import {
-  createInitialState,
-  isTrackerState,
-  trackerReducer,
-  type TrackerAction,
-  type TrackerState,
-} from './state';
+import { backupKey, loadSave } from './save';
+import { createInitialState, trackerReducer, type TrackerAction, type TrackerState } from './state';
 
 const STORAGE_KEY = 'habit-tracker/prototype';
 
@@ -29,6 +25,8 @@ interface TrackerContextValue {
   dispatch: Dispatch<TrackerAction>;
   /** Today's date, moved forward by the Next day test tool. */
   today: DateKey;
+  /** The real date. Locking and History's open days use this, never the test date. */
+  realToday: DateKey;
 }
 
 const TrackerContext = createContext<TrackerContextValue | null>(null);
@@ -40,42 +38,69 @@ function reducer(state: TrackerState, action: InternalAction): TrackerState {
   return action.type === 'load' ? action.state : trackerReducer(state, action);
 }
 
+/** The real date, never moved by test tools. Locking always uses this (T16). */
+const realDate = () => toDateKey(new Date());
+
 export function TrackerProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, undefined, createInitialState);
+  const [state, rawDispatch] = useReducer(reducer, undefined, createInitialState);
   const [loaded, setLoaded] = useState(false);
-  const [realToday, setRealToday] = useState(() => toDateKey(new Date()));
+  // False when the save on the device came from a newer app: it's left alone, never overwritten.
+  const [canSave, setCanSave] = useState(true);
+  const [realToday, setRealToday] = useState(realDate);
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY)
-      .then((saved) => {
-        const parsed: unknown = saved ? JSON.parse(saved) : null;
-        if (isTrackerState(parsed)) dispatch({ type: 'load', state: parsed });
+      .then(async (raw) => {
+        const result = loadSave(raw);
+        if (result.kind === 'loaded') {
+          // Lock before anything else can change the data.
+          rawDispatch({ type: 'load', state: trackerReducer(result.state, lockAction()) });
+        } else if (result.kind === 'unreadable') {
+          // Keep the broken save in its own backup slot, then start fresh beside it.
+          await AsyncStorage.setItem(backupKey(STORAGE_KEY, new Date()), result.raw);
+        } else if (result.kind === 'newer') {
+          setCanSave(false);
+        }
       })
       .catch(() => {
-        // A broken or unreadable save just means a fresh start; nothing else depends on it.
+        // Storage itself failed. Don't save over whatever is there.
+        setCanSave(false);
       })
       .finally(() => setLoaded(true));
   }, []);
 
   useEffect(() => {
     // Don't save until the old save has loaded, or a fresh state would overwrite it.
-    if (!loaded) return;
+    if (!loaded || !canSave) return;
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state)).catch(() => {});
-  }, [state, loaded]);
+  }, [state, loaded, canSave]);
 
   useEffect(() => {
-    // Notice when midnight passes while the app is open.
-    const timer = setInterval(() => setRealToday(toDateKey(new Date())), 60_000);
+    // Notice when midnight passes while the app is open, and lock the day that just closed.
+    const timer = setInterval(() => {
+      setRealToday(realDate());
+      rawDispatch(lockAction());
+    }, 60_000);
     return () => clearInterval(timer);
   }, []);
 
+  // Every change locks first, so a day can't be edited in the minute after it locks.
+  const dispatch = useCallback<Dispatch<TrackerAction>>((action) => {
+    rawDispatch(lockAction());
+    rawDispatch(action);
+  }, []);
+
   const value = useMemo(
-    () => ({ state, dispatch, today: addDays(realToday, state.dayOffset) }),
-    [state, realToday],
+    () => ({ state, dispatch, today: addDays(realToday, state.dayOffset), realToday }),
+    [state, dispatch, realToday],
   );
 
   if (!loaded) return null;
   return <TrackerContext.Provider value={value}>{children}</TrackerContext.Provider>;
+}
+
+function lockAction(): TrackerAction {
+  return { type: 'lockDays', today: realDate() };
 }
 
 export function useTracker(): TrackerContextValue {

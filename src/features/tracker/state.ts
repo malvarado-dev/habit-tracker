@@ -3,6 +3,7 @@
 // so it's easy to test.
 
 import type { DateKey } from '@/rules/dates';
+import { isLocked, lockDays, type LockedDay } from '@/rules/locking';
 import {
   EVERY_DAY,
   nextCheckIn,
@@ -17,12 +18,16 @@ import {
 import { cleanName, nameProblem } from '@/features/habits/habitName';
 
 export interface TrackerState {
-  /** Bumped when the saved shape changes, so old saves can be thrown away safely. */
-  version: 3;
+  /** Bumped when the saved shape changes. Older saves are upgraded step by step (save.ts). */
+  version: 4;
   habits: Habit[];
   log: CheckInLog;
   /** Test tools only: how many days ahead of the real date the app is pretending to be. */
   dayOffset: number;
+  /** Results saved for good when each day locked (T16). Days with no check-in have no entry. */
+  locked: Record<DateKey, LockedDay>;
+  /** Every day up to and including this one is locked. Null until the first lock. */
+  lockedThrough: DateKey | null;
 }
 
 export const DEFAULT_HABITS: Habit[] = [
@@ -61,10 +66,12 @@ export function cleanGoal(goal: WeeklyGoal): WeeklyGoal | null {
 
 export function createInitialState(): TrackerState {
   return {
-    version: 3,
+    version: 4,
     habits: DEFAULT_HABITS,
     log: {},
     dayOffset: 0,
+    locked: {},
+    lockedThrough: null,
   };
 }
 
@@ -78,6 +85,7 @@ export type TrackerAction =
   | { type: 'setGoal'; habitId: string; goal: WeeklyGoal }
   | { type: 'removeHabit'; habitId: string }
   | { type: 'restoreHabit'; habit: Habit; index: number }
+  | { type: 'lockDays'; today: DateKey }
   | { type: 'reset' };
 
 function withCheckIn(
@@ -103,10 +111,13 @@ function updateHabit(state: TrackerState, habitId: string, change: Partial<Habit
 export function trackerReducer(state: TrackerState, action: TrackerAction): TrackerState {
   switch (action.type) {
     case 'tapHabit': {
+      // A locked day never changes (T16). The screens turn taps off too; this is the backstop.
+      if (isLocked(action.date, state.lockedThrough)) return state;
       const current = state.log[action.date]?.[action.habitId];
       return withCheckIn(state, action.date, action.habitId, nextCheckIn(current));
     }
     case 'setCheckIn':
+      if (isLocked(action.date, state.lockedThrough)) return state;
       return withCheckIn(state, action.date, action.habitId, action.checkIn);
     case 'nextDay':
       return { ...state, dayOffset: state.dayOffset + 1 };
@@ -156,19 +167,9 @@ export function trackerReducer(state: TrackerState, action: TrackerAction): Trac
       habits.splice(Math.min(Math.max(action.index, 0), habits.length), 0, action.habit);
       return { ...state, habits };
     }
+    case 'lockDays':
+      return lockDays(state, action.today);
     case 'reset':
       return createInitialState();
   }
-}
-
-/** Accepts a saved state only if it has the shape this version expects. */
-export function isTrackerState(value: unknown): value is TrackerState {
-  if (typeof value !== 'object' || value === null) return false;
-  const v = value as Partial<TrackerState>;
-  return (
-    v.version === 3 &&
-    Array.isArray(v.habits) &&
-    typeof v.log === 'object' &&
-    typeof v.dayOffset === 'number'
-  );
 }

@@ -2,13 +2,13 @@
 // so every goal can be unit tested: the result line, the presets, and switching between
 // Specific days and Any days.
 
+import { calendar } from '@/config/calendar';
 import { EVERY_DAY, goalCount, type WeeklyGoal, type Weekday } from '@/rules/scoring';
 
 export const WEEKDAYS: Weekday[] = [0, 1, 2, 3, 4];
 export const WEEKENDS: Weekday[] = [5, 6];
 
-/** Day buttons, Monday first. Short letter on the button, full name for screen readers. */
-export const DAY_LABELS: { day: Weekday; short: string; name: string }[] = [
+const ALL_DAY_LABELS: { day: Weekday; short: string; name: string }[] = [
   { day: 0, short: 'M', name: 'Monday' },
   { day: 1, short: 'T', name: 'Tuesday' },
   { day: 2, short: 'W', name: 'Wednesday' },
@@ -17,6 +17,11 @@ export const DAY_LABELS: { day: Weekday; short: string; name: string }[] = [
   { day: 5, short: 'S', name: 'Saturday' },
   { day: 6, short: 'S', name: 'Sunday' },
 ];
+
+/** Day buttons in week order, starting on calendar.weekStartsOn (Sunday). Short letter on the button, full name for screen readers. */
+export const DAY_LABELS = ALL_DAY_LABELS.map(
+  (_, i) => ALL_DAY_LABELS[(i + calendar.weekStartsOn) % 7]!,
+);
 
 export type Preset = 'everyDay' | 'weekdays' | 'weekends';
 
