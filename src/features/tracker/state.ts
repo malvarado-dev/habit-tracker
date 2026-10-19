@@ -72,6 +72,7 @@ export type TrackerAction =
   | { type: 'tapHabit'; date: DateKey; habitId: string }
   | { type: 'setCheckIn'; date: DateKey; habitId: string; checkIn: CheckIn | undefined }
   | { type: 'nextDay' }
+  | { type: 'backToToday' }
   | { type: 'addHabit'; id: string; name: string; goal?: WeeklyGoal }
   | { type: 'renameHabit'; habitId: string; name: string }
   | { type: 'setGoal'; habitId: string; goal: WeeklyGoal }
@@ -109,6 +110,9 @@ export function trackerReducer(state: TrackerState, action: TrackerAction): Trac
       return withCheckIn(state, action.date, action.habitId, action.checkIn);
     case 'nextDay':
       return { ...state, dayOffset: state.dayOffset + 1 };
+    case 'backToToday':
+      // Test tools: back to the real date. Check-ins stay.
+      return { ...state, dayOffset: 0 };
     case 'addHabit': {
       // Name rules (habitName.ts): never blank, never a duplicate, at most 20 characters.
       if (nameProblem(action.name, state.habits)) return state;
