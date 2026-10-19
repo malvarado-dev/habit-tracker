@@ -17,7 +17,7 @@ import { HabitSheet } from '@/components/HabitSheet';
 import { HistoryView } from '@/components/history/HistoryView';
 import { MenuButton } from '@/components/MenuButton';
 import { SideMenu } from '@/components/SideMenu';
-import { layoutMode } from '@/components/todayLayoutMode';
+import { layoutMode, wideSizes } from '@/components/todayLayoutMode';
 import { useTheme } from '@/design/theme/ThemeProvider';
 import { todayLayout, wideLayout as wide, type ThemeColors } from '@/design/tokens';
 import { useTracker } from '@/features/tracker/TrackerProvider';
@@ -44,37 +44,38 @@ export default function HomeScreen() {
   const menu = <SideMenu open={menuOpen} onClose={() => setMenuOpen(false)} />;
 
   if (layoutMode(width, height) === 'wide') {
-    const rightWidth = width - wide.pagePadding * 2 - wide.leftColumnWidth - wide.columnGap;
-    const sceneHeight = Math.round((height - wide.pagePadding * 2) * wide.sceneHeightRatio);
-    const critterWidth = Math.min(rightWidth * wide.critterWidthRatio, wide.critterMaxWidth);
+    const { sceneHeight, critterWidth } = wideSizes(width, height);
     const critterHeight = critterWidth * CRITTER_ASPECT;
     return (
-      <View style={[styles.screen, styles.widePage]} testID="today-screen">
-        <View style={styles.leftColumn} testID="habit-sheet">
-          <MenuButton time={skyTime} onPage onPress={() => setMenuOpen(true)} />
-          <HabitSheet bottomPadding={space.xl} />
-        </View>
-        <View style={styles.rightColumn} testID="wide-right-column">
-          <View style={[styles.scene, { height: sceneHeight }]} testID="background-card">
-            <Background time={skyTime} level={skyLevel} moment={moment} />
-            <View
-              style={[styles.critter, { bottom: -critterHeight * wide.critterSink }]}
-              pointerEvents="box-none"
-            >
-              <Critter width={critterWidth} {...critterProps} />
-            </View>
+      <View style={[styles.screen, styles.wideScreen]} testID="today-screen">
+        {/* Capped at wideLayout.maxWidth and centered, so big monitors don't stretch it (#51). */}
+        <View style={styles.widePage} testID="wide-page">
+          <View style={styles.leftColumn} testID="habit-sheet">
+            <MenuButton time={skyTime} onPage onPress={() => setMenuOpen(true)} />
+            <HabitSheet bottomPadding={space.xl} />
           </View>
-          <ScrollView
-            style={styles.history}
-            contentContainerStyle={styles.historyContent}
-            testID="wide-history"
-          >
-            <HistoryView
-              onOpenDay={(date) =>
-                router.push({ pathname: '/day/[date]', params: { date, from: 'today' } })
-              }
-            />
-          </ScrollView>
+          <View style={styles.rightColumn} testID="wide-right-column">
+            <View style={[styles.scene, { height: sceneHeight }]} testID="background-card">
+              <Background time={skyTime} level={skyLevel} moment={moment} />
+              <View
+                style={[styles.critter, { bottom: -critterHeight * wide.critterSink }]}
+                pointerEvents="box-none"
+              >
+                <Critter width={critterWidth} {...critterProps} />
+              </View>
+            </View>
+            <ScrollView
+              style={styles.history}
+              contentContainerStyle={styles.historyContent}
+              testID="wide-history"
+            >
+              <HistoryView
+                onOpenDay={(date) =>
+                  router.push({ pathname: '/day/[date]', params: { date, from: 'today' } })
+                }
+              />
+            </ScrollView>
+          </View>
         </View>
         {menu}
       </View>
@@ -134,9 +135,12 @@ const makeStyles = (c: ThemeColors) =>
       paddingHorizontal: space.lg,
       gap: space.md,
     },
+    wideScreen: { backgroundColor: c.surfaceSheet, alignItems: 'center' },
     widePage: {
+      flex: 1,
+      width: '100%',
+      maxWidth: wide.maxWidth,
       flexDirection: 'row',
-      backgroundColor: c.surfaceSheet,
       padding: wide.pagePadding,
       gap: wide.columnGap,
     },
