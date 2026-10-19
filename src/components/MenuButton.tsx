@@ -1,7 +1,7 @@
 // The subtle, see-through menu button, top left of the Background (SPEC-00). 44 pt tap area,
 // on-sky colors with 3:1 contrast. For now it opens Habits; T11 adds the side menu and Profile.
 
-import { Link } from 'expo-router';
+import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { withAlpha } from '@/design/theme/theme';
@@ -11,18 +11,18 @@ import type { SkyTime } from '@/rules/sky';
 export function MenuButton({ time }: { time: SkyTime }) {
   const ink = time === 'day' ? sky.onSkyDay : sky.onSkyDark;
   return (
-    <Link href="/habits" asChild>
-      <Pressable
-        style={[styles.button, { backgroundColor: withAlpha(ink, 0.12) }]}
-        testID="menu-button"
-        accessibilityRole="button"
-        accessibilityLabel="Menu"
-      >
-        {[0, 1, 2].map((i) => (
-          <View key={i} style={[styles.line, { backgroundColor: ink }]} />
-        ))}
-      </Pressable>
-    </Link>
+    // Plain Pressable + router, not an Expo Router Link wrapper: its Slot rejects style arrays on phones.
+    <Pressable
+      onPress={() => router.push('/habits')}
+      style={[styles.button, { backgroundColor: withAlpha(ink, 0.12) }]}
+      testID="menu-button"
+      accessibilityRole="button"
+      accessibilityLabel="Menu"
+    >
+      {[0, 1, 2].map((i) => (
+        <View key={i} style={[styles.line, { backgroundColor: ink }]} />
+      ))}
+    </Pressable>
   );
 }
 
