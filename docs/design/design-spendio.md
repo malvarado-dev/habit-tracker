@@ -34,6 +34,7 @@ colors:
   surface-dim-dark: "#26281F"
   on-surface-dark: "#F2F1EA"
   on-surface-muted-dark: "#C9C7B8"
+  border-dark: "#73786A"
   track-dark: "#1A1B16"
   habit-1-dark: "#C084FC"
   habit-2-dark: "#60A5FA"
@@ -173,7 +174,7 @@ components:
 A light, fresh take on Habit Tracker, inspired by the Spendio Dribbble shot. The shared Background sits above, and white pill cards sit on a solid warm white habit sheet, and each habit has its own color shown in its icon and progress ring. The tone stays playful, cozy, and rewarding. It must never feel game-loud, guilt-driven, or cluttered. Spendio's very light gray text and thin small type failed contrast, so both are fixed here.
 
 ## Colors
-The sky belongs to the shared Background (background.md), not this theme; this theme covers the habit sheet, cards, text, and Energy bar. Cards stay white so habit colors pop. Dark mode (tokens ending in -dark) swaps the sheet to olive-charcoal and the cards to dark olive pills, with brighter habit and score colors that pass AA on dark; lemon and the critter stay the same. Each habit color is a mid-tone, not a pastel, so its ring passes 3:1 on white; pale tints of it fill the icon circle. Lemon primary is Spendio's signature; it is only ever used on the dark inverse color or with dark text on top, because lemon on white is about 1.2:1. Score labels use deep pink, green, and amber at 5:1 or better on white, and their stars use brighter versions that pass 3:1. Score needed stars are outlined and Not today stars are filled gray, so the two states differ by shape, not just shade.
+The sky belongs to the shared Background (background.md), not this theme; this theme covers the habit sheet, cards, text, and Energy bar. Cards stay white so habit colors pop. Dark mode (tokens ending in -dark) swaps the sheet to olive-charcoal and the cards to dark olive pills with a 1 px border-dark edge (3:1 on the sheet, since the card itself is only 1.3:1), with brighter habit and score colors that pass AA on dark; lemon and the critter stay the same. Each habit color is a mid-tone, not a pastel, so its ring passes 3:1 on white; pale tints of it fill the icon circle. Lemon primary is Spendio's signature; it is only ever used on the dark inverse color or with dark text on top, because lemon on white is about 1.2:1. Score labels use deep pink, green, and amber at 5:1 or better on white, and their stars use brighter versions that pass 3:1. Score needed stars are outlined and Not today stars are filled gray, so the two states differ by shape, not just shade.
 
 ## Typography
 Urbanist: geometric and friendly, matching Spendio's wide, airy letters. Thin weight (300) only at display size and above; everything 16 px and below is 500 to 700, because Spendio's thin small text was hard to read. Nothing goes below 12 px.
