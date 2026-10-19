@@ -1,5 +1,6 @@
-// Energy bar at the top of the habit sheet: how much of today is checked in, with no text on
-// screen (SPEC-00). The lemon fill glides toward a checkered flag just past the bar's end.
+// Energy bar at the top of the habit sheet: today's score, with no text on screen (SPEC-00).
+// Every star moves the lemon fill. A checkered flag stands on the bar at the S cutoff (90%),
+// like a finish line; 100% means 3 stars on everything that counts today (decided 2026-10-18).
 
 import { useEffect, useState } from 'react';
 import { type LayoutChangeEvent, StyleSheet, View } from 'react-native';
@@ -15,13 +16,22 @@ import Svg, { Rect } from 'react-native-svg';
 import { tuning } from '@/config/tuning';
 import { useTheme } from '@/design/theme/ThemeProvider';
 
-import { energyFraction, energyLabel } from './energyBarText';
+import { clampEnergy, energyLabel, flagPosition } from './energyBarText';
 
-export function EnergyBar({ checkedIn, due }: { checkedIn: number; due: number }) {
+type Props = {
+  /** 0 to 1, from getEnergy. */
+  energy: number;
+  earnedStars: number;
+  possibleStars: number;
+  isRestDay: boolean;
+};
+
+export function EnergyBar({ energy, earnedStars, possibleStars, isRestDay }: Props) {
   const { colors } = useTheme();
   const reduceMotion = useReducedMotion();
-  const fraction = energyFraction(checkedIn, due);
-  const [innerWidth, setInnerWidth] = useState(0);
+  const fraction = clampEnergy(energy);
+  const [trackWidth, setTrackWidth] = useState(0);
+  const innerWidth = Math.max(0, trackWidth - TRACK_PADDING * 2);
   const fillWidth = useSharedValue(0);
 
   useEffect(() => {
@@ -34,17 +44,19 @@ export function EnergyBar({ checkedIn, due }: { checkedIn: number; due: number }
 
   const fillStyle = useAnimatedStyle(() => ({ width: fillWidth.value }));
 
-  const onTrackLayout = (e: LayoutChangeEvent) =>
-    setInnerWidth(Math.max(0, e.nativeEvent.layout.width - TRACK_PADDING * 2));
+  const onTrackLayout = (e: LayoutChangeEvent) => setTrackWidth(e.nativeEvent.layout.width);
+
+  // The pole's center sits on the S cutoff of the fill area.
+  const flagLeft = TRACK_PADDING + innerWidth * flagPosition() - POLE_WIDTH / 2;
 
   return (
     <View
       testID="energy-bar"
       accessible
       accessibilityRole="progressbar"
-      accessibilityLabel={energyLabel(checkedIn, due)}
-      accessibilityValue={due > 0 ? { min: 0, max: due, now: checkedIn } : undefined}
-      style={styles.row}
+      accessibilityLabel={energyLabel(earnedStars, possibleStars, isRestDay)}
+      accessibilityValue={isRestDay ? undefined : { min: 0, max: possibleStars, now: earnedStars }}
+      style={styles.wrap}
     >
       <View onLayout={onTrackLayout} style={[styles.track, { backgroundColor: colors.track }]}>
         <Animated.View
@@ -52,7 +64,11 @@ export function EnergyBar({ checkedIn, due }: { checkedIn: number; due: number }
           style={[styles.fill, { backgroundColor: colors.primary }, fillStyle]}
         />
       </View>
-      <CheckeredFlag light={colors.surface} dark={colors.inverse} />
+      {trackWidth > 0 ? (
+        <View style={[styles.flag, { left: flagLeft }]}>
+          <CheckeredFlag light={colors.surface} dark={colors.inverse} />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -98,12 +114,15 @@ function CheckeredFlag({ light, dark }: { light: string; dark: string }) {
 }
 
 // energy-bar component in design-spendio.md: 14 pt dark pill, 3 pt padding, 8 pt fill,
-// and an 18 pt checkered flag just past the right end.
+// and an 18 pt checkered flag standing on the bar at the S cutoff.
 const TRACK_PADDING = 3;
+const TRACK_HEIGHT = 14;
 const FLAG_SIZE = 18;
+const POLE_WIDTH = 2;
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'flex-end', gap: 6 },
-  track: { flex: 1, height: 14, padding: TRACK_PADDING, borderRadius: 9999 },
+  wrap: { paddingTop: FLAG_SIZE },
+  track: { height: TRACK_HEIGHT, padding: TRACK_PADDING, borderRadius: 9999 },
   fill: { height: 8, borderRadius: 9999 },
+  flag: { position: 'absolute', bottom: TRACK_HEIGHT },
 });

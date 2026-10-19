@@ -19,7 +19,14 @@ import { useTheme } from '@/design/theme/ThemeProvider';
 import { todayLayout, type ThemeColors } from '@/design/tokens';
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import { getRank } from '@/rules/rank';
-import { getDailyResult, getWeekProgress, isDue, nextCheckIn, type CheckIn } from '@/rules/scoring';
+import {
+  getDailyResult,
+  getEnergy,
+  getWeekProgress,
+  isDue,
+  nextCheckIn,
+  type CheckIn,
+} from '@/rules/scoring';
 import { getSkyLevel, getSkyTime } from '@/rules/sky';
 import { space } from '@/theme';
 
@@ -95,7 +102,12 @@ export default function HomeScreen() {
 
       <View style={[styles.sheet, { top: sheetTop }]} testID="habit-sheet">
         <View style={styles.sheetInner}>
-          <EnergyBar checkedIn={result.checkedInCount} due={result.dueCount} />
+          <EnergyBar
+            energy={getEnergy(result)}
+            earnedStars={result.earnedStars}
+            possibleStars={result.possibleStars}
+            isRestDay={result.isRestDay}
+          />
           <ScrollView
             style={styles.scroll}
             contentContainerStyle={[styles.cards, { paddingBottom: insets.bottom + space.xl }]}

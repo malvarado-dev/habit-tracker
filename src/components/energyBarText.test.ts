@@ -1,26 +1,29 @@
 import { describe, expect, it } from '@jest/globals';
-import { energyFraction, energyLabel } from './energyBarText';
+import { tuning } from '@/config/tuning';
+import { clampEnergy, energyLabel, flagPosition } from './energyBarText';
 
-describe('Energy bar (SPEC-00, T7)', () => {
-  it('screen reader hears "3 of 4 habits checked in"', () => {
-    expect(energyLabel(3, 4)).toBe('3 of 4 habits checked in');
+describe('Energy bar (stars, decided 2026-10-18)', () => {
+  it('screen reader hears the stars and where S is', () => {
+    expect(energyLabel(7, 12, false)).toBe('7 of 12 stars. S rank at 90 percent.');
   });
 
-  it.each([
-    [0, 4, 0],
-    [3, 4, 0.75],
-    [4, 4, 1],
-  ])('%i of %i fills %f of the bar', (checkedIn, due, fraction) => {
-    expect(energyFraction(checkedIn, due)).toBe(fraction);
+  it('a Rest day says so', () => {
+    expect(energyLabel(0, 0, true)).toBe('Rest day, no habits due');
   });
 
-  it('never fills past the flag or below empty', () => {
-    expect(energyFraction(5, 4)).toBe(1);
-    expect(energyFraction(-1, 4)).toBe(0);
+  it('the flag stands at the S cutoff and follows tuning', () => {
+    const cutoffs = tuning.rank.cutoffs as { S: number };
+    expect(flagPosition()).toBe(0.9);
+    const original = cutoffs.S;
+    cutoffs.S = 0.85;
+    expect(flagPosition()).toBe(0.85);
+    expect(energyLabel(1, 2, false)).toContain('S rank at 85 percent');
+    cutoffs.S = original;
   });
 
-  it('a Rest day shows a full bar and says so', () => {
-    expect(energyFraction(0, 0)).toBe(1);
-    expect(energyLabel(0, 0)).toBe('Rest day, no habits due');
+  it('never fills past the end or below empty', () => {
+    expect(clampEnergy(1.2)).toBe(1);
+    expect(clampEnergy(-0.1)).toBe(0);
+    expect(clampEnergy(0.4)).toBe(0.4);
   });
 });
