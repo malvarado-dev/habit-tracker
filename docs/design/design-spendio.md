@@ -136,7 +136,7 @@ components:
     size: 18px
     lightColor: "{colors.surface}"
     darkColor: "{colors.inverse}"
-    placement: 6px past the right end of the energy-bar, bottom aligned
+    placement: standing on top of the energy-bar at the S rank cutoff (90%), pole touching the bar
   menu-button:
     textColor: "{colors.on-surface}"
     rounded: "{rounded.full}"
@@ -188,7 +188,7 @@ Depth comes from light, not dark: cards use a soft, warm, low shadow (0 4px 14px
 Fully rounded everything: pill cards, chips, buttons, the Energy bar, and the Undo bar. The habit sheet uses 28 px top corners. Icons sit in circles inside their progress ring.
 
 ## Components
-The Habit Card is a white pill: a progress ring with the habit icon inside, the name, the status slot, and three stars on the right. The ring fills for each day this week scored Started, On track, or Nailed it, in the habit's color; screen readers hear "3 of 4 this week." The ring is the default; progress bubbles under the name are a Settings option being tested. Not today turns the card light gray and shows filled gray stars. The Energy bar is a dark pill with a smooth lemon fill and a checkered flag, no handle. The flag is an 18 px pole and checker in card white and inverse dark, sitting just past the right end of the bar so it reads on light and dark sheets. On a Rest day the bar shows full. Chips are white pills that turn dark when selected. The primary button is a lemon pill with dark text. The Undo bar is a dark pill. The habit sheet is fixed, with no grab handle; cards scroll inside it. The critter is not part of this theme: its look and colors come from the shared critter palette in critter.md, so a user's critter looks the same in every theme. The sky comes from the shared Background (background.md), not this theme.
+The Habit Card is a white pill: a progress ring with the habit icon inside, the name, the status slot, and three stars on the right. The ring fills for each day this week scored Started, On track, or Nailed it, in the habit's color; screen readers hear "3 of 4 this week." The ring is the default; progress bubbles under the name are a Settings option being tested. Not today turns the card light gray and shows filled gray stars. The Energy bar is a dark pill with a smooth lemon fill and a checkered flag, no handle. The fill is today's score, so every star moves it, and a full bar means 3 stars on everything that counts today. The flag is an 18 px pole and checker in card white and inverse dark, standing on the bar at the S rank cutoff (90%) like a finish line. On a Rest day the bar shows full. Chips are white pills that turn dark when selected. The primary button is a lemon pill with dark text. The Undo bar is a dark pill. The habit sheet is fixed, with no grab handle; cards scroll inside it. The critter is not part of this theme: its look and colors come from the shared critter palette in critter.md, so a user's critter looks the same in every theme. The sky comes from the shared Background (background.md), not this theme.
 
 ## Do's and Don'ts
 Do:

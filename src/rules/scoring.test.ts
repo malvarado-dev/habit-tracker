@@ -176,15 +176,38 @@ describe('getDailyResult', () => {
   });
 });
 
-describe('Energy bar', () => {
-  it('counts due habits only, and Not today counts as checked in', () => {
-    const habits = [sleep, { ...sleep, id: 'diet', name: 'Diet' }, exercise];
+describe('Energy bar follows stars', () => {
+  const diet = { ...sleep, id: 'diet', name: 'Diet' };
+
+  it('each star moves the bar, and 3 stars on everything fills it', () => {
+    expect(
+      getEnergy(getDailyResult([sleep, diet], { [MON]: { sleep: 'Started' } }, MON)),
+    ).toBeCloseTo(1 / 6);
+    expect(
+      getEnergy(getDailyResult([sleep, diet], { [MON]: { sleep: 'OnTrack' } }, MON)),
+    ).toBeCloseTo(2 / 6);
+    expect(
+      getEnergy(
+        getDailyResult([sleep, diet], { [MON]: { sleep: 'NailedIt', diet: 'NailedIt' } }, MON),
+      ),
+    ).toBe(1);
+  });
+
+  it('Not today drops a habit from what is possible', () => {
     const result = getDailyResult(
-      habits,
+      [sleep, diet],
+      { [MON]: { sleep: 'NailedIt', diet: 'NotToday' } },
+      MON,
+    );
+    expect(getEnergy(result)).toBe(1);
+  });
+
+  it('an optional score can only raise the bar', () => {
+    const result = getDailyResult(
+      [sleep, diet, exercise],
       { [MON]: { sleep: 'NotToday', exercise: 'NailedIt' } },
       MON,
     );
-    expect(result).toMatchObject({ dueCount: 2, checkedInCount: 1 });
     expect(getEnergy(result)).toBe(0.5);
   });
 });
