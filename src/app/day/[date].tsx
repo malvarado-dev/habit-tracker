@@ -19,7 +19,7 @@ import { useSettings } from '@/features/settings/SettingsProvider';
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import { historyDay } from '@/rules/locking';
 import { cardNeed, getEnergyBar } from '@/rules/energy';
-import { getWeekProgress, nextCheckIn, type CheckIn } from '@/rules/scoring';
+import { existsOn, getWeekProgress, nextCheckIn, type CheckIn } from '@/rules/scoring';
 import { MIN_TAP_SIZE, space } from '@/theme';
 
 const DATE_KEY = /^\d{4}-\d{2}-\d{2}$/;
@@ -105,22 +105,25 @@ export default function DayScreen() {
         <EnergyBar fill={bar.fill} isRestDay={bar.isRestDay} />
 
         <View style={styles.cards} testID="day-habit-list">
-          {state.habits.map((habit) => {
-            const current = dayLog[habit.id];
-            return (
-              <HabitCard
-                key={habit.id}
-                habit={habit}
-                checkIn={current}
-                need={status.locked ? 'none' : cardNeed(habit, state.log, date)}
-                progress={getWeekProgress(habit, state.log, date)}
-                goalStyle={goalStyle}
-                locked={status.locked}
-                onTap={() => checkIn(habit.id, nextCheckIn(current), true)}
-                onSwipe={(value) => checkIn(habit.id, value, false)}
-              />
-            );
-          })}
+          {/* Only habits that existed that day (#52). */}
+          {state.habits
+            .filter((h) => existsOn(h, date))
+            .map((habit) => {
+              const current = dayLog[habit.id];
+              return (
+                <HabitCard
+                  key={habit.id}
+                  habit={habit}
+                  checkIn={current}
+                  need={status.locked ? 'none' : cardNeed(habit, state.log, date)}
+                  progress={getWeekProgress(habit, state.log, date)}
+                  goalStyle={goalStyle}
+                  locked={status.locked}
+                  onTap={() => checkIn(habit.id, nextCheckIn(current), true)}
+                  onSwipe={(value) => checkIn(habit.id, value, false)}
+                />
+              );
+            })}
         </View>
       </ScrollView>
     </SafeAreaView>

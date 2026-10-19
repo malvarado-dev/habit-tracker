@@ -110,7 +110,7 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
         dayOffset: app.mode === 'test' ? app.testOffset : 0,
         nextDay: () => rawDispatch({ type: 'nextDay', realDate: realDate() }),
         backToToday: () => rawDispatch({ type: 'backToToday' }),
-        reset: () => rawDispatch({ type: 'resetTest' }),
+        reset: () => rawDispatch({ type: 'resetTest', realDate: realDate() }),
       },
     }),
     [app, dispatch, now],

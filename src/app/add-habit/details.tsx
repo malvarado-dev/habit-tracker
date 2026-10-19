@@ -21,7 +21,7 @@ import { MIN_TAP_SIZE, radius, space } from '@/theme';
 
 export default function AddHabitDetailsScreen() {
   const styles = useStyles();
-  const { state, dispatch } = useTracker();
+  const { state, dispatch, today } = useTracker();
   const params = useLocalSearchParams<{ premade?: string }>();
   const premade = findPremade(params.premade);
   const [name, setName] = useState(premade?.name ?? '');
@@ -38,7 +38,7 @@ export default function AddHabitDetailsScreen() {
   const add = () => {
     if (!canAdd) return;
     const id = `${premade?.key ?? 'habit'}-${Date.now()}`;
-    dispatch({ type: 'addHabit', id, name, goal });
+    dispatch({ type: 'addHabit', id, name, goal, date: today });
     // Back past Pick a habit to Habits, where the new habit is last on the list.
     if (router.canDismiss()) router.dismiss(2);
     else router.replace('/habits');

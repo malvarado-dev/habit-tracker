@@ -70,7 +70,7 @@ describe('Real and Test never cross', () => {
       { type: 'setMode', mode: 'test' },
       tap('sleep'),
       tap('wellbeing'),
-      { type: 'resetTest' },
+      { type: 'resetTest', realDate: REAL },
       { type: 'setMode', mode: 'real' },
     ).app;
     expect(after.real).toBe(before);
@@ -84,9 +84,9 @@ describe('Real and Test never cross', () => {
       { type: 'setMode', mode: 'test' },
       tap('diet'),
     );
-    const { app, keys } = run(start.app, { type: 'resetTest' });
+    const { app, keys } = run(start.app, { type: 'resetTest', realDate: REAL });
     expect(keys).toEqual([TEST_KEY]);
-    expect(app.test.state).toEqual(createInitialState());
+    expect(app.test.state).toEqual(createInitialState(REAL));
     expect(app.real.state.log[REAL]).toEqual({ sleep: 'Started' });
   });
 
@@ -96,7 +96,7 @@ describe('Real and Test never cross', () => {
       real,
       { type: 'nextDay', realDate: REAL },
       { type: 'backToToday' },
-      { type: 'resetTest' },
+      { type: 'resetTest', realDate: REAL },
     );
     expect(app).toBe(real);
     expect(writes).toEqual([]);
@@ -144,13 +144,15 @@ describe('the pretend date lives only in Test', () => {
 
 describe('loading', () => {
   it('starts in Real, with Test fresh, when nothing is saved', async () => {
-    const app = await loadAppState(fakeStore(), new Date());
+    const app = await loadAppState(fakeStore(), new Date(2026, 9, 19, 12));
     expect(app.mode).toBe('real');
-    expect(app.test.state).toEqual(createInitialState());
+    // A fresh start adds the starter habits today, so their first week is scaled (#52).
+    expect(app.test.state).toEqual(createInitialState(REAL));
+    expect(app.real.state.habits.every((h) => h.addedOn === REAL)).toBe(true);
     expect(app.testOffset).toBe(0);
   });
 
-  it('upgrades a v4 real save to v5 keeping all real data, and drops its pretend date', async () => {
+  it('upgrades a v4 real save to v6 keeping all real data, and drops its pretend date', async () => {
     const v4 = {
       version: 4,
       habits: createInitialState().habits,
@@ -162,7 +164,7 @@ describe('loading', () => {
     const store = fakeStore({ [REAL_KEY]: JSON.stringify(v4) });
     const app = await loadAppState(store, new Date());
     expect(app.real.state).toEqual({
-      version: 5,
+      version: 6,
       habits: v4.habits,
       log: v4.log,
       locked: v4.locked,
