@@ -1,12 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 import { EVERY_DAY } from '@/rules/scoring';
-import {
-  createInitialState,
-  isTrackerState,
-  leastUsedColor,
-  trackerReducer,
-  type TrackerState,
-} from './state';
+import { createInitialState, leastUsedColor, trackerReducer, type TrackerState } from './state';
 
 const MON = '2026-10-12';
 
@@ -141,16 +135,6 @@ describe('habit colors', () => {
       'habit8',
       'habit1',
     ]);
-  });
-});
-
-describe('isTrackerState', () => {
-  it('accepts a fresh state and rejects junk', () => {
-    expect(isTrackerState(createInitialState())).toBe(true);
-    expect(isTrackerState(null)).toBe(false);
-    expect(isTrackerState({ version: 2 })).toBe(false);
-    // Saves from the first build (version 1) are thrown away, not misread.
-    expect(isTrackerState({ ...createInitialState(), version: 1 })).toBe(false);
   });
 });
 

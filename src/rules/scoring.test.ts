@@ -30,14 +30,15 @@ const run: Habit = {
   color: 'habit1',
 };
 
-// Week of Monday 2026-10-12 to Sunday 2026-10-18.
+// Week of Sunday 2026-10-11 to Saturday 2026-10-17 (weeks run Sunday to Saturday).
+const SUN = '2026-10-11';
 const MON = '2026-10-12';
 const TUE = '2026-10-13';
 const WED = '2026-10-14';
 const THU = '2026-10-15';
 const FRI = '2026-10-16';
 const SAT = '2026-10-17';
-const SUN = '2026-10-18';
+const NEXT_SUN = '2026-10-18';
 const NEXT_MON = '2026-10-19';
 
 describe('nextCheckIn (tap cycle)', () => {
@@ -60,13 +61,14 @@ describe('SPEC-00 worked example: Run, Mon Wed Fri, weekly goal 3', () => {
 
   it.each([
     // day, due, score (null = not counted or not asked), progress dots done
+    [SUN, false, null, 0],
     [MON, true, null, 0],
     [TUE, false, 1, 1],
     [WED, true, 1, 2],
     [THU, false, null, 2],
     [FRI, true, null, 2],
+    // The week ends Saturday at 2 of 3 in History.
     [SAT, false, null, 2],
-    [SUN, false, null, 2],
   ])('%s: due %s, score %s, %s of 3', (day, due, score, done) => {
     expect(isDue(run, log, day)).toBe(due);
     expect(getDailyResult([run], log, day).score).toBe(score);
@@ -109,10 +111,17 @@ describe('due days', () => {
     expect(getWeekProgress(run, met, FRI)).toEqual({ done: 4, goal: 3 });
   });
 
-  it('progress resets the next Monday', () => {
-    const log: CheckInLog = { [MON]: { run: 'NailedIt' } };
-    expect(getWeekProgress(run, log, NEXT_MON)).toEqual({ done: 0, goal: 3 });
+  it('progress resets the next Sunday', () => {
+    const log: CheckInLog = { [MON]: { run: 'NailedIt' }, [SAT]: { run: 'NailedIt' } };
+    expect(getWeekProgress(run, log, SAT)).toEqual({ done: 2, goal: 3 });
+    expect(getWeekProgress(run, log, NEXT_SUN)).toEqual({ done: 0, goal: 3 });
     expect(isDue(run, log, NEXT_MON)).toBe(true);
+  });
+
+  it('a Sunday check-in counts toward the week that starts that Sunday', () => {
+    const log: CheckInLog = { [NEXT_SUN]: { run: 'NailedIt' } };
+    expect(getWeekProgress(run, log, SAT)).toEqual({ done: 0, goal: 3 });
+    expect(getWeekProgress(run, log, NEXT_MON)).toEqual({ done: 1, goal: 3 });
   });
 
   it('Skip never fills a progress dot', () => {

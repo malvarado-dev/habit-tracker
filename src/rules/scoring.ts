@@ -6,7 +6,10 @@ import { earlierDaysThisWeek, weekdayIndex, type DateKey } from './dates';
 /** A check-in for one habit on one day. Names follow the Glossary. No entry = To do. */
 export type CheckIn = 'NotToday' | 'Started' | 'OnTrack' | 'NailedIt';
 
-/** Monday is 0, Sunday is 6 (weeks run Monday to Sunday). */
+/**
+ * Saved weekday number: Monday is 0, Sunday is 6. Fixed for saved habits; which day starts the
+ * week is a separate setting (src/config/calendar.ts, Sunday since 2026-10-19).
+ */
 export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 /**
