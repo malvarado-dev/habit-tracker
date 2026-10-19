@@ -8,12 +8,8 @@ export const colors = {
   textMuted: '#6B5A4A',
   textOnCard: '#FFFFFF',
   textOnCardMuted: '#E7DCCF',
-  star: '#F5B83D',
-  starEmpty: 'rgba(255,255,255,0.28)',
   accent: '#C2410C',
   accentText: '#FFFFFF',
-  energy: '#F5B83D',
-  energyTrack: '#EADFD2',
   border: '#E3D6C6',
   danger: '#B42318',
   skyDay: '#BFE3F7',
@@ -26,19 +22,8 @@ export const colors = {
   cloud: '#FFFFFF',
   overlay: 'rgba(20,14,8,0.55)',
   sunRays: 'rgba(255, 214, 90, 0.55)',
-  swipeHintMuted: '#8A7C6E',
   ground: '#9CCB7A',
 } as const;
-
-/** Card colors per habit position, from v0. */
-export const cardColors = [
-  '#3B3A5A',
-  '#1E3A34',
-  '#3A321E',
-  '#2E1E3A',
-  '#1E293B',
-  '#3A1E24',
-] as const;
 
 export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as const;
 export const radius = { sm: 8, md: 16, lg: 24, pill: 999 } as const;

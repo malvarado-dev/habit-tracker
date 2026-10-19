@@ -1,8 +1,8 @@
-// One habit card. Tap to cycle the score (On track, Nailed it, Not today, Started).
+// One habit card. Tap to cycle the score (Started, On track, Nailed it, Not today, Score needed).
 // Full swipe right = Nailed it, full swipe left = Not today. Tapping reaches every score,
 // so the swipes are shortcuts, never the only way (accessibility).
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import ReanimatedSwipeable, {
   SwipeDirection,
@@ -18,8 +18,10 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { MAX_STARS, STARS, type CheckIn, type Habit } from '@/rules/scoring';
-import { colors, font, MIN_TAP_SIZE, radius, space } from '@/theme';
+import { font, MIN_TAP_SIZE, radius, space } from '@/theme';
 import { tuning } from '@/config/tuning';
+import { useTheme } from '@/design/theme/ThemeProvider';
+import type { ThemeColors } from '@/design/tokens';
 
 const LABELS: Record<CheckIn, string> = {
   NotToday: 'Not today',
@@ -41,12 +43,13 @@ const SWIPE_THRESHOLD = tuning.card.swipeThreshold;
 interface HabitCardProps {
   habit: Habit;
   checkIn: CheckIn | undefined;
-  color: string;
   onTap: () => void;
   onSwipe: (checkIn: CheckIn) => void;
 }
 
-export function HabitCard({ habit, checkIn, color, onTap, onSwipe }: HabitCardProps) {
+export function HabitCard({ habit, checkIn, onTap, onSwipe }: HabitCardProps) {
+  const styles = useStyles();
+  const { colors: c } = useTheme();
   const swipeRef = useRef<SwipeableMethods>(null);
 
   // Play the in-card effect only when the score changes, not for scores already saved.
@@ -57,7 +60,7 @@ export function HabitCard({ habit, checkIn, color, onTap, onSwipe }: HabitCardPr
     setBurstId((id) => id + 1);
   }
   const stars = checkIn ? STARS[checkIn] : 0;
-  const label = checkIn ? LABELS[checkIn] : 'Tap to check in';
+  const label = checkIn ? LABELS[checkIn] : 'Score needed';
   const name = habit.name.trim() || 'Untitled habit';
 
   const handleSwipe = (direction: SwipeDirection.LEFT | SwipeDirection.RIGHT) => {
@@ -74,10 +77,10 @@ export function HabitCard({ habit, checkIn, color, onTap, onSwipe }: HabitCardPr
       overshootLeft={false}
       overshootRight={false}
       renderLeftActions={() => (
-        <SwipeHint text="Nailed it ★★★" align="flex-start" color={colors.star} />
+        <SwipeHint text="Nailed it ★★★" align="flex-start" color={c.scoreNailedIt} />
       )}
       renderRightActions={() => (
-        <SwipeHint text="Not today" align="flex-end" color={colors.swipeHintMuted} />
+        <SwipeHint text="Not today" align="flex-end" color={c.onSurfaceMuted} />
       )}
       onSwipeableWillOpen={handleSwipe}
       containerStyle={styles.swipeContainer}
@@ -97,7 +100,7 @@ export function HabitCard({ habit, checkIn, color, onTap, onSwipe }: HabitCardPr
         }
         style={({ pressed }) => [
           styles.card,
-          { backgroundColor: color, opacity: checkIn === 'NotToday' ? 0.55 : 1 },
+          { backgroundColor: checkIn === 'NotToday' ? c.surfaceDim : c.surface },
           pressed && styles.pressed,
         ]}
       >
@@ -105,17 +108,17 @@ export function HabitCard({ habit, checkIn, color, onTap, onSwipe }: HabitCardPr
           <Text style={styles.name} numberOfLines={1}>
             {name}
           </Text>
-          <Text style={styles.label} testID={`habit-label-${habit.id}`}>
+          <Text
+            style={[styles.label, { color: labelColor(c, checkIn) }]}
+            testID={`habit-label-${habit.id}`}
+          >
             {label}
           </Text>
         </View>
         <View style={styles.stars} importantForAccessibility="no-hide-descendants">
           {Array.from({ length: MAX_STARS }, (_, i) => (
-            <Text
-              key={i}
-              style={[styles.star, { color: i < stars ? colors.star : colors.starEmpty }]}
-            >
-              ★
+            <Text key={i} style={[styles.star, { color: starColor(c, checkIn, i < stars) }]}>
+              {i < stars || checkIn === 'NotToday' ? '★' : '☆'}
             </Text>
           ))}
         </View>
@@ -123,6 +126,29 @@ export function HabitCard({ habit, checkIn, color, onTap, onSwipe }: HabitCardPr
       </Pressable>
     </ReanimatedSwipeable>
   );
+}
+
+/** Each score level has its own label color, AA on the card (design-spendio.md). */
+function labelColor(c: ThemeColors, checkIn: CheckIn | undefined): string {
+  switch (checkIn) {
+    case 'Started':
+      return c.scoreStarted;
+    case 'OnTrack':
+      return c.scoreOnTrack;
+    case 'NailedIt':
+      return c.scoreNailedIt;
+    default:
+      return c.onSurfaceMuted;
+  }
+}
+
+/** Score needed = outlined gray, Not today = filled gray: different by shape, not shade alone. */
+function starColor(c: ThemeColors, checkIn: CheckIn | undefined, filled: boolean): string {
+  if (checkIn === 'NotToday') return c.starNotToday;
+  if (!filled) return c.starScoreNeeded;
+  if (checkIn === 'Started') return c.scoreStartedStar;
+  if (checkIn === 'OnTrack') return c.scoreOnTrackStar;
+  return c.scoreNailedItStar;
 }
 
 function SwipeHint({
@@ -134,6 +160,7 @@ function SwipeHint({
   align: 'flex-start' | 'flex-end';
   color: string;
 }) {
+  const styles = useStyles();
   return (
     <View style={[styles.hint, { alignItems: align }]}>
       <Text style={[styles.hintText, { color }]}>{text}</Text>
@@ -143,6 +170,7 @@ function SwipeHint({
 
 /** A short burst of particles inside the card. Mounted fresh (new key) for each score change. */
 function CardEffect({ checkIn }: { checkIn: CheckIn | undefined }) {
+  const styles = useStyles();
   const reduceMotion = useReducedMotion();
   const progress = useSharedValue(0);
   const particles = checkIn ? EFFECTS[checkIn] : undefined;
@@ -167,6 +195,7 @@ function CardEffect({ checkIn }: { checkIn: CheckIn | undefined }) {
 }
 
 function Particle({ symbol, index, total }: { symbol: string; index: number; total: number }) {
+  const styles = useStyles();
   const lift = useSharedValue(0);
   useEffect(() => {
     lift.value = withSequence(
@@ -179,25 +208,31 @@ function Particle({ symbol, index, total }: { symbol: string; index: number; tot
   return <Animated.Text style={[styles.particle, { left }, style]}>{symbol}</Animated.Text>;
 }
 
-const styles = StyleSheet.create({
-  swipeContainer: { borderRadius: radius.md },
-  card: {
-    minHeight: MIN_TAP_SIZE + space.xl,
-    borderRadius: radius.md,
-    paddingHorizontal: space.lg,
-    paddingVertical: space.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  pressed: { transform: [{ scale: 0.98 }] },
-  textBlock: { flex: 1 },
-  name: { color: colors.textOnCard, fontSize: font.body, fontWeight: '700' },
-  label: { color: colors.textOnCardMuted, fontSize: font.small, marginTop: 2 },
-  stars: { flexDirection: 'row', gap: 2 },
-  star: { fontSize: 26 },
-  hint: { flex: 1, justifyContent: 'center', paddingHorizontal: space.lg },
-  hintText: { fontWeight: '800', fontSize: font.body },
-  effect: { ...StyleSheet.absoluteFill },
-  particle: { position: 'absolute', top: '45%', fontSize: 22 },
-});
+function useStyles() {
+  const { colors } = useTheme();
+  return useMemo(() => makeStyles(colors), [colors]);
+}
+
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    swipeContainer: { borderRadius: radius.md },
+    card: {
+      minHeight: MIN_TAP_SIZE + space.xl,
+      borderRadius: radius.md,
+      paddingHorizontal: space.lg,
+      paddingVertical: space.md,
+      flexDirection: 'row',
+      alignItems: 'center',
+      overflow: 'hidden',
+    },
+    pressed: { transform: [{ scale: 0.98 }] },
+    textBlock: { flex: 1 },
+    name: { color: c.onSurface, fontSize: font.body, fontWeight: '700' },
+    label: { color: c.onSurfaceMuted, fontSize: font.small, marginTop: 2 },
+    stars: { flexDirection: 'row', gap: 2 },
+    star: { fontSize: 26 },
+    hint: { flex: 1, justifyContent: 'center', paddingHorizontal: space.lg },
+    hintText: { fontWeight: '800', fontSize: font.body },
+    effect: { ...StyleSheet.absoluteFill },
+    particle: { position: 'absolute', top: '45%', fontSize: 22 },
+  });

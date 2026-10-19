@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 import { EVERY_DAY, getDailyResult, type Habit } from './scoring';
-import { getSkyLevel, isDaytime } from './sky';
+import { getSkyLevel, isDaytime, statusBarStyle } from './sky';
 
 const habits: Habit[] = [
   { id: 'sleep', name: 'Sleep', goal: { kind: 'specificDays', days: EVERY_DAY } },
@@ -48,5 +48,12 @@ describe('isDaytime', () => {
     [18, false],
   ])('hour %d is daytime: %s', (hour, expected) => {
     expect(isDaytime(hour)).toBe(expected);
+  });
+});
+
+describe('statusBarStyle', () => {
+  it('follows the sky, not the theme: dark icons by day, light at night', () => {
+    expect(statusBarStyle(true)).toBe('dark');
+    expect(statusBarStyle(false)).toBe('light');
   });
 });

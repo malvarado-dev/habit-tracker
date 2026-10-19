@@ -16,3 +16,11 @@ export function getSkyLevel(result: DailyResult): SkyLevel {
 export function isDaytime(hour: number): boolean {
   return hour >= 6 && hour < 18;
 }
+
+/**
+ * Status bar icons sit on the Background, so they follow the sky, not the theme:
+ * dark icons on the day sky, light icons at night (background.md).
+ */
+export function statusBarStyle(isDay: boolean): 'dark' | 'light' {
+  return isDay ? 'dark' : 'light';
+}
