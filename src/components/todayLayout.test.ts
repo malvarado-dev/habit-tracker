@@ -9,25 +9,29 @@ import { textStyle, urbanist } from '@/design/fonts';
 
 const today = readFileSync(join(__dirname, '../app/index.tsx'), 'utf8');
 
+const sheet = readFileSync(join(__dirname, 'HabitSheet.tsx'), 'utf8');
+
 describe('acceptance: cards scroll while the Background stays still', () => {
-  it('the Background is outside the scroll view', () => {
-    const background = today.indexOf('<Background');
-    const scrollOpen = today.indexOf('<ScrollView');
-    const scrollClose = today.indexOf('</ScrollView>');
-    expect(background).toBeGreaterThan(-1);
-    expect(background).toBeLessThan(scrollOpen);
-    expect(today.slice(scrollOpen, scrollClose)).not.toContain('<Background');
-    expect(today.slice(scrollOpen, scrollClose)).not.toContain('<Critter');
+  it('the Background and critter are on Today, never inside the scrolling habit sheet', () => {
+    expect(today).toContain('<Background');
+    expect(today).toContain('<Critter');
+    expect(sheet).not.toContain('<Background');
+    expect(sheet).not.toContain('<Critter');
   });
 
-  it('the habit cards are inside the scroll view, on the sheet', () => {
-    const sheet = today.indexOf('testID="habit-sheet"');
-    const scrollOpen = today.indexOf('<ScrollView');
-    const card = today.indexOf('<HabitCard');
-    const scrollClose = today.indexOf('</ScrollView>');
-    expect(sheet).toBeLessThan(scrollOpen);
+  it('the habit cards are inside the scroll view, under the Energy bar', () => {
+    const bar = sheet.indexOf('<EnergyBar');
+    const scrollOpen = sheet.indexOf('<ScrollView');
+    const card = sheet.indexOf('<HabitCard');
+    const scrollClose = sheet.indexOf('</ScrollView>');
+    expect(bar).toBeLessThan(scrollOpen);
     expect(card).toBeGreaterThan(scrollOpen);
     expect(card).toBeLessThan(scrollClose);
+  });
+
+  it('both layouts put the habit sheet in a testable container', () => {
+    expect(today.match(/testID="habit-sheet"/g)).toHaveLength(2);
+    expect(today).toContain('testID="background-card"');
   });
 
   it('there is no header on Today (SPEC-00)', () => {
