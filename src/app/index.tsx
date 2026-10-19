@@ -1,57 +1,75 @@
-// Today, phone and tablet portrait (SPEC-00). The Background fills the whole screen with the
-// critter standing near the top. Habit cards sit on a fixed, rounded habit sheet over the
-// lower part; cards scroll inside the sheet and the Background stays put. No header; the
-// subtle menu button sits top left. T10 builds the wide layout.
+// Today (SPEC-00). Phone and tablet portrait: the Background fills the whole screen with the
+// critter standing near the top, and the habit sheet sits fixed over the lower part; cards
+// scroll inside it while the Background stays put. No header; the subtle menu button sits top
+// left. Wide (T10, desktop web and iPad landscape): the page is the sheet color, with the
+// habits on the left and, on the right, the Background as a rounded card with the critter
+// above the History placeholder.
 
 import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Background } from '@/components/Background';
 import { Critter } from '@/components/Critter';
-import { EnergyBar } from '@/components/EnergyBar';
-import { HabitCard, type GoalStyle } from '@/components/HabitCard';
+import type { GoalStyle } from '@/components/HabitCard';
+import { HabitSheet } from '@/components/HabitSheet';
+import { HistoryPlaceholder } from '@/components/HistoryPlaceholder';
 import { MenuButton } from '@/components/MenuButton';
-import { TestTools } from '@/components/TestTools';
+import { layoutMode } from '@/components/todayLayoutMode';
 import { useTheme } from '@/design/theme/ThemeProvider';
-import { todayLayout, type ThemeColors } from '@/design/tokens';
+import { todayLayout, wideLayout as wide, type ThemeColors } from '@/design/tokens';
 import { useTracker } from '@/features/tracker/TrackerProvider';
-import {
-  getDailyResult,
-  getEnergy,
-  getWeekProgress,
-  isDue,
-  nextCheckIn,
-  type CheckIn,
-} from '@/rules/scoring';
+import { getDailyResult } from '@/rules/scoring';
 import { getSkyLevel, getSkyTime } from '@/rules/sky';
 import { space } from '@/theme';
 
+const CRITTER_ASPECT = 260 / 360;
+
 export default function HomeScreen() {
   const styles = useStyles();
-  const { state, dispatch, today } = useTracker();
+  const { state, today } = useTracker();
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
 
   const result = getDailyResult(state.habits, state.log, today);
   const skyLevel = getSkyLevel(result);
   const skyTime = getSkyTime(new Date().getHours());
-  const todayLog = state.log[today] ?? {};
+  const reactKey = JSON.stringify(state.log[today] ?? {});
 
   // Temporary, not saved: Profile's Weekly goal style setting arrives in T11.
+  // Kept here so it survives switching between the phone and wide layouts.
   const [goalStyle, setGoalStyle] = useState<GoalStyle>('ring');
 
-  const checkIn = (habitId: string, value: CheckIn | undefined, viaTap: boolean) => {
-    dispatch(
-      viaTap
-        ? { type: 'tapHabit', date: today, habitId }
-        : { type: 'setCheckIn', date: today, habitId, checkIn: value },
+  if (layoutMode(width, height) === 'wide') {
+    const rightWidth = width - wide.pagePadding * 2 - wide.leftColumnWidth - wide.columnGap;
+    const sceneHeight = Math.round((height - wide.pagePadding * 2) * wide.sceneHeightRatio);
+    const critterWidth = Math.min(rightWidth * wide.critterWidthRatio, wide.critterMaxWidth);
+    const critterHeight = critterWidth * CRITTER_ASPECT;
+    return (
+      <View style={[styles.screen, styles.widePage]} testID="today-screen">
+        <View style={styles.leftColumn} testID="habit-sheet">
+          <MenuButton time={skyTime} onPage />
+          <HabitSheet goalStyle={goalStyle} onGoalStyle={setGoalStyle} bottomPadding={space.xl} />
+        </View>
+        <View style={styles.rightColumn} testID="wide-right-column">
+          <View style={[styles.scene, { height: sceneHeight }]} testID="background-card">
+            <Background time={skyTime} level={skyLevel} />
+            <View
+              style={[styles.critter, { bottom: -critterHeight * wide.critterSink }]}
+              pointerEvents="box-none"
+            >
+              <Critter width={critterWidth} level={skyLevel} reactKey={reactKey} />
+            </View>
+          </View>
+          <HistoryPlaceholder />
+        </View>
+      </View>
     );
-  };
+  }
 
   const sheetTop = Math.round(height * todayLayout.sheetTopRatio);
   const critterWidth = Math.min(width * todayLayout.critterWidthRatio, todayLayout.critterMaxWidth);
-  const critterHeight = critterWidth * (260 / 360);
+  const critterHeight = critterWidth * CRITTER_ASPECT;
 
   return (
     <View style={styles.screen} testID="today-screen">
@@ -62,7 +80,7 @@ export default function HomeScreen() {
         style={[styles.critter, { top: sheetTop + todayLayout.critterOverlap - critterHeight }]}
         pointerEvents="box-none"
       >
-        <Critter width={critterWidth} level={skyLevel} reactKey={JSON.stringify(todayLog)} />
+        <Critter width={critterWidth} level={skyLevel} reactKey={reactKey} />
       </View>
 
       <View style={[styles.menu, { top: insets.top + space.sm, left: insets.left + space.lg }]}>
@@ -71,39 +89,11 @@ export default function HomeScreen() {
 
       <View style={[styles.sheet, { top: sheetTop }]} testID="habit-sheet">
         <View style={styles.sheetInner}>
-          <EnergyBar
-            energy={getEnergy(result)}
-            earnedStars={result.earnedStars}
-            possibleStars={result.possibleStars}
-            isRestDay={result.isRestDay}
+          <HabitSheet
+            goalStyle={goalStyle}
+            onGoalStyle={setGoalStyle}
+            bottomPadding={insets.bottom + space.xl}
           />
-          <ScrollView
-            style={styles.scroll}
-            contentContainerStyle={[styles.cards, { paddingBottom: insets.bottom + space.xl }]}
-            testID="habit-list"
-          >
-            {state.habits.map((habit) => {
-              const current = todayLog[habit.id];
-              return (
-                <HabitCard
-                  key={habit.id}
-                  habit={habit}
-                  checkIn={current}
-                  isDue={isDue(habit, state.log, today)}
-                  progress={getWeekProgress(habit, state.log, today)}
-                  goalStyle={goalStyle}
-                  onTap={() => checkIn(habit.id, nextCheckIn(current), true)}
-                  onSwipe={(value) => checkIn(habit.id, value, false)}
-                />
-              );
-            })}
-            <TestTools
-              goalStyle={goalStyle}
-              onGoalStyle={setGoalStyle}
-              onNextDay={() => dispatch({ type: 'nextDay' })}
-              onReset={() => dispatch({ type: 'reset' })}
-            />
-          </ScrollView>
         </View>
       </View>
     </View>
@@ -133,6 +123,13 @@ const makeStyles = (c: ThemeColors) =>
       paddingHorizontal: space.lg,
       gap: space.md,
     },
-    scroll: { flex: 1 },
-    cards: { gap: space.md, paddingTop: space.xs },
+    widePage: {
+      flexDirection: 'row',
+      backgroundColor: c.surfaceSheet,
+      padding: wide.pagePadding,
+      gap: wide.columnGap,
+    },
+    leftColumn: { width: wide.leftColumnWidth, gap: space.lg },
+    rightColumn: { flex: 1, gap: wide.columnGap },
+    scene: { borderRadius: wide.sceneRadius, overflow: 'hidden' },
   });

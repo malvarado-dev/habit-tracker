@@ -159,5 +159,26 @@ export const todayLayout = {
   sunSize: 64,
 } as const;
 
+/** Today wide layout (T10, Figma "Today · Wide"): desktop web and iPad landscape. */
+export const wideLayout = {
+  /** Wide applies at this width or more, in landscape. Phones and iPad portrait stay single column. */
+  minWidth: 900,
+  /** And at least this tall, so a phone turned sideways stays single column. */
+  minHeight: 600,
+  pagePadding: 24,
+  columnGap: 24,
+  leftColumnWidth: 400,
+  /** The Background card takes this share of the right column's height; History takes the rest. */
+  sceneHeightRatio: 0.45,
+  sceneRadius: 28,
+  /** Critter width as a share of the Background card, with a cap. Its body runs off the card's bottom. */
+  critterWidthRatio: 0.45,
+  critterMaxWidth: 520,
+  critterSink: 0.12,
+  historyColumns: 7,
+  historyRows: 5,
+  historyGap: 10,
+} as const;
+
 /** Sky brightness per live rank, 0 to 1 (SPEC-00: C dim, B a little glow, A bright, S rays). */
 export const skyGlow = { asleep: 0.1, rest: 0.3, C: 0.2, B: 0.4, A: 0.65, S: 0.9 } as const;
