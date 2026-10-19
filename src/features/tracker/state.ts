@@ -42,6 +42,9 @@ export function leastUsedColor(habits: Habit[]): HabitColor {
   return HABIT_COLORS.reduce((best, color) => (uses(color) < uses(best) ? color : best));
 }
 
+/** At most 15 habits (Glossary). */
+export const MAX_HABITS = 15;
+
 export const MIN_TIMES = 1;
 export const MAX_TIMES = 7;
 
@@ -72,6 +75,7 @@ export type TrackerAction =
   | { type: 'renameHabit'; habitId: string; name: string }
   | { type: 'setGoal'; habitId: string; goal: WeeklyGoal }
   | { type: 'removeHabit'; habitId: string }
+  | { type: 'restoreHabit'; habit: Habit; index: number }
   | { type: 'reset' };
 
 function withCheckIn(
@@ -131,6 +135,14 @@ export function trackerReducer(state: TrackerState, action: TrackerAction): Trac
       // At least one habit always stays (Glossary).
       if (state.habits.length <= 1) return state;
       return { ...state, habits: state.habits.filter((habit) => habit.id !== action.habitId) };
+    case 'restoreHabit': {
+      // Undo after Remove. Check-ins were never deleted, so the habit comes back with its history.
+      if (state.habits.some((h) => h.id === action.habit.id)) return state;
+      if (state.habits.length >= MAX_HABITS) return state;
+      const habits = [...state.habits];
+      habits.splice(Math.min(Math.max(action.index, 0), habits.length), 0, action.habit);
+      return { ...state, habits };
+    }
     case 'reset':
       return createInitialState();
   }

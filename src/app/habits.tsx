@@ -1,162 +1,125 @@
-// Habits: add, rename, and remove habits, and change Any days goals (SPEC-00).
-// Temporary screen from the first build. T12 rebuilds it with the Specific days picker.
+// Habits (SPEC-00, T12; Figma "Habits · Phone"): every habit (1 to 15), tap one to edit it.
+// Back returns to where the user came from (Today or Profile), and its label names that screen.
+// After a remove, an inline Undo bar shows here for a few seconds. Add habit comes in T13.
 
-import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useMemo } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { MAX_TIMES, MIN_TIMES } from '@/features/tracker/state';
-import { useTracker } from '@/features/tracker/TrackerProvider';
-import { goalCount, type Habit } from '@/rules/scoring';
-import { font, MIN_TAP_SIZE, radius, space } from '@/theme';
+import { iconLetter } from '@/components/habitCardText';
+import { tuning } from '@/config/tuning';
+import { textStyle } from '@/design/fonts';
+import { withAlpha } from '@/design/theme/theme';
 import { useTheme } from '@/design/theme/ThemeProvider';
-import type { ThemeColors } from '@/design/tokens';
+import { tints, type ThemeColors } from '@/design/tokens';
+import { setRemoved, useRemovedHabit } from '@/features/habits/undoRemove';
+import { listLine } from '@/features/habits/weeklyGoal';
+import { useTracker } from '@/features/tracker/TrackerProvider';
+import { MIN_TAP_SIZE, radius, space } from '@/theme';
 
-function goalLabel(habit: Habit): string {
-  const n = goalCount(habit.goal);
-  return habit.goal.kind === 'anyDays' ? `${n}x/wk` : `${n} days`;
-}
+const BACK = {
+  today: { label: 'Today', path: '/' },
+  profile: { label: 'Profile', path: '/profile' },
+} as const;
 
 export default function HabitsScreen() {
   const styles = useStyles();
   const { colors: c } = useTheme();
   const { state, dispatch } = useTracker();
-  const [newName, setNewName] = useState('');
-  const canRemove = state.habits.length > 1;
+  const removed = useRemovedHabit();
+  const params = useLocalSearchParams<{ from?: string }>();
+  // Where Habits was opened from. Anything else falls back to Today.
+  const back = BACK[params.from === 'profile' ? 'profile' : 'today'];
 
-  const changeTimes = (habit: Habit, by: number) => {
-    if (habit.goal.kind !== 'anyDays') return;
-    const goal = { kind: 'anyDays', timesPerWeek: habit.goal.timesPerWeek + by } as const;
-    dispatch({ type: 'setGoal', habitId: habit.id, goal });
+  // The Undo bar goes away on its own after a few seconds.
+  useEffect(() => {
+    if (!removed) return;
+    const timer = setTimeout(() => setRemoved(null), tuning.habits.undoMs);
+    return () => clearTimeout(timer);
+  }, [removed]);
+
+  const goBack = () => {
+    setRemoved(null);
+    if (router.canGoBack()) router.back();
+    else router.replace(back.path);
   };
 
-  const addHabit = () => {
-    if (!newName.trim()) return;
-    dispatch({ type: 'addHabit', id: `habit-${Date.now()}`, name: newName });
-    setNewName('');
+  const undo = () => {
+    if (!removed) return;
+    dispatch({ type: 'restoreHabit', habit: removed.habit, index: removed.index });
+    setRemoved(null);
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <View style={styles.page}>
-          <View style={styles.topBar}>
-            <Pressable
-              onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
-              style={styles.backButton}
-              testID="back-button"
-              accessibilityRole="button"
-              accessibilityLabel="Back to today"
-            >
-              <Text style={styles.backText}>‹ Today</Text>
-            </Pressable>
-          </View>
-          <Text style={styles.title} accessibilityRole="header">
-            Habits
-          </Text>
+    <SafeAreaView style={styles.screen} testID="habits-screen">
+      <ScrollView contentContainerStyle={styles.content}>
+        <Pressable
+          onPress={goBack}
+          style={styles.back}
+          testID="habits-back"
+          accessibilityRole="button"
+          accessibilityLabel={`Back to ${back.label}`}
+        >
+          <Text style={styles.backText}>‹ {back.label}</Text>
+        </Pressable>
 
-          <Text style={styles.section} accessibilityRole="header">
-            Habits
-          </Text>
-          {state.habits.map((habit) => (
-            <View key={habit.id} style={styles.habitRow} testID={`habit-row-${habit.id}`}>
-              <TextInput
-                value={habit.name}
-                onChangeText={(name) => dispatch({ type: 'renameHabit', habitId: habit.id, name })}
-                style={styles.nameInput}
-                placeholder="Habit name"
-                placeholderTextColor={c.onSurfaceMuted}
-                testID={`habit-name-${habit.id}`}
-                accessibilityLabel={`Name for ${habit.name || 'habit'}`}
-              />
-              <View style={styles.targetRow}>
-                <StepButton
-                  label="−"
-                  a11y={`Fewer times a week for ${habit.name}`}
-                  disabled={habit.goal.kind !== 'anyDays' || habit.goal.timesPerWeek <= MIN_TIMES}
-                  testID={`target-down-${habit.id}`}
-                  onPress={() => changeTimes(habit, -1)}
-                />
-                <Text style={styles.target} testID={`target-value-${habit.id}`}>
-                  {goalLabel(habit)}
-                </Text>
-                <StepButton
-                  label="+"
-                  a11y={`More times a week for ${habit.name}`}
-                  disabled={habit.goal.kind !== 'anyDays' || habit.goal.timesPerWeek >= MAX_TIMES}
-                  testID={`target-up-${habit.id}`}
-                  onPress={() => changeTimes(habit, 1)}
-                />
-                <Pressable
-                  onPress={() => dispatch({ type: 'removeHabit', habitId: habit.id })}
-                  disabled={!canRemove}
-                  style={[styles.removeButton, !canRemove && styles.disabled]}
-                  testID={`remove-habit-${habit.id}`}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Remove ${habit.name}`}
-                  accessibilityState={{ disabled: !canRemove }}
-                >
-                  <Text style={styles.removeText}>Remove</Text>
-                </Pressable>
-              </View>
-              {!habit.name.trim() ? (
-                <Text style={styles.warning}>Give this habit a name.</Text>
-              ) : null}
-            </View>
-          ))}
-          {!canRemove ? <Text style={styles.help}>You need at least one habit.</Text> : null}
+        <Text style={styles.title} accessibilityRole="header">
+          Habits
+        </Text>
 
-          <View style={styles.addRow}>
-            <TextInput
-              value={newName}
-              onChangeText={setNewName}
-              onSubmitEditing={addHabit}
-              style={[styles.nameInput, styles.addInput]}
-              placeholder="New habit, like Reading"
-              placeholderTextColor={c.onSurfaceMuted}
-              returnKeyType="done"
-              testID="new-habit-input"
-              accessibilityLabel="New habit name"
-            />
+        <View style={styles.list}>
+          {state.habits.map((habit) => {
+            const color = c[habit.color];
+            const line = listLine(habit.goal);
+            const name = habit.name || 'Unnamed habit';
+            return (
+              <Pressable
+                key={habit.id}
+                onPress={() => router.push({ pathname: '/habit/[id]', params: { id: habit.id } })}
+                style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+                testID={`habits-row-${habit.id}`}
+                accessibilityRole="button"
+                accessibilityLabel={`${name}, ${line}`}
+                accessibilityHint="Edit this habit"
+              >
+                <View style={[styles.icon, { backgroundColor: withAlpha(color, tints.icon) }]}>
+                  <Text style={[styles.iconLetter, { color }]}>{iconLetter(habit.name)}</Text>
+                </View>
+                <View style={styles.rowText}>
+                  <Text style={styles.name} numberOfLines={1}>
+                    {name}
+                  </Text>
+                  <Text style={styles.line}>{line}</Text>
+                </View>
+                <Text style={styles.chevron}>›</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        <Text style={styles.help}>1 to 15 habits. Tap a habit to edit it.</Text>
+      </ScrollView>
+
+      {removed ? (
+        <View style={styles.undoWrap} pointerEvents="box-none">
+          <View style={styles.undoBar} testID="habits-undo-bar" accessibilityLiveRegion="polite">
+            <Text style={styles.undoText} numberOfLines={1}>
+              {removed.habit.name || 'Habit'} removed
+            </Text>
             <Pressable
-              onPress={addHabit}
-              disabled={!newName.trim()}
-              style={[styles.addButton, !newName.trim() && styles.disabled]}
-              testID="add-habit-button"
+              onPress={undo}
+              style={styles.undoButton}
+              testID="habits-undo"
               accessibilityRole="button"
-              accessibilityLabel="Add habit"
-              accessibilityState={{ disabled: !newName.trim() }}
+              accessibilityLabel={`Undo, bring back ${removed.habit.name || 'the habit'}`}
             >
-              <Text style={styles.addText}>Add habit</Text>
+              <Text style={styles.undoAction}>Undo</Text>
             </Pressable>
           </View>
         </View>
-      </ScrollView>
+      ) : null}
     </SafeAreaView>
-  );
-}
-
-function StepButton(props: {
-  label: string;
-  a11y: string;
-  disabled: boolean;
-  testID: string;
-  onPress: () => void;
-}) {
-  const styles = useStyles();
-  return (
-    <Pressable
-      onPress={props.onPress}
-      disabled={props.disabled}
-      style={[styles.stepButton, props.disabled && styles.disabled]}
-      testID={props.testID}
-      accessibilityRole="button"
-      accessibilityLabel={props.a11y}
-      accessibilityState={{ disabled: props.disabled }}
-    >
-      <Text style={styles.stepText}>{props.label}</Text>
-    </Pressable>
   );
 }
 
@@ -165,60 +128,76 @@ function useStyles() {
   return useMemo(() => makeStyles(colors), [colors]);
 }
 
+const ICON = 36;
+
 const makeStyles = (c: ThemeColors) =>
   StyleSheet.create({
-    safe: { flex: 1, backgroundColor: c.surfaceSheet },
-    scroll: { alignItems: 'center', paddingVertical: space.lg },
-    page: { width: '100%', maxWidth: 560, paddingHorizontal: space.lg, gap: space.md },
-    topBar: { flexDirection: 'row' },
-    backButton: { minHeight: MIN_TAP_SIZE, justifyContent: 'center', paddingRight: space.lg },
-    backText: { color: c.onSurface, fontWeight: '700', fontSize: font.body },
-    title: { fontSize: font.large, fontWeight: '800', color: c.onSurface },
-    section: { fontSize: font.title, fontWeight: '700', color: c.onSurface, marginTop: space.md },
-    help: { fontSize: font.small, color: c.onSurfaceMuted },
-    warning: { fontSize: font.small, color: c.onSurface },
-    habitRow: {
+    screen: { flex: 1, backgroundColor: c.surfaceSheet },
+    content: {
+      padding: space.lg,
+      paddingBottom: space.xxl * 3,
+      gap: space.md,
+      width: '100%',
+      maxWidth: 560,
+      alignSelf: 'center',
+    },
+    back: { minHeight: MIN_TAP_SIZE, justifyContent: 'center', alignSelf: 'flex-start' },
+    backText: { ...textStyle('habitName'), color: c.onSurface },
+    title: { ...textStyle('display'), color: c.onSurface, marginBottom: space.sm },
+    list: { gap: space.md },
+    row: {
+      minHeight: MIN_TAP_SIZE + space.md,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: space.md,
+      paddingVertical: space.sm,
+      paddingLeft: space.sm,
+      paddingRight: space.lg,
+      borderRadius: radius.pill,
       backgroundColor: c.surface,
-      borderRadius: radius.md,
       borderWidth: 1,
       borderColor: c.border,
-      padding: space.md,
-      gap: space.sm,
     },
-    nameInput: {
-      minHeight: MIN_TAP_SIZE,
-      borderWidth: 1,
-      borderColor: c.border,
-      borderRadius: radius.sm,
-      paddingHorizontal: space.md,
-      fontSize: font.body,
-      color: c.onSurface,
-      backgroundColor: c.surfaceSheet,
-    },
-    targetRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-    stepButton: {
-      width: MIN_TAP_SIZE,
-      height: MIN_TAP_SIZE,
-      borderRadius: radius.sm,
+    pressed: { opacity: 0.7 },
+    icon: {
+      width: ICON,
+      height: ICON,
+      borderRadius: ICON / 2,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: c.surfaceSheet,
-      borderWidth: 1,
-      borderColor: c.border,
     },
-    stepText: { fontSize: font.title, fontWeight: '800', color: c.onSurface },
-    target: { minWidth: 48, textAlign: 'center', fontWeight: '700', color: c.onSurface },
-    removeButton: { marginLeft: 'auto', minHeight: MIN_TAP_SIZE, justifyContent: 'center' },
-    removeText: { color: c.onSurface, fontWeight: '700' },
-    disabled: { opacity: 0.4 },
-    addRow: { flexDirection: 'row', gap: space.sm, marginTop: space.sm },
-    addInput: { flex: 1 },
-    addButton: {
-      minHeight: MIN_TAP_SIZE,
+    iconLetter: { ...textStyle('habitName', '700') },
+    rowText: { flex: 1 },
+    name: { ...textStyle('habitName'), color: c.onSurface },
+    line: { ...textStyle('caption'), color: c.onSurfaceMuted },
+    chevron: { ...textStyle('habitName'), color: c.onSurfaceMuted },
+    help: { ...textStyle('caption'), color: c.onSurfaceMuted },
+    undoWrap: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: space.xl,
+      alignItems: 'center',
       paddingHorizontal: space.lg,
-      justifyContent: 'center',
-      borderRadius: radius.sm,
+    },
+    undoBar: {
+      width: '100%',
+      maxWidth: 528,
+      minHeight: MIN_TAP_SIZE + space.md,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingLeft: space.xl,
+      paddingRight: space.sm,
+      borderRadius: radius.pill,
       backgroundColor: c.inverse,
     },
-    addText: { color: c.onInverse, fontWeight: '800' },
+    undoText: { ...textStyle('body'), color: c.onInverse, flex: 1 },
+    undoButton: {
+      minHeight: MIN_TAP_SIZE,
+      minWidth: MIN_TAP_SIZE,
+      paddingHorizontal: space.lg,
+      justifyContent: 'center',
+    },
+    undoAction: { ...textStyle('label'), color: c.primary },
   });
