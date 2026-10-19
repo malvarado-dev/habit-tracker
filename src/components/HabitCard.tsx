@@ -1,4 +1,4 @@
-// One habit card (design-spendio.md, Habit Card). A white pill: the weekly goal (progress
+// One habit card (design-system.md, Habit Card). A white pill: the weekly goal (progress
 // ring around a letter icon, or progress dots under the name), the name, three stars, and
 // one status slot. Tap cycles Started, On track, Nailed it, Skip, back to To do,
 // so the same tap works as undo. Swipes are shortcuts, never the only way: full right = Nailed it,
@@ -287,7 +287,7 @@ function ProgressDots(props: { id: string; color: string; done: number; goal: nu
   );
 }
 
-/** Each score level has its own label color, AA on the card (design-spendio.md). */
+/** Each score level has its own label color, AA on the card (design-system.md). */
 function labelColor(c: ThemeColors, checkIn: CheckIn | undefined): string {
   switch (checkIn) {
     case 'Started':
@@ -334,7 +334,7 @@ const makeStyles = (c: ThemeColors, scheme: 'light' | 'dark') =>
       borderWidth: scheme === 'dark' ? 1 : StyleSheet.hairlineWidth,
       borderColor: c.border,
       boxShadow: shadows.card,
-      // design-spendio.html: 8 px around the ring, 18 px before the stars.
+      // design-system.html: 8 px around the ring, 18 px before the stars.
       paddingVertical: space.sm,
       paddingLeft: space.sm,
       paddingRight: space.lg + 2,

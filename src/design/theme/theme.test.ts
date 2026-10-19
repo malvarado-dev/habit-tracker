@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import { background, critter, spendioDark, spendioLight, type ThemeColors } from '../tokens';
+import { background, critter, darkTheme, lightTheme, type ThemeColors } from '../tokens';
 import {
   contrastRatio,
   withAlpha,
@@ -57,19 +57,19 @@ describe('Theme setting', () => {
 
 describe('acceptance: a theme changes only the sheet, cards, text, and Energy bar', () => {
   it('light and dark have exactly the same token names', () => {
-    expect(Object.keys(themeColors('dark')).sort()).toEqual(Object.keys(spendioLight).sort());
+    expect(Object.keys(themeColors('dark')).sort()).toEqual(Object.keys(lightTheme).sort());
   });
 
   it('theme tokens never include a sky or critter color name', () => {
-    const themeKeys = Object.keys(spendioLight);
+    const themeKeys = Object.keys(lightTheme);
     for (const key of [...Object.keys(background), ...Object.keys(critter)]) {
       expect(themeKeys).not.toContain(key);
     }
   });
 
   it('the critter and Background are separate sets that the theme cannot reach', () => {
-    expect(themeColors('light')).toBe(spendioLight);
-    expect(themeColors('dark')).toBe(spendioDark);
+    expect(themeColors('light')).toBe(lightTheme);
+    expect(themeColors('dark')).toBe(darkTheme);
     expect(Object.values(themeColors('dark'))).not.toContain(critter.bodySunny);
   });
 });

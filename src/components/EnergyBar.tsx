@@ -275,7 +275,7 @@ function Spark(p: {
   );
 }
 
-// energy-bar component in design-spendio.md: 14 pt dark pill, 3 pt padding, 8 pt fill,
+// energy-bar component in design-system.md: 14 pt dark pill, 3 pt padding, 8 pt fill,
 // and an 18 pt checkered flag standing on the bar at the S cutoff.
 const TRACK_PADDING = 3;
 const TRACK_HEIGHT = 14;

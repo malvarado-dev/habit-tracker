@@ -2,7 +2,7 @@
 import { describe, expect, it } from '@jest/globals';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { background, critter, spendioDark, spendioLight } from './tokens';
+import { background, critter, darkTheme, lightTheme } from './tokens';
 
 // The .md files in docs/design are the source of truth. This fails if tokens.ts drifts from them.
 const docColors = (file: string): Record<string, string> => {
@@ -15,18 +15,18 @@ const docColors = (file: string): Record<string, string> => {
 };
 
 describe('design tokens match docs/design', () => {
-  const spendio = docColors('design-spendio.md');
+  const doc = docColors('design-system.md');
 
-  it('Spendio light matches every light token', () => {
-    for (const [key, hex] of Object.entries(spendioLight)) {
+  it('Light theme matches every light token', () => {
+    for (const [key, hex] of Object.entries(lightTheme)) {
       if (key === 'track') continue;
-      expect([key, hex]).toEqual([key, spendio[key]]);
+      expect([key, hex]).toEqual([key, doc[key]]);
     }
   });
 
-  it('Spendio dark uses each -dark value, or the light value when none exists', () => {
-    for (const key of Object.keys(spendioLight) as (keyof typeof spendioLight)[]) {
-      expect([key, spendioDark[key]]).toEqual([key, spendio[`${key}Dark`] ?? spendio[key]]);
+  it('Dark theme uses each -dark value, or the light value when none exists', () => {
+    for (const key of Object.keys(lightTheme) as (keyof typeof lightTheme)[]) {
+      expect([key, darkTheme[key]]).toEqual([key, doc[`${key}Dark`] ?? doc[key]]);
     }
   });
 

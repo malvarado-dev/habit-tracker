@@ -2,8 +2,8 @@
 // Figma variables mirror these files. Change a token in the .md file, Figma, and here in the same step.
 // tokens.test.ts fails if this file and the .md files drift apart.
 
-/** Spendio light: habit sheet, cards, text, and Energy bar (design-spendio.md). */
-export const spendioLight = {
+/** Light theme: habit sheet, cards, text, and Energy bar (design-system.md). */
+export const lightTheme = {
   surface: '#FFFFFF',
   surfaceSheet: '#FBFAF5',
   surfaceDim: '#EDEDED',
@@ -33,14 +33,14 @@ export const spendioLight = {
   track: '#1F1F1F',
 } as const;
 
-export type ThemeColors = { readonly [K in keyof typeof spendioLight]: string };
+export type ThemeColors = { readonly [K in keyof typeof lightTheme]: string };
 
 /**
- * Spendio dark: same names as light, so swapping themes is one line.
- * Tokens with no -dark value in design-spendio.md (lemon, score stars, inverse) stay the same,
+ * Dark theme: same names as light, so swapping themes is one line.
+ * Tokens with no -dark value in design-system.md (lemon, score stars, inverse) stay the same,
  * as the file says. `track` is the Energy bar track: inverse in light, track-dark in dark.
  */
-export const spendioDark: ThemeColors = {
+export const darkTheme: ThemeColors = {
   surface: '#3A3D33',
   surfaceSheet: '#2A2C24',
   surfaceDim: '#26281F',
@@ -117,7 +117,7 @@ export const habitPalette = [
 
 export const fontFamily = 'Urbanist';
 
-/** Type scale from design-spendio.md. Sizes and line heights in points. */
+/** Type scale from design-system.md. Sizes and line heights in points. */
 export const typography = {
   display: { fontSize: 32, fontWeight: '300', lineHeight: 35, letterSpacing: -0.64 },
   title: { fontSize: 22, fontWeight: '600', lineHeight: 26 },
@@ -130,7 +130,7 @@ export const typography = {
 export const rounded = { md: 12, lg: 20, xl: 24, '2xl': 28, full: 9999 } as const;
 export const spacing = { 1: 4, 2: 8, 3: 12, 4: 16, 6: 24, 8: 32 } as const;
 
-/** Habit Card sizes from design-spendio.md components (progress-ring, habit-icon, stars). */
+/** Habit Card sizes from design-system.md components (progress-ring, habit-icon, stars). */
 export const habitCardSizes = {
   ring: 48,
   ringStroke: 4,
@@ -143,7 +143,7 @@ export const habitCardSizes = {
 /** How strong tints are: the icon circle behind the letter, and the empty ring track. */
 export const tints = { icon: 0.13, ringTrack: 0.12 } as const;
 
-/** Card shadow from design-spendio.md Elevation & Depth: soft, warm, low. */
+/** Card shadow from design-system.md Elevation & Depth: soft, warm, low. */
 export const shadows = {
   card: '0px 4px 14px rgba(120, 100, 60, 0.08), 0px 1px 2px rgba(120, 100, 60, 0.06)',
 } as const;
