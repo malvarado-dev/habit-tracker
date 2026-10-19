@@ -38,6 +38,11 @@ export const tuning = {
     pulseScale: 1.06,
   },
 
+  energy: {
+    /** Energy bar fill glides to its new width this fast. Reduced motion jumps instead. */
+    fillMs: 450,
+  },
+
   critter: {
     /** Small wiggle when the critter is tapped: how far it turns, and each half of the wiggle. */
     wiggleDegrees: 6,
