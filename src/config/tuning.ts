@@ -89,6 +89,11 @@ export const tuning = {
     },
   },
 
+  habits: {
+    /** How long the Undo bar stays after a habit is removed. */
+    undoMs: 5000,
+  },
+
   menu: {
     /** Side menu slide in and out, and how dark the shade behind it gets (0 to 1). */
     slideMs: 220,

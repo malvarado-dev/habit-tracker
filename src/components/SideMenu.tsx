@@ -66,7 +66,8 @@ export function SideMenu({ open, onClose }: { open: boolean; onClose: () => void
 
   const go = (path: '/profile' | '/habits') => {
     onClose();
-    router.push(path);
+    // Habits names where Back goes; from the menu that's Today.
+    router.push(path === '/habits' ? { pathname: path, params: { from: 'today' } } : path);
   };
 
   return (

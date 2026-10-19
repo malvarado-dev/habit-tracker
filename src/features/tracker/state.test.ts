@@ -153,3 +153,55 @@ describe('isTrackerState', () => {
     expect(isTrackerState({ ...createInitialState(), version: 1 })).toBe(false);
   });
 });
+
+describe('acceptance: Habits and Edit habit (T12)', () => {
+  const day = '2026-10-19';
+  const scored = () =>
+    trackerReducer(createInitialState(), { type: 'tapHabit', date: day, habitId: 'diet' });
+
+  it('the last habit cannot be removed', () => {
+    let state = createInitialState();
+    for (const id of ['sleep', 'diet', 'exercise']) {
+      state = trackerReducer(state, { type: 'removeHabit', habitId: id });
+    }
+    expect(state.habits.map((h) => h.id)).toEqual(['wellbeing']);
+    state = trackerReducer(state, { type: 'removeHabit', habitId: 'wellbeing' });
+    expect(state.habits.map((h) => h.id)).toEqual(['wellbeing']);
+  });
+
+  it('Undo restores a removed habit with its history, in the same spot', () => {
+    const before = scored();
+    const habit = before.habits[1]!;
+    const removed = trackerReducer(before, { type: 'removeHabit', habitId: 'diet' });
+    const restored = trackerReducer(removed, { type: 'restoreHabit', habit, index: 1 });
+    expect(restored.habits).toEqual(before.habits);
+    expect(restored.log[day]?.diet).toBe('Started');
+  });
+
+  it('Undo twice does not add the habit twice', () => {
+    const before = scored();
+    const habit = before.habits[1]!;
+    const once = trackerReducer(trackerReducer(before, { type: 'removeHabit', habitId: 'diet' }), {
+      type: 'restoreHabit',
+      habit,
+      index: 1,
+    });
+    expect(trackerReducer(once, { type: 'restoreHabit', habit, index: 1 }).habits).toHaveLength(4);
+  });
+
+  it("switching Specific days and Any days keeps today's scores", () => {
+    const before = scored();
+    const toAny = trackerReducer(before, {
+      type: 'setGoal',
+      habitId: 'diet',
+      goal: { kind: 'anyDays', timesPerWeek: 7 },
+    });
+    const back = trackerReducer(toAny, {
+      type: 'setGoal',
+      habitId: 'diet',
+      goal: { kind: 'specificDays', days: [0, 1, 2, 3, 4, 5, 6] },
+    });
+    expect(toAny.log).toEqual(before.log);
+    expect(back.log).toEqual(before.log);
+  });
+});
