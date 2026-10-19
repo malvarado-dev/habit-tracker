@@ -2,6 +2,7 @@ import { describe, expect, it } from '@jest/globals';
 import { background, critter, spendioDark, spendioLight, type ThemeColors } from '../tokens';
 import {
   contrastRatio,
+  withAlpha,
   loadThemePreference,
   resolveScheme,
   saveThemePreference,
@@ -112,5 +113,13 @@ describe('acceptance: AA contrast passes in both themes', () => {
   it('the contrast math matches known values', () => {
     expect(contrastRatio('#000000', '#FFFFFF')).toBeCloseTo(21);
     expect(contrastRatio('#FFFFFF', '#FFFFFF')).toBeCloseTo(1);
+  });
+});
+
+describe('withAlpha', () => {
+  it('adds an opacity to a token color', () => {
+    expect(withAlpha('#A855F7', 0.13)).toBe('#A855F721');
+    expect(withAlpha('#1F1F1F', 1)).toBe('#1F1F1FFF');
+    expect(withAlpha('#1F1F1F', -1)).toBe('#1F1F1F00');
   });
 });

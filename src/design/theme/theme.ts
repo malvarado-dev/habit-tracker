@@ -74,3 +74,9 @@ export function contrastRatio(a: string, b: string): number {
   const [dark, light] = [luminance(a), luminance(b)].sort((x, y) => x - y);
   return ((light ?? 0) + 0.05) / ((dark ?? 0) + 0.05);
 }
+
+/** A #RRGGBB color at a given opacity (0 to 1), as #RRGGBBAA. Used for tints of a token. */
+export function withAlpha(hex: string, opacity: number): string {
+  const alpha = Math.round(Math.min(1, Math.max(0, opacity)) * 255);
+  return `${hex.slice(0, 7)}${alpha.toString(16).padStart(2, '0').toUpperCase()}`;
+}

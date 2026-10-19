@@ -7,15 +7,17 @@ import {
   EVERY_DAY,
   nextCheckIn,
   type CheckIn,
+  HABIT_COLORS,
   type CheckInLog,
   type Habit,
+  type HabitColor,
   type WeeklyGoal,
   type Weekday,
 } from '@/rules/scoring';
 
 export interface TrackerState {
   /** Bumped when the saved shape changes, so old saves can be thrown away safely. */
-  version: 2;
+  version: 3;
   habits: Habit[];
   log: CheckInLog;
   /** Test tools only: how many days ahead of the real date the app is pretending to be. */
@@ -23,11 +25,22 @@ export interface TrackerState {
 }
 
 export const DEFAULT_HABITS: Habit[] = [
-  { id: 'sleep', name: 'Sleep', goal: { kind: 'specificDays', days: EVERY_DAY } },
-  { id: 'diet', name: 'Diet', goal: { kind: 'specificDays', days: EVERY_DAY } },
-  { id: 'exercise', name: 'Exercise', goal: { kind: 'anyDays', timesPerWeek: 3 } },
-  { id: 'wellbeing', name: 'Wellbeing', goal: { kind: 'specificDays', days: EVERY_DAY } },
+  { id: 'sleep', name: 'Sleep', goal: { kind: 'specificDays', days: EVERY_DAY }, color: 'habit1' },
+  { id: 'diet', name: 'Diet', goal: { kind: 'specificDays', days: EVERY_DAY }, color: 'habit3' },
+  { id: 'exercise', name: 'Exercise', goal: { kind: 'anyDays', timesPerWeek: 3 }, color: 'habit5' },
+  {
+    id: 'wellbeing',
+    name: 'Wellbeing',
+    goal: { kind: 'specificDays', days: EVERY_DAY },
+    color: 'habit6',
+  },
 ];
+
+/** A new habit gets the least-used habit color; ties go to the earliest in the palette. */
+export function leastUsedColor(habits: Habit[]): HabitColor {
+  const uses = (color: HabitColor) => habits.filter((h) => h.color === color).length;
+  return HABIT_COLORS.reduce((best, color) => (uses(color) < uses(best) ? color : best));
+}
 
 export const MIN_TIMES = 1;
 export const MAX_TIMES = 7;
@@ -44,7 +57,7 @@ export function cleanGoal(goal: WeeklyGoal): WeeklyGoal | null {
 
 export function createInitialState(): TrackerState {
   return {
-    version: 2,
+    version: 3,
     habits: DEFAULT_HABITS,
     log: {},
     dayOffset: 0,
@@ -98,7 +111,12 @@ export function trackerReducer(state: TrackerState, action: TrackerAction): Trac
         ...state,
         habits: [
           ...state.habits,
-          { id: action.id, name, goal: { kind: 'specificDays', days: EVERY_DAY } },
+          {
+            id: action.id,
+            name,
+            goal: { kind: 'specificDays', days: EVERY_DAY },
+            color: leastUsedColor(state.habits),
+          },
         ],
       };
     }
@@ -123,7 +141,7 @@ export function isTrackerState(value: unknown): value is TrackerState {
   if (typeof value !== 'object' || value === null) return false;
   const v = value as Partial<TrackerState>;
   return (
-    v.version === 2 &&
+    v.version === 3 &&
     Array.isArray(v.habits) &&
     typeof v.log === 'object' &&
     typeof v.dayOffset === 'number'
