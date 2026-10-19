@@ -5,4 +5,4 @@
  * Next day, Back to today, and Reset. Set to false to hide it without deleting anything.
  * To remove it for good, follow the steps at the top of src/components/TestTools.tsx.
  */
-export const SHOW_TEST_TOOLS = true;
+export const SHOW_TEST_TOOLS = false;
