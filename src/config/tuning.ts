@@ -130,6 +130,11 @@ export const tuning = {
     undoMs: 5000,
   },
 
+  day: {
+    /** How often the Day screen's "Habits lock in 38hrs" line refreshes (T24). */
+    clockRefreshMs: 60_000,
+  },
+
   menu: {
     /** Side menu slide in and out, and how dark the shade behind it gets (0 to 1). */
     slideMs: 220,

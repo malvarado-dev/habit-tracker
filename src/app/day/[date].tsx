@@ -1,6 +1,6 @@
 // Day screen (SPEC-00, T16; canvas board 5), opened from History. Since T23 it looks like Today:
-// the Background and critter with the live sky, and the habit sheet holding the date, the lock
-// line, the Energy bar, and the same habit cards; tap and swipe work the same. The sky and critter
+// the Background and critter with the live sky, and the habit sheet holding a short lock line
+// ("Habits lock in 38hrs"), the Energy bar labeled with the date (T24), and the same habit cards; tap and swipe work the same. The sky and critter
 // show that day's rank (the saved one once locked); a day with no check-in shows the critter
 // asleep. Scoring plays the same rank celebration as Today: never on open, and a replay only if the
 // rank goes up. Today and the 2 days before can change; older days are locked: cards dimmed,
@@ -8,7 +8,7 @@
 // card as on Today, and tapping a day there switches to it.
 
 import { router, useIsFocused, useLocalSearchParams } from 'expo-router';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -16,11 +16,12 @@ import { EnergyBar } from '@/components/EnergyBar';
 import { HabitCard } from '@/components/HabitCard';
 import { SceneLayout } from '@/components/SceneLayout';
 import { useCritterAndMoment } from '@/components/useCritterAndMoment';
+import { tuning } from '@/config/tuning';
 import { textStyle } from '@/design/fonts';
 import { withAlpha } from '@/design/theme/theme';
 import { useTheme } from '@/design/theme/ThemeProvider';
 import { background as sky, todayLayout, type ThemeColors } from '@/design/tokens';
-import { canOpenDay, dayStatusText, shortDate } from '@/features/history/historyModel';
+import { canOpenDay, dayBarLabel, dayStatusText } from '@/features/history/historyModel';
 import { useSettings } from '@/features/settings/SettingsProvider';
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import type { DateKey } from '@/rules/dates';
@@ -76,7 +77,8 @@ function DayScene({ date, back }: { date: DateKey; back: Back }) {
   const { goalStyle } = useSettings();
   const focused = useIsFocused();
 
-  const status = dayStatusText(date, today, state.lockedThrough, openDays);
+  const now = useMinuteClock();
+  const status = dayStatusText(date, today, state.lockedThrough, openDays, now);
   const dayLog = state.log[date] ?? {};
   // Same bar math as Today (T18). The bar is live; the sky uses the saved rank once locked.
   const bar = getEnergyBar(allHabits(state), state.log, date);
@@ -106,16 +108,13 @@ function DayScene({ date, back }: { date: DateKey; back: Back }) {
       onOpenDay={(next) => router.setParams({ date: next })}
       sheet={(bottomPadding) => (
         <>
-          <View style={styles.headingText} testID="day-sheet">
-            <Text style={styles.title} accessibilityRole="header" testID="day-title">
-              {shortDate(date)}
-            </Text>
-            <Text style={styles.status} testID="day-status">
-              {status.text}
-            </Text>
-          </View>
+          {/* One short line on top (T24): "Habits lock in 38hrs" or "Habits locked in". */}
+          <Text style={styles.status} testID="day-status">
+            {status.text}
+          </Text>
 
-          <EnergyBar fill={bar.fill} isRestDay={bar.isRestDay} />
+          {/* The date lives on the bar now: "Today" or "Thu, Oct 15" (T24). */}
+          <EnergyBar fill={bar.fill} isRestDay={bar.isRestDay} label={dayBarLabel(date, today)} />
 
           <ScrollView
             style={styles.scroll}
@@ -146,6 +145,16 @@ function DayScene({ date, back }: { date: DateKey; back: Back }) {
       )}
     />
   );
+}
+
+/** The clock, refreshed each minute so the lock countdown stays current. */
+function useMinuteClock(): Date {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), tuning.day.clockRefreshMs);
+    return () => clearInterval(timer);
+  }, []);
+  return now;
 }
 
 /** Back, top left. On the sky it uses the same see-through look and ink as the menu button. */
@@ -200,8 +209,6 @@ const makeStyles = (c: ThemeColors) =>
     back: { minHeight: MIN_TAP_SIZE, justifyContent: 'center', alignSelf: 'flex-start' },
     backOnSky: { paddingHorizontal: space.md, borderRadius: MIN_TAP_SIZE / 2 },
     backText: { ...textStyle('habitName'), color: c.onSurface },
-    headingText: { gap: 2 },
-    title: { ...textStyle('display'), color: c.onSurface },
     status: { ...textStyle('label'), color: c.onSurfaceMuted },
     scroll: { flex: 1 },
     cards: { gap: space.md },

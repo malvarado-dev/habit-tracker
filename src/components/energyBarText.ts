@@ -25,11 +25,11 @@ export function percentText(fill: number): string {
   return `${Math.round(clampEnergy(fill) * 100)}%`;
 }
 
-/** What a screen reader hears: "64 percent of today. Marks at 50, 75, and 90 percent." */
-export function energyLabel(fill: number, isRestDay: boolean): string {
+/** What a screen reader hears: "64 percent of ${day}. Marks at 50, 75, and 90 percent." */
+export function energyLabel(fill: number, isRestDay: boolean, day: string = 'today'): string {
   if (isRestDay) return 'Rest day, no habits due';
   const [b, a, s] = tickPositions().map((t) => Math.round(t * 100));
-  return `${Math.round(clampEnergy(fill) * 100)} percent of today. Marks at ${b}, ${a}, and ${s} percent.`;
+  return `${Math.round(clampEnergy(fill) * 100)} percent of ${day}. Marks at ${b}, ${a}, and ${s} percent.`;
 }
 
 export type EnergyMilestone = 'top' | 'full';

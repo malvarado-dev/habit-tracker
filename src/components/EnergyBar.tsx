@@ -124,7 +124,11 @@ export function EnergyBar({ fill, isRestDay, label, glowKey = 0 }: Props) {
       testID="energy-bar"
       accessible
       accessibilityRole="progressbar"
-      accessibilityLabel={energyLabel(fraction, isRestDay)}
+      accessibilityLabel={energyLabel(
+        fraction,
+        isRestDay,
+        label && label !== 'Today' ? label : 'today',
+      )}
       accessibilityValue={isRestDay ? undefined : { min: 0, max: 100, now: percent }}
       style={styles.wrap}
     >
