@@ -152,9 +152,9 @@ export interface WeekRow {
 /** One row per habit for the week a date falls in. Count only (best-N star quality is Later). */
 export function weekRows(habits: Habit[], log: CheckInLog, date: DateKey): WeekRow[] {
   const days = daysOfWeek(date);
-  // A habit added after this week ended has no row for it.
+  // A habit gets a row only if it was active some day that week (#52, T21).
   return habits
-    .filter((habit) => existsOn(habit, days[6]!))
+    .filter((habit) => days.some((d) => existsOn(habit, d)))
     .map((habit) => {
       const goal = weekGoal(habit, date);
       const done = days.filter((d) => {

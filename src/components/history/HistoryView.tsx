@@ -21,6 +21,7 @@ import {
 } from '@/features/history/historyModel';
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import { monthOf, type DateKey } from '@/rules/dates';
+import { allHabits } from '@/rules/locking';
 import { MIN_TAP_SIZE, radius, space } from '@/theme';
 
 import { CritterFace } from './CritterFace';
@@ -171,7 +172,7 @@ function WeekPanel({ date }: { date: DateKey }) {
   const styles = useStyles();
   const { colors: c } = useTheme();
   const { state } = useTracker();
-  const rows = weekRows(state.habits, state.log, date);
+  const rows = weekRows(allHabits(state), state.log, date);
   return (
     <View style={[styles.panel, styles.weekPanel]} testID="history-week">
       <Text style={styles.weekTitle} accessibilityRole="header">

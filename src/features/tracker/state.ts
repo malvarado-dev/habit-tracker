@@ -19,8 +19,11 @@ import { cleanName, nameProblem } from '@/features/habits/habitName';
 
 export interface TrackerState {
   /** Bumped when the saved shape changes. Older saves are upgraded step by step (save.ts). */
-  version: 6;
+  version: 7;
+  /** Active habits, in card order. */
   habits: Habit[];
+  /** Removed habits, each with the day it was removed, so their active days still score (T21). */
+  removed: Habit[];
   log: CheckInLog;
   /** Results saved for good when each day locked (T16). Days with no check-in have no entry. */
   locked: Record<DateKey, LockedDay>;
@@ -68,7 +71,8 @@ export function cleanGoal(goal: WeeklyGoal): WeeklyGoal | null {
  */
 export function createInitialState(addedOn?: DateKey): TrackerState {
   return {
-    version: 6,
+    version: 7,
+    removed: [],
     habits: addedOn ? DEFAULT_HABITS.map((h) => ({ ...h, addedOn })) : DEFAULT_HABITS,
     log: {},
     locked: {},
@@ -82,7 +86,7 @@ export type TrackerAction =
   | { type: 'addHabit'; id: string; name: string; goal?: WeeklyGoal; date: DateKey }
   | { type: 'renameHabit'; habitId: string; name: string }
   | { type: 'setGoal'; habitId: string; goal: WeeklyGoal }
-  | { type: 'removeHabit'; habitId: string }
+  | { type: 'removeHabit'; habitId: string; date: DateKey }
   | { type: 'restoreHabit'; habit: Habit; index: number }
   | { type: 'lockDays'; today: DateKey };
 
@@ -150,17 +154,28 @@ export function trackerReducer(state: TrackerState, action: TrackerAction): Trac
       const goal = cleanGoal(action.goal);
       return goal ? updateHabit(state, action.habitId, { goal }) : state;
     }
-    case 'removeHabit':
+    case 'removeHabit': {
       // At least one habit always stays (Glossary).
       if (state.habits.length <= 1) return state;
-      return { ...state, habits: state.habits.filter((habit) => habit.id !== action.habitId) };
+      const habit = state.habits.find((h) => h.id === action.habitId);
+      if (!habit) return state;
+      const habits = state.habits.filter((h) => h.id !== action.habitId);
+      // It stops counting from the day it was removed (T21). Earlier days keep scoring it.
+      // Removed the same day it was added: it was never active on a full day, so drop it.
+      const removedOn = action.date;
+      const neverActive = habit.addedOn !== undefined && habit.addedOn >= removedOn;
+      const removed = neverActive ? state.removed : [...state.removed, { ...habit, removedOn }];
+      return { ...state, habits, removed };
+    }
     case 'restoreHabit': {
       // Undo after Remove. Check-ins were never deleted, so the habit comes back with its history.
       if (state.habits.some((h) => h.id === action.habit.id)) return state;
       if (state.habits.length >= MAX_HABITS) return state;
+      const { removedOn: _removedOn, ...restored } = action.habit;
       const habits = [...state.habits];
-      habits.splice(Math.min(Math.max(action.index, 0), habits.length), 0, action.habit);
-      return { ...state, habits };
+      habits.splice(Math.min(Math.max(action.index, 0), habits.length), 0, restored);
+      const removed = state.removed.filter((h) => h.id !== action.habit.id);
+      return { ...state, habits, removed };
     }
     case 'lockDays':
       return lockDays(state, action.today);

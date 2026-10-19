@@ -20,7 +20,7 @@ import { MIN_TAP_SIZE, radius, space } from '@/theme';
 
 export default function EditHabitScreen() {
   const styles = useStyles();
-  const { state, dispatch } = useTracker();
+  const { state, dispatch, today } = useTracker();
   const { id } = useLocalSearchParams<{ id: string }>();
   const index = state.habits.findIndex((h) => h.id === id);
   const habit = index >= 0 ? state.habits[index] : undefined;
@@ -51,7 +51,7 @@ export default function EditHabitScreen() {
   const remove = () => {
     if (!canRemove) return;
     setRemoved({ habit, index });
-    dispatch({ type: 'removeHabit', habitId: habit.id });
+    dispatch({ type: 'removeHabit', habitId: habit.id, date: today });
     goBack();
   };
 

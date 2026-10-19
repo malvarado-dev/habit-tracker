@@ -42,7 +42,7 @@ describe('loadSave', () => {
     expect(result.state.lockedThrough).toBeNull();
   });
 
-  it('upgrades v5 to v6 keeping everything, with no added date on existing habits (#52)', () => {
+  it('upgrades v5 to v7 keeping everything, with no added date on existing habits (#52)', () => {
     const v5 = {
       version: 5,
       habits: DEFAULT_HABITS,
@@ -51,7 +51,11 @@ describe('loadSave', () => {
       lockedThrough: '2026-10-16',
     };
     const result = loadSave(JSON.stringify(v5));
-    expect(result).toEqual({ kind: 'loaded', state: { ...v5, version: 6 }, upgradedFrom: 5 });
+    expect(result).toEqual({
+      kind: 'loaded',
+      state: { ...v5, version: 7, removed: [] },
+      upgradedFrom: 5,
+    });
     if (result.kind === 'loaded') {
       expect(result.state.habits.every((h) => h.addedOn === undefined)).toBe(true);
     }

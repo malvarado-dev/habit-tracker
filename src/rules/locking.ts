@@ -23,6 +23,11 @@ export function lastLockedDay(today: DateKey): DateKey {
   return addDays(today, -(calendar.openDaysBeforeToday + 1));
 }
 
+/** Every habit ever kept, active or removed. The rules check each one's dates (T21). */
+export function allHabits(state: Pick<LockState, 'habits' | 'removed'>): Habit[] {
+  return [...state.habits, ...state.removed];
+}
+
 /** True if a day can't change any more. */
 export function isLocked(date: DateKey, lockedThrough: DateKey | null): boolean {
   return lockedThrough !== null && date <= lockedThrough;
@@ -39,6 +44,8 @@ export function dayResult(habits: Habit[], log: CheckInLog, date: DateKey): Lock
 
 export interface LockState {
   habits: Habit[];
+  /** Removed habits, kept so the days they were active still score them (T21). */
+  removed: Habit[];
   log: CheckInLog;
   locked: Record<DateKey, LockedDay>;
   lockedThrough: DateKey | null;
@@ -60,7 +67,7 @@ export function lockDays<S extends LockState>(state: S, today: DateKey): S {
   const locked = { ...state.locked };
   for (const date of newlyLocked) {
     if (locked[date]) continue;
-    const result = dayResult(state.habits, state.log, date);
+    const result = dayResult(allHabits(state), state.log, date);
     if (result.outcome !== 'none') locked[date] = result;
   }
   return { ...state, locked, lockedThrough: through };
@@ -71,5 +78,5 @@ export function historyDay(state: LockState, date: DateKey): LockedDay {
   if (isLocked(date, state.lockedThrough)) {
     return state.locked[date] ?? { outcome: 'none', earnedStars: 0, possibleStars: 0 };
   }
-  return dayResult(state.habits, state.log, date);
+  return dayResult(allHabits(state), state.log, date);
 }
