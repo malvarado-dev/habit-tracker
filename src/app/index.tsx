@@ -1,44 +1,39 @@
-// Main screen: the critter on top (Finch-style) and habit cards below. On wide screens,
-// habits move to the left and the critter to the right, like v0.
+// Today, phone and tablet portrait (SPEC-00). The Background fills the whole screen with the
+// critter standing near the top. Habit cards sit on a fixed, rounded habit sheet over the
+// lower part; cards scroll inside the sheet and the Background stays put. No header; the
+// subtle menu button sits top left. T10 builds the wide layout.
 
-import { Link } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Background } from '@/components/Background';
 import { Celebration, type CelebrationKind } from '@/components/Celebration';
-import { CritterScene, type Beam } from '@/components/CritterScene';
+import { Critter } from '@/components/Critter';
+import { EnergyBar } from '@/components/EnergyBar';
 import { HabitCard, type GoalStyle } from '@/components/HabitCard';
-import { useTracker } from '@/features/tracker/TrackerProvider';
-import type { DateKey } from '@/rules/dates';
-import { getRank } from '@/rules/rank';
-import {
-  getDailyResult,
-  getEnergy,
-  getWeekProgress,
-  isDue,
-  nextCheckIn,
-  STARS,
-  type CheckIn,
-} from '@/rules/scoring';
-import { getSkyLevel, isDaytime } from '@/rules/sky';
-import { font, MIN_TAP_SIZE, radius, space, WIDE_LAYOUT_MIN_WIDTH } from '@/theme';
+import { MenuButton } from '@/components/MenuButton';
+import { TestTools } from '@/components/TestTools';
 import { tuning } from '@/config/tuning';
-import { THEME_LABELS, THEME_PREFERENCES } from '@/design/theme/theme';
 import { useTheme } from '@/design/theme/ThemeProvider';
-import type { ThemeColors } from '@/design/tokens';
+import { todayLayout, type ThemeColors } from '@/design/tokens';
+import { useTracker } from '@/features/tracker/TrackerProvider';
+import { getRank } from '@/rules/rank';
+import { getDailyResult, getWeekProgress, isDue, nextCheckIn, type CheckIn } from '@/rules/scoring';
+import { getSkyLevel, getSkyTime } from '@/rules/sky';
+import { space } from '@/theme';
 
 export default function HomeScreen() {
   const styles = useStyles();
   const { state, dispatch, today } = useTracker();
-  const { width } = useWindowDimensions();
-  const isWide = width >= WIDE_LAYOUT_MIN_WIDTH;
+  const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
 
   const result = getDailyResult(state.habits, state.log, today);
   const skyLevel = getSkyLevel(result);
+  const skyTime = getSkyTime(new Date().getHours());
   const todayLog = state.log[today] ?? {};
 
-  const [beam, setBeam] = useState<Beam | null>(null);
   // Temporary, not saved: Profile's Weekly goal style setting arrives in T11.
   const [goalStyle, setGoalStyle] = useState<GoalStyle>('ring');
   const [celebration, setCelebration] = useState<CelebrationKind | null>(null);
@@ -66,7 +61,6 @@ export default function HomeScreen() {
   }, [dayKey, result.isRestDay, result.score]);
 
   const checkIn = (habitId: string, value: CheckIn | undefined, viaTap: boolean) => {
-    setBeam((prev) => ({ id: (prev?.id ?? 0) + 1, stars: value ? STARS[value] : 0 }));
     dispatch(
       viaTap
         ? { type: 'tapHabit', date: today, habitId }
@@ -74,192 +68,65 @@ export default function HomeScreen() {
     );
   };
 
-  const scene = (
-    <CritterScene
-      skyLevel={skyLevel}
-      isDay={isDaytime(new Date().getHours())}
-      energy={getEnergy(result)}
-      checkedInCount={result.checkedInCount}
-      dueCount={result.dueCount}
-      glow={result.score ?? 0}
-      beam={beam}
-    />
-  );
-
-  const habits = (
-    <View style={styles.cards}>
-      {state.habits.map((habit) => {
-        const current = todayLog[habit.id];
-        return (
-          <HabitCard
-            key={habit.id}
-            habit={habit}
-            checkIn={current}
-            isDue={isDue(habit, state.log, today)}
-            progress={getWeekProgress(habit, state.log, today)}
-            goalStyle={goalStyle}
-            onTap={() => checkIn(habit.id, nextCheckIn(current), true)}
-            onSwipe={(value) => checkIn(habit.id, value, false)}
-          />
-        );
-      })}
-    </View>
-  );
+  const sheetTop = Math.round(height * todayLayout.sheetTopRatio);
+  const critterWidth = Math.min(width * todayLayout.critterWidthRatio, todayLayout.critterMaxWidth);
+  const critterHeight = critterWidth * (260 / 360);
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={[styles.page, isWide && styles.pageWide]}>
-          <Header today={today} />
-          {isWide ? (
-            <View style={styles.wideRow}>
-              <View style={styles.wideColumn}>{habits}</View>
-              <View style={styles.wideColumn}>{scene}</View>
-            </View>
-          ) : (
-            <>
-              {scene}
-              {habits}
-            </>
-          )}
-          <TestTools
-            goalStyle={goalStyle}
-            onGoalStyle={setGoalStyle}
-            onNextDay={() => dispatch({ type: 'nextDay' })}
-            onReset={() => {
-              lastCelebrated.current = null;
-              dispatch({ type: 'reset' });
-            }}
-          />
-        </View>
-      </ScrollView>
-      {celebration ? <Celebration kind={celebration} onClose={() => setCelebration(null)} /> : null}
-    </SafeAreaView>
-  );
-}
+    <View style={styles.screen} testID="today-screen">
+      {/* The Background never scrolls; it sits behind everything. */}
+      <Background time={skyTime} level={skyLevel} />
 
-function Header({ today }: { today: DateKey }) {
-  const styles = useStyles();
-  return (
-    <View style={styles.header}>
-      <Text style={styles.date} testID="today-date" accessibilityRole="header">
-        {formatDate(today)}
-      </Text>
-      <Link href="/habits" asChild>
-        <Pressable
-          style={styles.modeButton}
-          testID="habits-link"
-          accessibilityRole="button"
-          accessibilityLabel="Habits"
-        >
-          <Text style={styles.modeText}>Habits ›</Text>
-        </Pressable>
-      </Link>
-    </View>
-  );
-}
-
-function TestTools({
-  goalStyle,
-  onGoalStyle,
-  onNextDay,
-  onReset,
-}: {
-  goalStyle: GoalStyle;
-  onGoalStyle: (style: GoalStyle) => void;
-  onNextDay: () => void;
-  onReset: () => void;
-}) {
-  const styles = useStyles();
-  const { preference, setPreference } = useTheme();
-  const [confirmReset, setConfirmReset] = useState(false);
-  return (
-    <View style={styles.testTools} testID="test-tools">
-      <Text style={styles.testTitle}>Test tools (prototype only)</Text>
-      <View style={styles.testRow}>
-        <Pressable
-          onPress={onNextDay}
-          style={styles.testButton}
-          testID="next-day-button"
-          accessibilityRole="button"
-        >
-          <Text style={styles.testButtonText}>Next day ›</Text>
-        </Pressable>
-        <Pressable
-          onPress={() => {
-            if (confirmReset) {
-              setConfirmReset(false);
-              onReset();
-            } else {
-              setConfirmReset(true);
-            }
-          }}
-          style={[styles.testButton, confirmReset && styles.testButtonDanger]}
-          testID="reset-button"
-          accessibilityRole="button"
-          accessibilityLabel={confirmReset ? 'Tap again to erase everything' : 'Reset'}
-        >
-          <Text style={[styles.testButtonText, confirmReset && styles.testButtonDangerText]}>
-            {confirmReset ? 'Tap again to erase all' : 'Reset'}
-          </Text>
-        </Pressable>
-      </View>
-      {/* Temporary until the Weekly goal style row in Profile (T11). */}
       <View
-        style={styles.testRow}
-        accessibilityRole="radiogroup"
-        accessibilityLabel="Weekly goal style"
+        style={[styles.critter, { top: sheetTop + todayLayout.critterOverlap - critterHeight }]}
+        pointerEvents="box-none"
       >
-        {(['ring', 'dots'] as const).map((option) => {
-          const selected = goalStyle === option;
-          return (
-            <Pressable
-              key={option}
-              onPress={() => onGoalStyle(option)}
-              style={[styles.testButton, selected && styles.chipSelected]}
-              testID={`goal-style-${option}`}
-              accessibilityRole="radio"
-              accessibilityState={{ checked: selected }}
-            >
-              <Text style={[styles.testButtonText, selected && styles.chipSelectedText]}>
-                {option === 'ring' ? 'Ring' : 'Dots'}
-              </Text>
-            </Pressable>
-          );
-        })}
+        <Critter width={critterWidth} asleep={skyLevel === 'asleep'} />
       </View>
-      {/* Temporary until the Theme row in Profile (T11). */}
-      <View style={styles.testRow} accessibilityRole="radiogroup" accessibilityLabel="Theme">
-        {THEME_PREFERENCES.map((option) => {
-          const selected = preference === option;
-          return (
-            <Pressable
-              key={option}
-              onPress={() => setPreference(option)}
-              style={[styles.testButton, selected && styles.chipSelected]}
-              testID={`theme-option-${option}`}
-              accessibilityRole="radio"
-              accessibilityState={{ checked: selected }}
-            >
-              <Text style={[styles.testButtonText, selected && styles.chipSelectedText]}>
-                {THEME_LABELS[option]}
-              </Text>
-            </Pressable>
-          );
-        })}
+
+      <View style={[styles.menu, { top: insets.top + space.sm, left: insets.left + space.lg }]}>
+        <MenuButton time={skyTime} />
       </View>
+
+      <View style={[styles.sheet, { top: sheetTop }]} testID="habit-sheet">
+        <View style={styles.sheetInner}>
+          <EnergyBar checkedIn={result.checkedInCount} due={result.dueCount} />
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={[styles.cards, { paddingBottom: insets.bottom + space.xl }]}
+            testID="habit-list"
+          >
+            {state.habits.map((habit) => {
+              const current = todayLog[habit.id];
+              return (
+                <HabitCard
+                  key={habit.id}
+                  habit={habit}
+                  checkIn={current}
+                  isDue={isDue(habit, state.log, today)}
+                  progress={getWeekProgress(habit, state.log, today)}
+                  goalStyle={goalStyle}
+                  onTap={() => checkIn(habit.id, nextCheckIn(current), true)}
+                  onSwipe={(value) => checkIn(habit.id, value, false)}
+                />
+              );
+            })}
+            <TestTools
+              goalStyle={goalStyle}
+              onGoalStyle={setGoalStyle}
+              onNextDay={() => dispatch({ type: 'nextDay' })}
+              onReset={() => {
+                lastCelebrated.current = null;
+                dispatch({ type: 'reset' });
+              }}
+            />
+          </ScrollView>
+        </View>
+      </View>
+
+      {celebration ? <Celebration kind={celebration} onClose={() => setCelebration(null)} /> : null}
     </View>
   );
-}
-
-function formatDate(key: DateKey): string {
-  const [y, m, d] = key.split('-').map(Number);
-  return new Date(Date.UTC(y ?? 1970, (m ?? 1) - 1, d ?? 1)).toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'short',
-    day: 'numeric',
-    timeZone: 'UTC',
-  });
 }
 
 function useStyles() {
@@ -267,55 +134,24 @@ function useStyles() {
   return useMemo(() => makeStyles(colors), [colors]);
 }
 
+// habit-sheet in design-spendio.md: solid sheet color, 28 pt top corners, 16 pt padding.
 const makeStyles = (c: ThemeColors) =>
   StyleSheet.create({
-    safe: { flex: 1, backgroundColor: c.surfaceSheet },
-    scroll: { flexGrow: 1, alignItems: 'center', paddingVertical: space.lg },
-    page: { width: '100%', maxWidth: 560, paddingHorizontal: space.lg, gap: space.lg },
-    pageWide: { maxWidth: 1100 },
-    wideRow: { flexDirection: 'row', gap: space.xl, alignItems: 'flex-start' },
-    wideColumn: { flex: 1 },
-    header: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      gap: space.sm,
-    },
-    date: { fontSize: font.title, fontWeight: '800', color: c.onSurface, flexShrink: 1 },
-    modeButton: {
-      minHeight: MIN_TAP_SIZE,
-      justifyContent: 'center',
-      paddingHorizontal: space.md,
-      borderRadius: radius.pill,
-      backgroundColor: c.surface,
-      borderWidth: 1,
-      borderColor: c.border,
-    },
-    modeText: { fontSize: font.small, fontWeight: '700', color: c.onSurface },
-    cards: { gap: space.md },
-    testTools: {
-      marginTop: space.xl,
-      padding: space.md,
-      borderRadius: radius.md,
-      borderWidth: 1,
-      borderStyle: 'dashed',
-      borderColor: c.border,
-      gap: space.sm,
-    },
-    testTitle: { fontSize: font.small, color: c.onSurfaceMuted, fontWeight: '700' },
-    testRow: { flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' },
-    testButton: {
-      minHeight: MIN_TAP_SIZE,
+    screen: { flex: 1, overflow: 'hidden' },
+    critter: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
+    menu: { position: 'absolute' },
+    sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, alignItems: 'center' },
+    sheetInner: {
+      flex: 1,
+      width: '100%',
+      maxWidth: todayLayout.sheetMaxWidth,
+      backgroundColor: c.surfaceSheet,
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
+      paddingTop: space.lg,
       paddingHorizontal: space.lg,
-      justifyContent: 'center',
-      borderRadius: radius.sm,
-      backgroundColor: c.surface,
-      borderWidth: 1,
-      borderColor: c.border,
+      gap: space.md,
     },
-    testButtonText: { color: c.onSurface, fontWeight: '700' },
-    chipSelected: { backgroundColor: c.inverse, borderColor: c.inverse },
-    chipSelectedText: { color: c.onInverse },
-    testButtonDanger: { borderColor: c.onSurface },
-    testButtonDangerText: { color: c.onSurface },
+    scroll: { flex: 1 },
+    cards: { gap: space.md, paddingTop: space.xs },
   });

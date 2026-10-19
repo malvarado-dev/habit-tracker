@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 import { EVERY_DAY, getDailyResult, type Habit } from './scoring';
-import { getSkyLevel, isDaytime, statusBarStyle } from './sky';
+import { getSkyLevel, getSkyTime, statusBarStyle } from './sky';
 
 const habits: Habit[] = [
   { id: 'sleep', name: 'Sleep', goal: { kind: 'specificDays', days: EVERY_DAY }, color: 'habit1' },
@@ -41,20 +41,24 @@ describe('getSkyLevel', () => {
   });
 });
 
-describe('isDaytime', () => {
+describe('getSkyTime', () => {
   it.each([
-    [5, false],
-    [6, true],
-    [17, true],
-    [18, false],
-  ])('hour %d is daytime: %s', (hour, expected) => {
-    expect(isDaytime(hour)).toBe(expected);
+    [5, 'night'],
+    [6, 'day'],
+    [16, 'day'],
+    [17, 'dusk'],
+    [19, 'dusk'],
+    [20, 'night'],
+    [0, 'night'],
+  ])('hour %d shows the %s sky', (hour, expected) => {
+    expect(getSkyTime(hour)).toBe(expected);
   });
 });
 
 describe('statusBarStyle', () => {
-  it('follows the sky, not the theme: dark icons by day, light at night', () => {
-    expect(statusBarStyle(true)).toBe('dark');
-    expect(statusBarStyle(false)).toBe('light');
+  it('follows the sky, not the theme: dark icons by day, light at dusk and night', () => {
+    expect(statusBarStyle('day')).toBe('dark');
+    expect(statusBarStyle('dusk')).toBe('light');
+    expect(statusBarStyle('night')).toBe('light');
   });
 });

@@ -24,6 +24,10 @@ export const tuning = {
   },
 
   sky: {
+    /** Hours (0 to 23, phone's local time) when the day, dusk, and night skies start. */
+    dayStartHour: 6,
+    duskStartHour: 17,
+    nightStartHour: 20,
     /** One full turn of the S-rank sun rays. */
     raySpinMs: 12000,
     /** S-rank moon bounce, each way. */
@@ -35,13 +39,9 @@ export const tuning = {
   },
 
   critter: {
-    /** Old first-build beam from the sky to the critter. T5 replaces this. */
-    beamTravelMs: 650,
-    beamVisibleMs: 550,
-    beamFadeMs: 150,
-    hopDelayMs: 600,
-    hopHeight: 14,
-    hopPerStar: 4,
+    /** Small wiggle when the critter is tapped: how far it turns, and each half of the wiggle. */
+    wiggleDegrees: 6,
+    wiggleMs: 90,
   },
 
   celebration: {

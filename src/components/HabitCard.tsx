@@ -2,7 +2,6 @@
 // ring around a letter icon, or progress dots under the name), the name, three stars, and
 // one status slot. Tap cycles Started, On track, Nailed it, Not today, back to Score needed,
 // so the same tap works as undo. Swipes are shortcuts, never the only way (T6 reworks them).
-// Urbanist isn't loaded yet, so text uses the system font with the Spendio sizes and weights.
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -23,6 +22,7 @@ import Svg, { Circle } from 'react-native-svg';
 import { tuning } from '@/config/tuning';
 import { withAlpha } from '@/design/theme/theme';
 import { useTheme } from '@/design/theme/ThemeProvider';
+import { textStyle } from '@/design/fonts';
 import { habitCardSizes as size, shadows, tints, typography } from '@/design/tokens';
 import type { ThemeColors } from '@/design/tokens';
 import { MAX_STARS, STARS, type CheckIn, type Habit } from '@/rules/scoring';
@@ -345,9 +345,9 @@ const makeStyles = (c: ThemeColors) =>
       alignItems: 'center',
       justifyContent: 'center',
     },
-    iconLetter: { ...typography.habitName, fontWeight: '700' },
+    iconLetter: textStyle('habitName', '700'),
     textBlock: { flex: 1, gap: space.xs },
-    name: { ...typography.habitName, color: c.onSurface },
+    name: { ...textStyle('habitName'), color: c.onSurface },
     dots: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
     dot: {
       width: size.dot,
@@ -358,9 +358,9 @@ const makeStyles = (c: ThemeColors) =>
     right: { alignItems: 'flex-end', gap: space.xs },
     stars: { flexDirection: 'row', gap: 2 },
     star: { fontSize: size.star, lineHeight: size.star + space.xs },
-    status: { ...typography.label, minHeight: typography.label.lineHeight },
+    status: { ...textStyle('label'), minHeight: typography.label.lineHeight },
     hint: { flex: 1, justifyContent: 'center', paddingHorizontal: space.lg },
-    hintText: { ...typography.label },
+    hintText: textStyle('label'),
     effect: { ...StyleSheet.absoluteFill },
     particle: { position: 'absolute', top: '45%', fontSize: 22 },
   });
