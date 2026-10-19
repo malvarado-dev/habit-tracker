@@ -14,6 +14,8 @@ export const tuning = {
   card: {
     /** How far a swipe travels before it scores. */
     swipeThreshold: 110,
+    /** Sideways movement before a card starts following the finger. Higher lets vertical scrolls win more often (T6). */
+    swipeStartOffset: 16,
     /** In-card score effects (T9). Distances and sizes are points; [min, max] ranges are random per particle. */
     effects: {
       /** How long one particle lives, from start to faded out. */

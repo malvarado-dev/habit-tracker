@@ -1,7 +1,8 @@
 // One habit card (design-spendio.md, Habit Card). A white pill: the weekly goal (progress
 // ring around a letter icon, or progress dots under the name), the name, three stars, and
 // one status slot. Tap cycles Started, On track, Nailed it, Not today, back to Score needed,
-// so the same tap works as undo. Swipes are shortcuts, never the only way (T6 reworks them).
+// so the same tap works as undo. Swipes are shortcuts, never the only way: full right = Nailed it,
+// full left = Not today. Short swipes were dropped in T6; vertical drags scroll and never score.
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -114,6 +115,8 @@ export function HabitCard(props: HabitCardProps) {
       friction={1.5}
       leftThreshold={tuning.card.swipeThreshold}
       rightThreshold={tuning.card.swipeThreshold}
+      dragOffsetFromLeft={tuning.card.swipeStartOffset}
+      dragOffsetFromRight={-tuning.card.swipeStartOffset}
       overshootLeft={false}
       overshootRight={false}
       renderLeftActions={() => <SwipeHint text="Nailed it" color={c.scoreNailedIt} start />}
