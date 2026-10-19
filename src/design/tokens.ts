@@ -138,6 +138,8 @@ export const habitCardSizes = {
   ringStroke: 4,
   icon: 36,
   star: 18,
+  /** Skip: width of the diagonal slash across each outlined star. */
+  skipSlash: 2,
   dot: 8,
   dotStroke: 1.5,
 } as const;

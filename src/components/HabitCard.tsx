@@ -177,13 +177,21 @@ export function HabitCard(props: HabitCardProps) {
             <View style={styles.right}>
               <Animated.View style={[styles.stars, flashStyle]} testID={`habit-stars-${id}`}>
                 {Array.from({ length: MAX_STARS }, (_, i) => (
-                  <Text
-                    key={i}
-                    testID={`habit-star-${id}-${i + 1}`}
-                    style={[styles.star, { color: starColor(c, checkIn, i < stars) }]}
-                  >
-                    {i < stars || checkIn === 'NotToday' ? '★' : '☆'}
-                  </Text>
+                  <View key={i} style={styles.starBox}>
+                    <Text
+                      testID={`habit-star-${id}-${i + 1}`}
+                      style={[styles.star, { color: starColor(c, checkIn, i < stars) }]}
+                    >
+                      {i < stars ? '★' : '☆'}
+                    </Text>
+                    {/* Skip: each outlined star is crossed out by a diagonal slash. */}
+                    {checkIn === 'NotToday' ? (
+                      <View
+                        testID={`habit-star-slash-${id}-${i + 1}`}
+                        style={[styles.slash, { backgroundColor: c.starNotToday }]}
+                      />
+                    ) : null}
+                  </View>
                 ))}
               </Animated.View>
               <Text
@@ -301,7 +309,7 @@ function labelColor(c: ThemeColors, checkIn: CheckIn | undefined): string {
   }
 }
 
-/** To do = outlined gray, Skip = filled gray: different by shape, not shade alone. */
+/** To do = outlined gray, Skip = outlined gray with a slash: different by shape, not shade alone. */
 function starColor(c: ThemeColors, checkIn: CheckIn | undefined, filled: boolean): string {
   if (checkIn === 'NotToday') return c.starNotToday;
   if (!filled) return c.starScoreNeeded;
@@ -364,7 +372,15 @@ const makeStyles = (c: ThemeColors, scheme: 'light' | 'dark') =>
     },
     right: { alignItems: 'flex-end', gap: space.xs },
     stars: { flexDirection: 'row', gap: 2 },
+    starBox: { justifyContent: 'center', alignItems: 'center' },
     star: { fontSize: size.star, lineHeight: size.star + space.xs },
+    slash: {
+      position: 'absolute',
+      width: size.skipSlash,
+      height: size.star,
+      borderRadius: size.skipSlash / 2,
+      transform: [{ rotate: '45deg' }],
+    },
     status: { ...textStyle('label'), minHeight: typography.label.lineHeight },
     hint: { flex: 1, justifyContent: 'center', paddingHorizontal: space.lg },
     hintText: textStyle('label'),
