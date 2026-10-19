@@ -14,6 +14,7 @@ import Animated, {
 
 import { Sky } from '@/components/Sky';
 import type { SkyLevel } from '@/rules/sky';
+import { useTheme } from '@/design/theme/ThemeProvider';
 import { colors, font, radius, space } from '@/theme';
 import { tuning } from '@/config/tuning';
 
@@ -39,6 +40,7 @@ const CRITTER_SIZE = 120;
 export function CritterScene(props: CritterSceneProps) {
   const { skyLevel, isDay, energy, checkedInCount, dueCount, glow, beam } = props;
   const reduceMotion = useReducedMotion();
+  const { colors: theme } = useTheme(); // Energy bar only; the sky and critter never use the theme.
   const [size, setSize] = useState({ width: 0, height: 0 });
   const asleep = skyLevel === 'asleep';
 
@@ -135,8 +137,13 @@ export function CritterScene(props: CritterSceneProps) {
         <Text style={styles.energyIcon} importantForAccessibility="no">
           ⚡
         </Text>
-        <View style={styles.energyTrack}>
-          <View style={[styles.energyFill, { width: `${Math.round(energy * 100)}%` }]} />
+        <View style={[styles.energyTrack, { backgroundColor: theme.track }]}>
+          <View
+            style={[
+              styles.energyFill,
+              { width: `${Math.round(energy * 100)}%`, backgroundColor: theme.primary },
+            ]}
+          />
         </View>
       </View>
     </View>
@@ -191,8 +198,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 10,
     borderRadius: radius.pill,
-    backgroundColor: colors.energyTrack,
     overflow: 'hidden',
   },
-  energyFill: { height: '100%', backgroundColor: colors.energy, borderRadius: radius.pill },
+  energyFill: { height: '100%', borderRadius: radius.pill },
 });

@@ -2,7 +2,7 @@
 // habits move to the left and the critter to the right, like v0.
 
 import { Link } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -14,18 +14,14 @@ import type { DateKey } from '@/rules/dates';
 import { getRank } from '@/rules/rank';
 import { getDailyResult, getEnergy, nextCheckIn, STARS, type CheckIn } from '@/rules/scoring';
 import { getSkyLevel, isDaytime } from '@/rules/sky';
-import {
-  cardColors,
-  colors,
-  font,
-  MIN_TAP_SIZE,
-  radius,
-  space,
-  WIDE_LAYOUT_MIN_WIDTH,
-} from '@/theme';
+import { font, MIN_TAP_SIZE, radius, space, WIDE_LAYOUT_MIN_WIDTH } from '@/theme';
 import { tuning } from '@/config/tuning';
+import { THEME_LABELS, THEME_PREFERENCES } from '@/design/theme/theme';
+import { useTheme } from '@/design/theme/ThemeProvider';
+import type { ThemeColors } from '@/design/tokens';
 
 export default function HomeScreen() {
+  const styles = useStyles();
   const { state, dispatch, today } = useTracker();
   const { width } = useWindowDimensions();
   const isWide = width >= WIDE_LAYOUT_MIN_WIDTH;
@@ -89,7 +85,6 @@ export default function HomeScreen() {
             key={habit.id}
             habit={habit}
             checkIn={current}
-            color={cardColors[state.habits.indexOf(habit) % cardColors.length] ?? cardColors[0]}
             onTap={() => checkIn(habit.id, nextCheckIn(current), true)}
             onSwipe={(value) => checkIn(habit.id, value, false)}
           />
@@ -129,6 +124,7 @@ export default function HomeScreen() {
 }
 
 function Header({ today }: { today: DateKey }) {
+  const styles = useStyles();
   return (
     <View style={styles.header}>
       <Text style={styles.date} testID="today-date" accessibilityRole="header">
@@ -149,6 +145,8 @@ function Header({ today }: { today: DateKey }) {
 }
 
 function TestTools({ onNextDay, onReset }: { onNextDay: () => void; onReset: () => void }) {
+  const styles = useStyles();
+  const { preference, setPreference } = useTheme();
   const [confirmReset, setConfirmReset] = useState(false);
   return (
     <View style={styles.testTools} testID="test-tools">
@@ -181,6 +179,26 @@ function TestTools({ onNextDay, onReset }: { onNextDay: () => void; onReset: () 
           </Text>
         </Pressable>
       </View>
+      {/* Temporary until the Theme row in Profile (T11). */}
+      <View style={styles.testRow} accessibilityRole="radiogroup" accessibilityLabel="Theme">
+        {THEME_PREFERENCES.map((option) => {
+          const selected = preference === option;
+          return (
+            <Pressable
+              key={option}
+              onPress={() => setPreference(option)}
+              style={[styles.testButton, selected && styles.chipSelected]}
+              testID={`theme-option-${option}`}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: selected }}
+            >
+              <Text style={[styles.testButtonText, selected && styles.chipSelectedText]}>
+                {THEME_LABELS[option]}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 }
@@ -195,52 +213,60 @@ function formatDate(key: DateKey): string {
   });
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
-  scroll: { flexGrow: 1, alignItems: 'center', paddingVertical: space.lg },
-  page: { width: '100%', maxWidth: 560, paddingHorizontal: space.lg, gap: space.lg },
-  pageWide: { maxWidth: 1100 },
-  wideRow: { flexDirection: 'row', gap: space.xl, alignItems: 'flex-start' },
-  wideColumn: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: space.sm,
-  },
-  date: { fontSize: font.title, fontWeight: '800', color: colors.text, flexShrink: 1 },
-  modeButton: {
-    minHeight: MIN_TAP_SIZE,
-    justifyContent: 'center',
-    paddingHorizontal: space.md,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  modeText: { fontSize: font.small, fontWeight: '700', color: colors.accent },
-  cards: { gap: space.md },
-  testTools: {
-    marginTop: space.xl,
-    padding: space.md,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: colors.border,
-    gap: space.sm,
-  },
-  testTitle: { fontSize: font.small, color: colors.textMuted, fontWeight: '700' },
-  testRow: { flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' },
-  testButton: {
-    minHeight: MIN_TAP_SIZE,
-    paddingHorizontal: space.lg,
-    justifyContent: 'center',
-    borderRadius: radius.sm,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  testButtonText: { color: colors.text, fontWeight: '700' },
-  testButtonDanger: { borderColor: colors.danger },
-  testButtonDangerText: { color: colors.danger },
-});
+function useStyles() {
+  const { colors } = useTheme();
+  return useMemo(() => makeStyles(colors), [colors]);
+}
+
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    safe: { flex: 1, backgroundColor: c.surfaceSheet },
+    scroll: { flexGrow: 1, alignItems: 'center', paddingVertical: space.lg },
+    page: { width: '100%', maxWidth: 560, paddingHorizontal: space.lg, gap: space.lg },
+    pageWide: { maxWidth: 1100 },
+    wideRow: { flexDirection: 'row', gap: space.xl, alignItems: 'flex-start' },
+    wideColumn: { flex: 1 },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: space.sm,
+    },
+    date: { fontSize: font.title, fontWeight: '800', color: c.onSurface, flexShrink: 1 },
+    modeButton: {
+      minHeight: MIN_TAP_SIZE,
+      justifyContent: 'center',
+      paddingHorizontal: space.md,
+      borderRadius: radius.pill,
+      backgroundColor: c.surface,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    modeText: { fontSize: font.small, fontWeight: '700', color: c.onSurface },
+    cards: { gap: space.md },
+    testTools: {
+      marginTop: space.xl,
+      padding: space.md,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderStyle: 'dashed',
+      borderColor: c.border,
+      gap: space.sm,
+    },
+    testTitle: { fontSize: font.small, color: c.onSurfaceMuted, fontWeight: '700' },
+    testRow: { flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' },
+    testButton: {
+      minHeight: MIN_TAP_SIZE,
+      paddingHorizontal: space.lg,
+      justifyContent: 'center',
+      borderRadius: radius.sm,
+      backgroundColor: c.surface,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    testButtonText: { color: c.onSurface, fontWeight: '700' },
+    chipSelected: { backgroundColor: c.inverse, borderColor: c.inverse },
+    chipSelectedText: { color: c.onInverse },
+    testButtonDanger: { borderColor: c.onSurface },
+    testButtonDangerText: { color: c.onSurface },
+  });

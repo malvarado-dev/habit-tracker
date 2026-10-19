@@ -2,14 +2,16 @@
 // Temporary screen from the first build. T12 rebuilds it with the Specific days picker.
 
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MAX_TIMES, MIN_TIMES } from '@/features/tracker/state';
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import { goalCount, type Habit } from '@/rules/scoring';
-import { colors, font, MIN_TAP_SIZE, radius, space } from '@/theme';
+import { font, MIN_TAP_SIZE, radius, space } from '@/theme';
+import { useTheme } from '@/design/theme/ThemeProvider';
+import type { ThemeColors } from '@/design/tokens';
 
 function goalLabel(habit: Habit): string {
   const n = goalCount(habit.goal);
@@ -17,6 +19,8 @@ function goalLabel(habit: Habit): string {
 }
 
 export default function HabitsScreen() {
+  const styles = useStyles();
+  const { colors: c } = useTheme();
   const { state, dispatch } = useTracker();
   const [newName, setNewName] = useState('');
   const canRemove = state.habits.length > 1;
@@ -62,7 +66,7 @@ export default function HabitsScreen() {
                 onChangeText={(name) => dispatch({ type: 'renameHabit', habitId: habit.id, name })}
                 style={styles.nameInput}
                 placeholder="Habit name"
-                placeholderTextColor={colors.textMuted}
+                placeholderTextColor={c.onSurfaceMuted}
                 testID={`habit-name-${habit.id}`}
                 accessibilityLabel={`Name for ${habit.name || 'habit'}`}
               />
@@ -110,7 +114,7 @@ export default function HabitsScreen() {
               onSubmitEditing={addHabit}
               style={[styles.nameInput, styles.addInput]}
               placeholder="New habit, like Reading"
-              placeholderTextColor={colors.textMuted}
+              placeholderTextColor={c.onSurfaceMuted}
               returnKeyType="done"
               testID="new-habit-input"
               accessibilityLabel="New habit name"
@@ -140,6 +144,7 @@ function StepButton(props: {
   testID: string;
   onPress: () => void;
 }) {
+  const styles = useStyles();
   return (
     <Pressable
       onPress={props.onPress}
@@ -155,59 +160,65 @@ function StepButton(props: {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
-  scroll: { alignItems: 'center', paddingVertical: space.lg },
-  page: { width: '100%', maxWidth: 560, paddingHorizontal: space.lg, gap: space.md },
-  topBar: { flexDirection: 'row' },
-  backButton: { minHeight: MIN_TAP_SIZE, justifyContent: 'center', paddingRight: space.lg },
-  backText: { color: colors.accent, fontWeight: '700', fontSize: font.body },
-  title: { fontSize: font.large, fontWeight: '800', color: colors.text },
-  section: { fontSize: font.title, fontWeight: '700', color: colors.text, marginTop: space.md },
-  help: { fontSize: font.small, color: colors.textMuted },
-  warning: { fontSize: font.small, color: colors.danger },
-  habitRow: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: space.md,
-    gap: space.sm,
-  },
-  nameInput: {
-    minHeight: MIN_TAP_SIZE,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
-    paddingHorizontal: space.md,
-    fontSize: font.body,
-    color: colors.text,
-    backgroundColor: colors.background,
-  },
-  targetRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  stepButton: {
-    width: MIN_TAP_SIZE,
-    height: MIN_TAP_SIZE,
-    borderRadius: radius.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  stepText: { fontSize: font.title, fontWeight: '800', color: colors.text },
-  target: { minWidth: 48, textAlign: 'center', fontWeight: '700', color: colors.text },
-  removeButton: { marginLeft: 'auto', minHeight: MIN_TAP_SIZE, justifyContent: 'center' },
-  removeText: { color: colors.danger, fontWeight: '700' },
-  disabled: { opacity: 0.4 },
-  addRow: { flexDirection: 'row', gap: space.sm, marginTop: space.sm },
-  addInput: { flex: 1 },
-  addButton: {
-    minHeight: MIN_TAP_SIZE,
-    paddingHorizontal: space.lg,
-    justifyContent: 'center',
-    borderRadius: radius.sm,
-    backgroundColor: colors.accent,
-  },
-  addText: { color: colors.accentText, fontWeight: '800' },
-});
+function useStyles() {
+  const { colors } = useTheme();
+  return useMemo(() => makeStyles(colors), [colors]);
+}
+
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    safe: { flex: 1, backgroundColor: c.surfaceSheet },
+    scroll: { alignItems: 'center', paddingVertical: space.lg },
+    page: { width: '100%', maxWidth: 560, paddingHorizontal: space.lg, gap: space.md },
+    topBar: { flexDirection: 'row' },
+    backButton: { minHeight: MIN_TAP_SIZE, justifyContent: 'center', paddingRight: space.lg },
+    backText: { color: c.onSurface, fontWeight: '700', fontSize: font.body },
+    title: { fontSize: font.large, fontWeight: '800', color: c.onSurface },
+    section: { fontSize: font.title, fontWeight: '700', color: c.onSurface, marginTop: space.md },
+    help: { fontSize: font.small, color: c.onSurfaceMuted },
+    warning: { fontSize: font.small, color: c.onSurface },
+    habitRow: {
+      backgroundColor: c.surface,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: c.border,
+      padding: space.md,
+      gap: space.sm,
+    },
+    nameInput: {
+      minHeight: MIN_TAP_SIZE,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: radius.sm,
+      paddingHorizontal: space.md,
+      fontSize: font.body,
+      color: c.onSurface,
+      backgroundColor: c.surfaceSheet,
+    },
+    targetRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+    stepButton: {
+      width: MIN_TAP_SIZE,
+      height: MIN_TAP_SIZE,
+      borderRadius: radius.sm,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: c.surfaceSheet,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    stepText: { fontSize: font.title, fontWeight: '800', color: c.onSurface },
+    target: { minWidth: 48, textAlign: 'center', fontWeight: '700', color: c.onSurface },
+    removeButton: { marginLeft: 'auto', minHeight: MIN_TAP_SIZE, justifyContent: 'center' },
+    removeText: { color: c.onSurface, fontWeight: '700' },
+    disabled: { opacity: 0.4 },
+    addRow: { flexDirection: 'row', gap: space.sm, marginTop: space.sm },
+    addInput: { flex: 1 },
+    addButton: {
+      minHeight: MIN_TAP_SIZE,
+      paddingHorizontal: space.lg,
+      justifyContent: 'center',
+      borderRadius: radius.sm,
+      backgroundColor: c.inverse,
+    },
+    addText: { color: c.onInverse, fontWeight: '800' },
+  });
