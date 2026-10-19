@@ -3,7 +3,7 @@
 // Times are milliseconds. Distances are points.
 
 export const tuning = {
-  /** Rank celebration plays this long after the last habit is scored. */
+  /** Rank moment plays this long after the last habit is scored (T15 uses it in the Background). */
   celebrationDelayMs: 2000,
 
   rank: {
@@ -100,10 +100,5 @@ export const tuning = {
     /** Small hop each time a habit is scored. */
     scoreHop: 7,
     scoreHopMs: 140,
-  },
-
-  celebration: {
-    /** Spring bounciness for the old pop-up. Lower is bouncier. */
-    popDamping: 9,
   },
 } as const;
