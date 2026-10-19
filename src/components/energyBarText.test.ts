@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 import { tuning } from '@/config/tuning';
-import { clampEnergy, energyLabel, flagPosition } from './energyBarText';
+import { clampEnergy, energyLabel, energyMilestone, flagPosition } from './energyBarText';
 
 describe('Energy bar (stars, decided 2026-10-18)', () => {
   it('screen reader hears the stars and where S is', () => {
@@ -25,5 +25,27 @@ describe('Energy bar (stars, decided 2026-10-18)', () => {
     expect(clampEnergy(1.2)).toBe(1);
     expect(clampEnergy(-0.1)).toBe(0);
     expect(clampEnergy(0.4)).toBe(0.4);
+  });
+});
+
+describe('Energy bar celebrations', () => {
+  it('crossing the flag plays the flag celebration', () => {
+    expect(energyMilestone(0.8, 0.92, false)).toBe('flag');
+  });
+
+  it('reaching 100% plays the bigger one, even when it also crosses the flag', () => {
+    expect(energyMilestone(0.95, 1, false)).toBe('full');
+    expect(energyMilestone(0.5, 1, false)).toBe('full');
+  });
+
+  it('staying above, moving down, or a Rest day plays nothing', () => {
+    expect(energyMilestone(0.92, 0.95, false)).toBeNull();
+    expect(energyMilestone(1, 0.8, false)).toBeNull();
+    expect(energyMilestone(1, 1, false)).toBeNull();
+    expect(energyMilestone(0, 1, true)).toBeNull();
+  });
+
+  it('dropping back and crossing again plays it again', () => {
+    expect(energyMilestone(0.85, 0.92, false)).toBe('flag');
   });
 });

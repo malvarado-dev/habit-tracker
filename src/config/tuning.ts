@@ -68,6 +68,23 @@ export const tuning = {
   energy: {
     /** Energy bar fill glides to its new width this fast. Reduced motion jumps instead. */
     fillMs: 450,
+    /** Celebrations when the fill crosses the flag (S) and when it reaches 100%. They start once the fill arrives. */
+    celebrate: {
+      /** Flag wave: how far it tilts each way (degrees) and each tilt's time. */
+      flagTiltDegrees: 8,
+      flagWaveMs: 130,
+      /** A light band sweeps once across the fill. Width in points. */
+      shimmerMs: 650,
+      shimmerWidth: 28,
+      shimmerOpacity: 0.55,
+      /** 100% only: the fill brightens briefly, and small sparkles pop off the end of the bar. */
+      flashOpacity: 0.35,
+      flashMs: 280,
+      sparkleCount: 5,
+      sparkleDistance: [10, 20] as const,
+      sparkleSize: [6, 9] as const,
+      sparkleMs: 600,
+    },
   },
 
   critter: {
