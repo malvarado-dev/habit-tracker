@@ -47,9 +47,9 @@ describe('in-card score effects (SPEC-00, T9)', () => {
     );
   });
 
-  it('card motion: pulse for On track, bounce for Nailed it, none otherwise', () => {
+  it('card motion: pulse for On track, none otherwise (no Nailed it bounce)', () => {
     expect(cardMotion('OnTrack')).toBe('pulse');
-    expect(cardMotion('NailedIt')).toBe('bounce');
+    expect(cardMotion('NailedIt')).toBe('none');
     expect(cardMotion('Started')).toBe('none');
     expect(cardMotion('NotToday')).toBe('none');
   });

@@ -39,11 +39,9 @@ export const tuning = {
       fireworkWaveGapMs: 140,
       fireworkDistance: [30, 52] as const,
       fireworkSize: [3, 5] as const,
-      /** Card motion: On track pulse and Nailed it bounce (scale), and how long each takes. */
+      /** Card motion: the On track pulse (scale) and how long each half takes. */
       pulseScale: 1.03,
       pulseMs: 160,
-      bounceScale: 1.05,
-      bounceDamping: 8,
       /** Not today: the card eases to gray. */
       dimMs: 250,
       /** Reduced motion: the stars flash instead of particles. */
