@@ -1,10 +1,12 @@
 // The side menu (SPEC-00, T11): slides in from the left over Today with Profile, Habits, and
 // History (T16), then a divider and the prototype-only Test tools (T17).
-// Tapping the shade or pressing back on Android closes it. Reduced motion: no slide.
+// Tapping the shade, swiping the menu or shade left (T25), or pressing back on Android closes it.
+// No edge swipe to open. Reduced motion: no slide, and the panel doesn't follow the finger.
 
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
+import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
   useAnimatedStyle,
@@ -20,6 +22,7 @@ import { textStyle } from '@/design/fonts';
 import { withAlpha } from '@/design/theme/theme';
 import { useTheme } from '@/design/theme/ThemeProvider';
 import type { ThemeColors } from '@/design/tokens';
+import { menuDragOffset, shouldCloseMenu } from '@/components/menuSwipe';
 import { MIN_TAP_SIZE, radius, space } from '@/theme';
 
 const PANEL_WIDTH = 280;
@@ -36,6 +39,8 @@ export function SideMenu({ open, onClose }: { open: boolean; onClose: () => void
   const insets = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
   const shown = useSharedValue(0);
+  // How far the finger has pulled the panel left, in points (0 or less).
+  const drag = useSharedValue(0);
   // Stay mounted while sliding out, then unmount so the shade never blocks taps.
   const [mounted, setMounted] = useState(open);
   if (open && !mounted) setMounted(true);
@@ -60,9 +65,32 @@ export function SideMenu({ open, onClose }: { open: boolean; onClose: () => void
     return () => sub.remove();
   }, [open, onClose]);
 
-  const shadeStyle = useAnimatedStyle(() => ({ opacity: shown.value }));
+  const { swipeStartOffset: start } = tuning.menu;
+  const swipe = usePanGesture({
+    activeOffsetX: [-start, start],
+    failOffsetY: [-start, start],
+    onUpdate: (e) => {
+      'worklet';
+      if (!reduceMotion) drag.set(menuDragOffset(e.translationX, PANEL_WIDTH));
+    },
+    onDeactivate: (e) => {
+      'worklet';
+      if (shouldCloseMenu(e.translationX, e.velocityX, PANEL_WIDTH)) {
+        // Hand the dragged position to the slide-out so it carries on from where the finger let go.
+        shown.set(1 + drag.get() / PANEL_WIDTH);
+        drag.set(0);
+        runOnJS(onClose)();
+      } else {
+        drag.set(reduceMotion ? 0 : withTiming(0, { duration: tuning.menu.slideMs }));
+      }
+    },
+  });
+
+  const shadeStyle = useAnimatedStyle(() => ({
+    opacity: shown.value + drag.value / PANEL_WIDTH,
+  }));
   const panelStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: (shown.value - 1) * PANEL_WIDTH }],
+    transform: [{ translateX: (shown.value - 1) * PANEL_WIDTH + drag.value }],
   }));
 
   if (!open && (!mounted || reduceMotion)) return null;
@@ -78,63 +106,65 @@ export function SideMenu({ open, onClose }: { open: boolean; onClose: () => void
   };
 
   return (
-    <View style={StyleSheet.absoluteFill} testID="side-menu">
-      <Animated.View
-        style={[
-          StyleSheet.absoluteFill,
-          { backgroundColor: withAlpha(colors.inverse, tuning.menu.shadeOpacity) },
-          shadeStyle,
-        ]}
-      >
-        <Pressable
-          style={StyleSheet.absoluteFill}
-          onPress={onClose}
-          testID="side-menu-shade"
-          accessibilityRole="button"
-          accessibilityLabel="Close menu"
-        />
-      </Animated.View>
-      <Animated.View
-        style={[styles.panel, { paddingTop: insets.top + space.xl }, panelStyle]}
-        accessibilityViewIsModal
-      >
-        <Text style={styles.title} accessibilityRole="header">
-          Menu
-        </Text>
-        {ITEMS.map((item) => (
+    <GestureDetector gesture={swipe}>
+      <View style={StyleSheet.absoluteFill} testID="side-menu">
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: withAlpha(colors.inverse, tuning.menu.shadeOpacity) },
+            shadeStyle,
+          ]}
+        >
           <Pressable
-            key={item.id}
-            onPress={() => go(item.path)}
-            style={({ pressed }) => [styles.row, pressed && styles.pressed]}
-            testID={item.id}
+            style={StyleSheet.absoluteFill}
+            onPress={onClose}
+            testID="side-menu-shade"
             accessibilityRole="button"
-            accessibilityLabel={item.label}
-          >
-            <Text style={styles.rowText}>{item.label}</Text>
-            <Text style={styles.chevron}>›</Text>
-          </Pressable>
-        ))}
-        {/* Prototype only (T17); see TestTools.tsx for how to remove. */}
-        {SHOW_TEST_TOOLS ? (
-          <>
-            <View style={styles.divider} importantForAccessibility="no" />
+            accessibilityLabel="Close menu"
+          />
+        </Animated.View>
+        <Animated.View
+          style={[styles.panel, { paddingTop: insets.top + space.xl }, panelStyle]}
+          accessibilityViewIsModal
+        >
+          <Text style={styles.title} accessibilityRole="header">
+            Menu
+          </Text>
+          {ITEMS.map((item) => (
             <Pressable
-              onPress={() => go('/test-tools')}
-              style={({ pressed }) => [styles.row, styles.testRow, pressed && styles.pressed]}
-              testID="menu-test-tools"
+              key={item.id}
+              onPress={() => go(item.path)}
+              style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+              testID={item.id}
               accessibilityRole="button"
-              accessibilityLabel="Test tools, prototype only"
+              accessibilityLabel={item.label}
             >
-              <View>
-                <Text style={styles.rowText}>Test tools</Text>
-                <Text style={styles.rowSub}>Prototype only</Text>
-              </View>
+              <Text style={styles.rowText}>{item.label}</Text>
               <Text style={styles.chevron}>›</Text>
             </Pressable>
-          </>
-        ) : null}
-      </Animated.View>
-    </View>
+          ))}
+          {/* Prototype only (T17); see TestTools.tsx for how to remove. */}
+          {SHOW_TEST_TOOLS ? (
+            <>
+              <View style={styles.divider} importantForAccessibility="no" />
+              <Pressable
+                onPress={() => go('/test-tools')}
+                style={({ pressed }) => [styles.row, styles.testRow, pressed && styles.pressed]}
+                testID="menu-test-tools"
+                accessibilityRole="button"
+                accessibilityLabel="Test tools, prototype only"
+              >
+                <View>
+                  <Text style={styles.rowText}>Test tools</Text>
+                  <Text style={styles.rowSub}>Prototype only</Text>
+                </View>
+                <Text style={styles.chevron}>›</Text>
+              </Pressable>
+            </>
+          ) : null}
+        </Animated.View>
+      </View>
+    </GestureDetector>
   );
 }
 
