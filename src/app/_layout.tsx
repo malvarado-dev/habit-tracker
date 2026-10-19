@@ -5,6 +5,7 @@ import { StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { ThemeProvider, useTheme } from '@/design/theme/ThemeProvider';
+import { SettingsProvider } from '@/features/settings/SettingsProvider';
 import { TrackerProvider } from '@/features/tracker/TrackerProvider';
 import { URBANIST_FONTS } from '@/design/fonts';
 import { getSkyTime, statusBarStyle } from '@/rules/sky';
@@ -17,9 +18,11 @@ export default function RootLayout() {
     // Swipes on habit cards need the gesture root at the top of the app.
     <GestureHandlerRootView style={styles.root}>
       <ThemeProvider>
-        <TrackerProvider>
-          <AppStack />
-        </TrackerProvider>
+        <SettingsProvider>
+          <TrackerProvider>
+            <AppStack />
+          </TrackerProvider>
+        </SettingsProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
   );

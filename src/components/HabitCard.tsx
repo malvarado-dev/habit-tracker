@@ -20,6 +20,7 @@ import Animated, {
 import Svg, { Circle } from 'react-native-svg';
 
 import { tuning } from '@/config/tuning';
+import type { GoalStyle } from '@/features/settings/settings';
 import { withAlpha } from '@/design/theme/theme';
 import { useTheme } from '@/design/theme/ThemeProvider';
 import { textStyle } from '@/design/fonts';
@@ -32,7 +33,7 @@ import { CardEffect } from './CardEffect';
 import { cardMotion } from './cardEffectLayout';
 import { cardAccessibilityLabel, iconLetter, statusText, weekProgressText } from './habitCardText';
 
-export type GoalStyle = 'ring' | 'dots';
+export type { GoalStyle } from '@/features/settings/settings';
 
 interface HabitCardProps {
   habit: Habit;
