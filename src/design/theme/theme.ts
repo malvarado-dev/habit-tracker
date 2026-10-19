@@ -2,7 +2,7 @@
 // A theme covers only the habit sheet, cards, text, and Energy bar. The critter and the
 // Background skies are separate token sets and never change with the theme (SPEC-00).
 
-import { spendioDark, spendioLight, type ThemeColors } from '../tokens';
+import { darkTheme, lightTheme, type ThemeColors } from '../tokens';
 
 /** The Theme setting in Profile. Match phone is the default. */
 export type ThemePreference = 'system' | 'light' | 'dark';
@@ -30,7 +30,7 @@ export function resolveScheme(
 }
 
 export function themeColors(scheme: ColorScheme): ThemeColors {
-  return scheme === 'dark' ? spendioDark : spendioLight;
+  return scheme === 'dark' ? darkTheme : lightTheme;
 }
 
 /** The small part of storage the theme needs, so tests can pass a fake. */

@@ -102,7 +102,7 @@ function useStyles() {
   return useMemo(() => makeStyles(colors), [colors]);
 }
 
-// habit-sheet in design-spendio.md: solid sheet color, 28 pt top corners, 16 pt padding.
+// habit-sheet in design-system.md: solid sheet color, 28 pt top corners, 16 pt padding.
 const makeStyles = (c: ThemeColors) =>
   StyleSheet.create({
     screen: { flex: 1, overflow: 'hidden' },

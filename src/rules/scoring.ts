@@ -17,7 +17,7 @@ export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 export type WeeklyGoal =
   { kind: 'specificDays'; days: Weekday[] } | { kind: 'anyDays'; timesPerWeek: number };
 
-/** One of the 8 curated habit colors (design-spendio.md, habit-1 to habit-8). */
+/** One of the 8 curated habit colors (design-system.md, habit-1 to habit-8). */
 export type HabitColor =
   'habit1' | 'habit2' | 'habit3' | 'habit4' | 'habit5' | 'habit6' | 'habit7' | 'habit8';
 

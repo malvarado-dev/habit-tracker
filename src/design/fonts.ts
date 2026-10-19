@@ -1,4 +1,4 @@
-// Urbanist, the Spendio font (design-spendio.md). Each weight loads as its own font family,
+// Urbanist, the app font (design-system.md). Each weight loads as its own font family,
 // because phones pick a font file by family name, not by fontWeight.
 
 import {
@@ -24,14 +24,14 @@ const FAMILY_BY_WEIGHT: Record<string, keyof typeof URBANIST_FONTS> = {
   '700': 'Urbanist_700Bold',
 };
 
-/** The Urbanist family for a weight. Nothing below 500 is used under 16 pt (design-spendio.md). */
+/** The Urbanist family for a weight. Nothing below 500 is used under 16 pt (design-system.md). */
 export function urbanist(weight: '300' | '500' | '600' | '700'): string {
   return FAMILY_BY_WEIGHT[weight] ?? 'Urbanist_500Medium';
 }
 
 type TypeRole = keyof typeof typography;
 
-/** A ready-to-use text style for a Spendio type role, in Urbanist. */
+/** A ready-to-use text style for a type role, in Urbanist. */
 export function textStyle(role: TypeRole, weight?: '300' | '500' | '600' | '700') {
   const { fontWeight, ...rest } = typography[role];
   return { ...rest, fontFamily: urbanist(weight ?? fontWeight) };
