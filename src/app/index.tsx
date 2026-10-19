@@ -30,9 +30,7 @@ import {
   space,
   WIDE_LAYOUT_MIN_WIDTH,
 } from '@/theme';
-
-/** The rank celebration waits this long after the last check-in (PRD-03, PRD-05). */
-const CELEBRATION_DELAY_MS = 2000;
+import { tuning } from '@/config/tuning';
 
 export default function HomeScreen() {
   const { state, dispatch, today } = useTracker();
@@ -66,7 +64,7 @@ export default function HomeScreen() {
           ? { type: 'rest' }
           : { type: 'rank', rank: getRank(result.score, state.mode) },
       );
-    }, CELEBRATION_DELAY_MS);
+    }, tuning.celebrationDelayMs);
     return () => clearTimeout(timer);
   }, [dayKey, result.isRestDay, result.score, state.mode]);
 

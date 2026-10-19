@@ -17,6 +17,7 @@ import Animated, {
 
 import type { SkyLevel } from '@/rules/sky';
 import { colors } from '@/theme';
+import { tuning } from '@/config/tuning';
 
 const GLOW: Record<SkyLevel, number> = { asleep: 0, rest: 0.25, C: 0.15, B: 0.35, A: 0.6, S: 0.9 };
 const BODY_OPACITY: Record<SkyLevel, number> = {
@@ -52,16 +53,25 @@ export function Sky({ level, isDay }: SkyProps) {
     if (reduceMotion) return;
 
     if (isTop && isDay) {
-      spin.value = withRepeat(withTiming(360, { duration: 12000, easing: Easing.linear }), -1);
+      spin.value = withRepeat(
+        withTiming(360, { duration: tuning.sky.raySpinMs, easing: Easing.linear }),
+        -1,
+      );
     } else if (isTop) {
       bounce.value = withRepeat(
-        withSequence(withTiming(-6, { duration: 900 }), withTiming(0, { duration: 900 })),
+        withSequence(
+          withTiming(-tuning.sky.moonBounceHeight, { duration: tuning.sky.moonBounceMs }),
+          withTiming(0, { duration: tuning.sky.moonBounceMs }),
+        ),
         -1,
       );
     } else if (level === 'C' || level === 'asleep') {
       // A slow, gentle "come check in" pulse. Never sad, just inviting.
       pulse.value = withRepeat(
-        withSequence(withTiming(1.06, { duration: 1600 }), withTiming(1, { duration: 1600 })),
+        withSequence(
+          withTiming(tuning.sky.pulseScale, { duration: tuning.sky.pulseMs }),
+          withTiming(1, { duration: tuning.sky.pulseMs }),
+        ),
         -1,
       );
     }
@@ -174,7 +184,7 @@ const styles = StyleSheet.create({
     width: 6,
     height: BODY_SIZE * 2.2,
     borderRadius: 3,
-    backgroundColor: 'rgba(255, 214, 90, 0.55)',
+    backgroundColor: colors.sunRays,
   },
   cloud: {
     position: 'absolute',

@@ -15,6 +15,7 @@ import Animated, {
 import { Sky } from '@/components/Sky';
 import type { SkyLevel } from '@/rules/sky';
 import { colors, font, radius, space } from '@/theme';
+import { tuning } from '@/config/tuning';
 
 export interface Beam {
   /** Changes every time a beam should fire. */
@@ -56,14 +57,14 @@ export function CritterScene(props: CritterSceneProps) {
     }
     orb.value = 0;
     orbOpacity.value = 1;
-    orb.value = withTiming(1, { duration: 650 });
+    orb.value = withTiming(1, { duration: tuning.critter.beamTravelMs });
     orbOpacity.value = withSequence(
-      withTiming(1, { duration: 550 }),
-      withTiming(0, { duration: 150 }),
+      withTiming(1, { duration: tuning.critter.beamVisibleMs }),
+      withTiming(0, { duration: tuning.critter.beamFadeMs }),
     );
     hop.value = withSequence(
-      withTiming(0, { duration: 600 }),
-      withSpring(-14 - beam.stars * 4),
+      withTiming(0, { duration: tuning.critter.hopDelayMs }),
+      withSpring(-tuning.critter.hopHeight - beam.stars * tuning.critter.hopPerStar),
       withSpring(0),
     );
   }, [beam, reduceMotion, orb, orbOpacity, hop]);
@@ -187,7 +188,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 46,
-    backgroundColor: '#9CCB7A',
+    backgroundColor: colors.ground,
   },
   energyRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   energyIcon: { fontSize: font.body },

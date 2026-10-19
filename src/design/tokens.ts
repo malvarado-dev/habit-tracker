@@ -1,0 +1,131 @@
+// Design tokens. Generated from docs/design/*.md, which are the source of truth (Technical Design).
+// Figma variables mirror these files. Change a token in the .md file, Figma, and here in the same step.
+// tokens.test.ts fails if this file and the .md files drift apart.
+
+/** Spendio light: habit sheet, cards, text, and Energy bar (design-spendio.md). */
+export const spendioLight = {
+  surface: '#FFFFFF',
+  surfaceSheet: '#FBFAF5',
+  surfaceDim: '#EDEDED',
+  onSurface: '#1F1F1F',
+  onSurfaceMuted: '#5E5A52',
+  border: '#ECE8DF',
+  primary: '#F5F04A',
+  onPrimary: '#1F1F1F',
+  inverse: '#1F1F1F',
+  onInverse: '#FFFFFF',
+  habit1: '#A855F7',
+  habit2: '#3B82F6',
+  habit3: '#16A34A',
+  habit4: '#DB2777',
+  habit5: '#EA580C',
+  habit6: '#0D9488',
+  habit7: '#65A30D',
+  habit8: '#6366F1',
+  scoreStarted: '#BE185D',
+  scoreStartedStar: '#EC4899',
+  scoreOnTrack: '#15803D',
+  scoreOnTrackStar: '#16A34A',
+  scoreNailedIt: '#B45309',
+  scoreNailedItStar: '#D97706',
+  starScoreNeeded: '#8E8E93',
+  starNotToday: '#6B7280',
+  track: '#1F1F1F',
+} as const;
+
+export type ThemeColors = { readonly [K in keyof typeof spendioLight]: string };
+
+/**
+ * Spendio dark: same names as light, so swapping themes is one line.
+ * Tokens with no -dark value in design-spendio.md (lemon, score stars, inverse) stay the same,
+ * as the file says. `track` is the Energy bar track: inverse in light, track-dark in dark.
+ */
+export const spendioDark: ThemeColors = {
+  surface: '#3A3D33',
+  surfaceSheet: '#2A2C24',
+  surfaceDim: '#26281F',
+  onSurface: '#F2F1EA',
+  onSurfaceMuted: '#C9C7B8',
+  border: '#ECE8DF',
+  primary: '#F5F04A',
+  onPrimary: '#1F1F1F',
+  inverse: '#1F1F1F',
+  onInverse: '#FFFFFF',
+  habit1: '#C084FC',
+  habit2: '#60A5FA',
+  habit3: '#4ADE80',
+  habit4: '#F472B6',
+  habit5: '#FB923C',
+  habit6: '#2DD4BF',
+  habit7: '#A3E635',
+  habit8: '#818CF8',
+  scoreStarted: '#F9A8D4',
+  scoreStartedStar: '#EC4899',
+  scoreOnTrack: '#4ADE80',
+  scoreOnTrackStar: '#16A34A',
+  scoreNailedIt: '#FACC15',
+  scoreNailedItStar: '#D97706',
+  starScoreNeeded: '#A3A396',
+  starNotToday: '#8E8E82',
+  track: '#1A1B16',
+};
+
+/** Shared critter palette (critter.md). Never changes with the theme. */
+export const critter = {
+  bodySunny: '#FFC400',
+  bodySky: '#2F9BFF',
+  bodyMint: '#3CCB6E',
+  bodyPink: '#FF6FA5',
+  bodyTangerine: '#FF8A3D',
+  bodyViolet: '#9B6BFF',
+  ink: '#1F1F1F',
+  mouth: '#FF4D3A',
+} as const;
+
+/** Shared skies (background.md). Change only with time of day, never with the theme. */
+export const background = {
+  dayTop: '#F6D58E',
+  dayMid: '#EBDD95',
+  dayBottom: '#CFE6A2',
+  daySun: '#FFF4C2',
+  dayCloud: '#FFFFFF',
+  duskTop: '#25344A',
+  duskMid: '#4C4A63',
+  duskLow: '#9A6E6C',
+  duskHorizon: '#C9927A',
+  duskMoon: '#F3EBDD',
+  nightTop: '#262A55',
+  nightMid: '#4A4880',
+  nightLow: '#7C7FA0',
+  nightHorizon: '#A9BC8E',
+  nightMoon: '#F4F1FF',
+  star: '#FFFFFF',
+  onSkyDay: '#1F1F1F',
+  onSkyDark: '#FFFFFF',
+} as const;
+
+export const habitPalette = [
+  'habit1',
+  'habit2',
+  'habit3',
+  'habit4',
+  'habit5',
+  'habit6',
+  'habit7',
+  'habit8',
+] as const;
+
+export const fontFamily = 'Urbanist';
+
+/** Type scale from design-spendio.md. Sizes and line heights in points. */
+export const typography = {
+  display: { fontSize: 32, fontWeight: '300', lineHeight: 35, letterSpacing: -0.64 },
+  title: { fontSize: 22, fontWeight: '600', lineHeight: 26 },
+  habitName: { fontSize: 17, fontWeight: '600', lineHeight: 21 },
+  body: { fontSize: 16, fontWeight: '500', lineHeight: 24 },
+  label: { fontSize: 13, fontWeight: '700', lineHeight: 17 },
+  caption: { fontSize: 12, fontWeight: '600', lineHeight: 16 },
+} as const;
+
+export const rounded = { md: 12, lg: 20, xl: 24, '2xl': 28, full: 9999 } as const;
+export const spacing = { 1: 4, 2: 8, 3: 12, 4: 16, 6: 24, 8: 32 } as const;
