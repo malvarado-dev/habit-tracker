@@ -3,22 +3,19 @@
 // lower part; cards scroll inside the sheet and the Background stays put. No header; the
 // subtle menu button sits top left. T10 builds the wide layout.
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Background } from '@/components/Background';
-import { Celebration, type CelebrationKind } from '@/components/Celebration';
 import { Critter } from '@/components/Critter';
 import { EnergyBar } from '@/components/EnergyBar';
 import { HabitCard, type GoalStyle } from '@/components/HabitCard';
 import { MenuButton } from '@/components/MenuButton';
 import { TestTools } from '@/components/TestTools';
-import { tuning } from '@/config/tuning';
 import { useTheme } from '@/design/theme/ThemeProvider';
 import { todayLayout, type ThemeColors } from '@/design/tokens';
 import { useTracker } from '@/features/tracker/TrackerProvider';
-import { getRank } from '@/rules/rank';
 import {
   getDailyResult,
   getEnergy,
@@ -43,29 +40,6 @@ export default function HomeScreen() {
 
   // Temporary, not saved: Profile's Weekly goal style setting arrives in T11.
   const [goalStyle, setGoalStyle] = useState<GoalStyle>('ring');
-  const [celebration, setCelebration] = useState<CelebrationKind | null>(null);
-
-  const dayKey = !result.isComplete
-    ? null
-    : result.isRestDay
-      ? `${today}-rest`
-      : `${today}-${result.score === null ? 'none' : getRank(result.score)}`;
-
-  // Don't replay a celebration for a day that was already finished when the app opened.
-  const lastCelebrated = useRef<string | null>(dayKey);
-
-  useEffect(() => {
-    if (!dayKey || dayKey === lastCelebrated.current) return;
-    const timer = setTimeout(() => {
-      lastCelebrated.current = dayKey;
-      setCelebration(
-        result.isRestDay || result.score === null
-          ? { type: 'rest' }
-          : { type: 'rank', rank: getRank(result.score) },
-      );
-    }, tuning.celebrationDelayMs);
-    return () => clearTimeout(timer);
-  }, [dayKey, result.isRestDay, result.score]);
 
   const checkIn = (habitId: string, value: CheckIn | undefined, viaTap: boolean) => {
     dispatch(
@@ -127,16 +101,11 @@ export default function HomeScreen() {
               goalStyle={goalStyle}
               onGoalStyle={setGoalStyle}
               onNextDay={() => dispatch({ type: 'nextDay' })}
-              onReset={() => {
-                lastCelebrated.current = null;
-                dispatch({ type: 'reset' });
-              }}
+              onReset={() => dispatch({ type: 'reset' })}
             />
           </ScrollView>
         </View>
       </View>
-
-      {celebration ? <Celebration kind={celebration} onClose={() => setCelebration(null)} /> : null}
     </View>
   );
 }
