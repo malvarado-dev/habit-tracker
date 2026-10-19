@@ -31,7 +31,7 @@ const BACK = {
 
 export default function DayScreen() {
   const styles = useStyles();
-  const { state, dispatch, today } = useTracker();
+  const { state, dispatch, today, openDays, oldestDay } = useTracker();
   const { goalStyle } = useSettings();
   const params = useLocalSearchParams<{ date?: string; from?: string }>();
   const back = BACK[params.from === 'today' ? 'today' : 'history'];
@@ -54,18 +54,22 @@ export default function DayScreen() {
     </Pressable>
   );
 
-  if (!date || !canOpenDay(date, today)) {
+  if (!date || !canOpenDay(date, today, oldestDay)) {
     return (
       <SafeAreaView style={styles.screen} testID="day-screen">
         <View style={styles.content}>
           {backButton}
-          <Text style={styles.status}>This day hasn&apos;t happened yet.</Text>
+          <Text style={styles.status} testID="day-unavailable">
+            {date && date > today
+              ? "This day hasn't happened yet."
+              : `Test mode only goes back ${openDays} days.`}
+          </Text>
         </View>
       </SafeAreaView>
     );
   }
 
-  const status = dayStatusText(date, today, state.lockedThrough);
+  const status = dayStatusText(date, today, state.lockedThrough, openDays);
   const result = historyDay(state, date);
   const dayLog = state.log[date] ?? {};
   // Same bar math as Today (T18). Locked days keep their saved rank face; the bar is live.

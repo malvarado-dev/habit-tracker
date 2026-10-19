@@ -4,6 +4,7 @@
 // real date; only Test has a pretend date (Next day). Plain TypeScript, no screens, so every
 // safety rule is unit tested. Prototype only: removed with the Test tools after Stage 3.
 
+import { calendar } from '@/config/calendar';
 import { addDays, toDateKey, type DateKey } from '@/rules/dates';
 import { backupKey, loadSave } from './save';
 import { createInitialState, trackerReducer, type TrackerAction, type TrackerState } from './state';
@@ -34,6 +35,16 @@ export function modeToday(app: AppState, realDate: DateKey, mode: Mode = app.mod
   return mode === 'test' ? addDays(realDate, app.testOffset) : realDate;
 }
 
+/** How many days before today can be changed: 2 in Real, 45 in Test (T22). */
+export function openDaysFor(mode: Mode): number {
+  return mode === 'test' ? calendar.testOpenDaysBeforeToday : calendar.openDaysBeforeToday;
+}
+
+/** The oldest day that can be opened. Test stops at its open window; Real shows every past day. */
+export function oldestOpenableDay(mode: Mode, today: DateKey): DateKey | null {
+  return mode === 'test' ? addDays(today, -openDaysFor(mode)) : null;
+}
+
 export type AppAction =
   /** A change from the screens, applied only to the active tracker. */
   | { type: 'tracker'; action: TrackerAction; realDate: DateKey }
@@ -45,8 +56,12 @@ export type AppAction =
   | { type: 'backToToday' }
   | { type: 'resetTest'; realDate: DateKey };
 
-function lockSlot(slot: Slot, today: DateKey): Slot {
-  const state = trackerReducer(slot.state, { type: 'lockDays', today });
+function lockSlot(slot: Slot, today: DateKey, mode: Mode): Slot {
+  const state = trackerReducer(slot.state, {
+    type: 'lockDays',
+    today,
+    openDays: openDaysFor(mode),
+  });
   return state === slot.state ? slot : { ...slot, state };
 }
 
@@ -60,14 +75,14 @@ export function appReducer(app: AppState, action: AppAction): AppState {
       const key = app.mode;
       const today = modeToday(app, action.realDate);
       // Lock first, so a day can't be edited after it locks.
-      const locked = lockSlot(app[key], today);
+      const locked = lockSlot(app[key], today, key);
       const state = trackerReducer(locked.state, action.action);
       if (locked === app[key] && state === locked.state) return app;
       return { ...app, [key]: { ...locked, state } };
     }
     case 'lock': {
-      const real = lockSlot(app.real, action.realDate);
-      const test = lockSlot(app.test, modeToday(app, action.realDate, 'test'));
+      const real = lockSlot(app.real, action.realDate, 'real');
+      const test = lockSlot(app.test, modeToday(app, action.realDate, 'test'), 'test');
       if (real === app.real && test === app.test) return app;
       return { ...app, real, test };
     }
@@ -77,7 +92,10 @@ export function appReducer(app: AppState, action: AppAction): AppState {
       if (app.mode !== 'test') return app;
       // The pretend day moves on, so Test locks the day that just fell out of its window.
       const moved = { ...app, testOffset: app.testOffset + 1 };
-      return { ...moved, test: lockSlot(moved.test, modeToday(moved, action.realDate, 'test')) };
+      return {
+        ...moved,
+        test: lockSlot(moved.test, modeToday(moved, action.realDate, 'test'), 'test'),
+      };
     }
     case 'backToToday':
       // Check-ins stay; only the pretend date goes back. Days locked ahead stay locked.

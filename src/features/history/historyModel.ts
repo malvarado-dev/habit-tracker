@@ -59,24 +59,49 @@ export function firstMonth(log: CheckInLog, today: DateKey): string {
   return oldest && oldest < today ? monthOf(oldest) : monthOf(today);
 }
 
-/** Can't go before the first month with data or past this month. */
-export function monthLimits(month: string, log: CheckInLog, today: DateKey) {
-  return { canPrev: month > firstMonth(log, today), canNext: month < monthOf(today) };
+/**
+ * The oldest month the arrows reach. Real: the first month with data. Test (T22): exactly the
+ * month of the oldest day that can be opened, data or not, so a whole window can be filled in.
+ */
+export function earliestMonth(log: CheckInLog, today: DateKey, oldestDay: DateKey | null): string {
+  return oldestDay ? monthOf(oldestDay) : firstMonth(log, today);
 }
 
-export function stepMonth(month: string, by: 1 | -1, log: CheckInLog, today: DateKey): string {
+/** Can't go before the earliest month or past this month. */
+export function monthLimits(
+  month: string,
+  log: CheckInLog,
+  today: DateKey,
+  oldestDay: DateKey | null = null,
+) {
+  return {
+    canPrev: month > earliestMonth(log, today, oldestDay),
+    canNext: month < monthOf(today),
+  };
+}
+
+export function stepMonth(
+  month: string,
+  by: 1 | -1,
+  log: CheckInLog,
+  today: DateKey,
+  oldestDay: DateKey | null = null,
+): string {
   const next = addMonths(month, by);
-  if (next < firstMonth(log, today) || next > monthOf(today)) return month;
+  if (next < earliestMonth(log, today, oldestDay) || next > monthOf(today)) return month;
   return next;
 }
 
-export type CellKind = 'outside' | 'future' | 'day';
+export type CellKind = 'outside' | 'future' | 'tooOld' | 'day';
 
 export interface DayCell {
   date: DateKey;
   /** Day of the month, shown at the top of the cell. */
   dayNumber: number;
-  /** outside: another month's day, shown faint. future: faint, can't be opened. */
+  /**
+   * outside: another month's day, shown faint. future: faint, can't be opened. tooOld: Test
+   * only, older than its open window; faint, can't be opened (T22).
+   */
   kind: CellKind;
   isToday: boolean;
   /** Rank, Rest, or none. Undefined for outside and future cells. */
@@ -84,13 +109,25 @@ export interface DayCell {
 }
 
 /** The month as weeks of 7 cells, Sunday first, padded with the next and previous months' days. */
-export function monthGrid(month: string, state: LockState, today: DateKey): DayCell[][] {
+export function monthGrid(
+  month: string,
+  state: LockState,
+  today: DateKey,
+  oldestDay: DateKey | null = null,
+): DayCell[][] {
   const days = daysInMonth(month);
   const start = daysOfWeek(days[0]!)[0]!;
   const total = Math.ceil((weekPosition(days[0]!) + days.length) / 7) * 7;
   const cells = Array.from({ length: total }, (_, i): DayCell => {
     const date = addDays(start, i);
-    const kind: CellKind = monthOf(date) !== month ? 'outside' : date > today ? 'future' : 'day';
+    const kind: CellKind =
+      monthOf(date) !== month
+        ? 'outside'
+        : date > today
+          ? 'future'
+          : oldestDay !== null && date < oldestDay
+            ? 'tooOld'
+            : 'day';
     return {
       date,
       dayNumber: Number(date.slice(8)),
@@ -106,6 +143,7 @@ export function monthGrid(month: string, state: LockState, today: DateKey): DayC
 export function dayCellLabel(cell: DayCell): string {
   const date = shortDate(cell.date);
   if (cell.kind === 'future') return `${date}, not yet`;
+  if (cell.kind === 'tooOld') return `${date}, too far back to open in Test`;
   const result = cell.result;
   if (!result || result.outcome === 'none') return `${date}, No check-in`;
   if (result.outcome === 'rest') return `${date}, Rest day`;
@@ -116,24 +154,40 @@ export function dayCellLabel(cell: DayCell): string {
  * The line under the date on the Day screen. Today and the 2 days before are open; the day 2
  * days back locks tonight at midnight. Locking always uses the real date.
  */
-export function dayStatusText(date: DateKey, realToday: DateKey, lockedThrough: DateKey | null) {
-  if (
-    isLocked(date, lockedThrough) ||
-    daysBetween(date, realToday) > calendar.openDaysBeforeToday
-  ) {
-    return { locked: true, text: 'Locked. Only the last 2 days can change.' };
+export function dayStatusText(
+  date: DateKey,
+  realToday: DateKey,
+  lockedThrough: DateKey | null,
+  openDays: number = calendar.openDaysBeforeToday,
+) {
+  if (isLocked(date, lockedThrough) || daysBetween(date, realToday) > openDays) {
+    return { locked: true, text: `Locked. Only the last ${openDays} days can change.` };
   }
-  const nightsLeft = calendar.openDaysBeforeToday - daysBetween(date, realToday);
+  const nightsLeft = openDays - daysBetween(date, realToday);
   if (nightsLeft <= 0) return { locked: false, text: 'You can change this day until tonight' };
   if (nightsLeft === 1)
     return { locked: false, text: 'You can change this day until tomorrow night' };
-  const lockNight = WEEKDAY_LONG[(weekdayIndex(realToday) + nightsLeft) % 7];
-  return { locked: false, text: `You can change this day until ${lockNight} night` };
+  // Within a week, name the night. Further out (Test's 45-day window), name the date.
+  if (nightsLeft < 7) {
+    const lockNight = WEEKDAY_LONG[(weekdayIndex(realToday) + nightsLeft) % 7];
+    return { locked: false, text: `You can change this day until ${lockNight} night` };
+  }
+  return {
+    locked: false,
+    text: `You can change this day until ${shortDate(addDays(realToday, nightsLeft))}`,
+  };
 }
 
-/** A day can be opened if it's today or earlier. Future days can't. */
-export function canOpenDay(date: DateKey, today: DateKey): boolean {
-  return date <= today;
+/**
+ * A day can be opened if it's today or earlier, and in Test, not older than its open window
+ * (T22). Future days can't.
+ */
+export function canOpenDay(
+  date: DateKey,
+  today: DateKey,
+  oldestDay: DateKey | null = null,
+): boolean {
+  return date <= today && (oldestDay === null || date >= oldestDay);
 }
 
 export interface WeekRow {
