@@ -89,6 +89,12 @@ export const tuning = {
     },
   },
 
+  menu: {
+    /** Side menu slide in and out, and how dark the shade behind it gets (0 to 1). */
+    slideMs: 220,
+    shadeOpacity: 0.35,
+  },
+
   critter: {
     /** Small wiggle when the critter is tapped: how far it turns, and each half of the wiggle. */
     wiggleDegrees: 6,

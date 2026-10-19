@@ -11,10 +11,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Background } from '@/components/Background';
 import { Critter } from '@/components/Critter';
-import type { GoalStyle } from '@/components/HabitCard';
 import { HabitSheet } from '@/components/HabitSheet';
 import { HistoryPlaceholder } from '@/components/HistoryPlaceholder';
 import { MenuButton } from '@/components/MenuButton';
+import { SideMenu } from '@/components/SideMenu';
 import { layoutMode } from '@/components/todayLayoutMode';
 import { useTheme } from '@/design/theme/ThemeProvider';
 import { todayLayout, wideLayout as wide, type ThemeColors } from '@/design/tokens';
@@ -36,9 +36,8 @@ export default function HomeScreen() {
   const skyTime = getSkyTime(new Date().getHours());
   const reactKey = JSON.stringify(state.log[today] ?? {});
 
-  // Temporary, not saved: Profile's Weekly goal style setting arrives in T11.
-  // Kept here so it survives switching between the phone and wide layouts.
-  const [goalStyle, setGoalStyle] = useState<GoalStyle>('ring');
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menu = <SideMenu open={menuOpen} onClose={() => setMenuOpen(false)} />;
 
   if (layoutMode(width, height) === 'wide') {
     const rightWidth = width - wide.pagePadding * 2 - wide.leftColumnWidth - wide.columnGap;
@@ -48,8 +47,8 @@ export default function HomeScreen() {
     return (
       <View style={[styles.screen, styles.widePage]} testID="today-screen">
         <View style={styles.leftColumn} testID="habit-sheet">
-          <MenuButton time={skyTime} onPage />
-          <HabitSheet goalStyle={goalStyle} onGoalStyle={setGoalStyle} bottomPadding={space.xl} />
+          <MenuButton time={skyTime} onPage onPress={() => setMenuOpen(true)} />
+          <HabitSheet bottomPadding={space.xl} />
         </View>
         <View style={styles.rightColumn} testID="wide-right-column">
           <View style={[styles.scene, { height: sceneHeight }]} testID="background-card">
@@ -63,6 +62,7 @@ export default function HomeScreen() {
           </View>
           <HistoryPlaceholder />
         </View>
+        {menu}
       </View>
     );
   }
@@ -84,18 +84,15 @@ export default function HomeScreen() {
       </View>
 
       <View style={[styles.menu, { top: insets.top + space.sm, left: insets.left + space.lg }]}>
-        <MenuButton time={skyTime} />
+        <MenuButton time={skyTime} onPress={() => setMenuOpen(true)} />
       </View>
 
       <View style={[styles.sheet, { top: sheetTop }]} testID="habit-sheet">
         <View style={styles.sheetInner}>
-          <HabitSheet
-            goalStyle={goalStyle}
-            onGoalStyle={setGoalStyle}
-            bottomPadding={insets.bottom + space.xl}
-          />
+          <HabitSheet bottomPadding={insets.bottom + space.xl} />
         </View>
       </View>
+      {menu}
     </View>
   );
 }

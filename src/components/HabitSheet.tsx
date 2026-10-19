@@ -5,8 +5,9 @@
 import { ScrollView, StyleSheet } from 'react-native';
 
 import { EnergyBar } from '@/components/EnergyBar';
-import { HabitCard, type GoalStyle } from '@/components/HabitCard';
+import { HabitCard } from '@/components/HabitCard';
 import { TestTools } from '@/components/TestTools';
+import { useSettings } from '@/features/settings/SettingsProvider';
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import {
   getDailyResult,
@@ -18,16 +19,9 @@ import {
 } from '@/rules/scoring';
 import { space } from '@/theme';
 
-export function HabitSheet({
-  goalStyle,
-  onGoalStyle,
-  bottomPadding,
-}: {
-  goalStyle: GoalStyle;
-  onGoalStyle: (style: GoalStyle) => void;
-  bottomPadding: number;
-}) {
+export function HabitSheet({ bottomPadding }: { bottomPadding: number }) {
   const { state, dispatch, today } = useTracker();
+  const { goalStyle, setGoalStyle } = useSettings();
   const result = getDailyResult(state.habits, state.log, today);
   const todayLog = state.log[today] ?? {};
 
@@ -69,7 +63,7 @@ export function HabitSheet({
         })}
         <TestTools
           goalStyle={goalStyle}
-          onGoalStyle={onGoalStyle}
+          onGoalStyle={setGoalStyle}
           onNextDay={() => dispatch({ type: 'nextDay' })}
           onReset={() => dispatch({ type: 'reset' })}
         />
