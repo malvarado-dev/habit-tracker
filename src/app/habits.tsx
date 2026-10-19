@@ -1,6 +1,7 @@
 // Habits (SPEC-00, T12; Figma "Habits · Phone"): every habit (1 to 15), tap one to edit it.
 // Back returns to where the user came from (Today or Profile), and its label names that screen.
-// After a remove, an inline Undo bar shows here for a few seconds. Add habit comes in T13.
+// After a remove, an inline Undo bar shows here for a few seconds. Add habit (T13) opens
+// Pick a habit; it turns gray at 15 habits.
 
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo } from 'react';
@@ -15,6 +16,7 @@ import { useTheme } from '@/design/theme/ThemeProvider';
 import { tints, type ThemeColors } from '@/design/tokens';
 import { setRemoved, useRemovedHabit } from '@/features/habits/undoRemove';
 import { listLine } from '@/features/habits/weeklyGoal';
+import { MAX_HABITS } from '@/features/tracker/state';
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import { MIN_TAP_SIZE, radius, space } from '@/theme';
 
@@ -31,6 +33,7 @@ export default function HabitsScreen() {
   const params = useLocalSearchParams<{ from?: string }>();
   // Where Habits was opened from. Anything else falls back to Today.
   const back = BACK[params.from === 'profile' ? 'profile' : 'today'];
+  const full = state.habits.length >= MAX_HABITS;
 
   // The Undo bar goes away on its own after a few seconds.
   useEffect(() => {
@@ -98,7 +101,28 @@ export default function HabitsScreen() {
           })}
         </View>
 
-        <Text style={styles.help}>1 to 15 habits. Tap a habit to edit it.</Text>
+        <Pressable
+          onPress={() => {
+            setRemoved(null);
+            router.push('/add-habit');
+          }}
+          disabled={full}
+          style={({ pressed }) => [
+            styles.add,
+            full && styles.addOff,
+            pressed && !full && styles.pressed,
+          ]}
+          testID="habits-add"
+          accessibilityRole="button"
+          accessibilityLabel="Add habit"
+          accessibilityState={{ disabled: full }}
+        >
+          <Text style={[styles.addText, full && styles.addTextOff]}>+ Add habit</Text>
+        </Pressable>
+
+        <Text style={styles.help} testID="habits-help">
+          {full ? '15 habits is the most.' : '1 to 15 habits. Tap a habit to edit it.'}
+        </Text>
       </ScrollView>
 
       {removed ? (
@@ -172,6 +196,17 @@ const makeStyles = (c: ThemeColors) =>
     line: { ...textStyle('caption'), color: c.onSurfaceMuted },
     chevron: { ...textStyle('habitName'), color: c.onSurfaceMuted },
     help: { ...textStyle('caption'), color: c.onSurfaceMuted },
+    add: {
+      minHeight: MIN_TAP_SIZE + space.sm,
+      marginTop: space.sm,
+      borderRadius: radius.pill,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: c.primary,
+    },
+    addOff: { backgroundColor: c.surfaceDim },
+    addText: { ...textStyle('label'), color: c.onPrimary },
+    addTextOff: { color: c.onSurfaceMuted },
     undoWrap: {
       position: 'absolute',
       left: 0,

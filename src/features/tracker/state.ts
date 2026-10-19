@@ -14,6 +14,7 @@ import {
   type WeeklyGoal,
   type Weekday,
 } from '@/rules/scoring';
+import { cleanName, nameProblem } from '@/features/habits/habitName';
 
 export interface TrackerState {
   /** Bumped when the saved shape changes, so old saves can be thrown away safely. */
@@ -71,7 +72,7 @@ export type TrackerAction =
   | { type: 'tapHabit'; date: DateKey; habitId: string }
   | { type: 'setCheckIn'; date: DateKey; habitId: string; checkIn: CheckIn | undefined }
   | { type: 'nextDay' }
-  | { type: 'addHabit'; id: string; name: string }
+  | { type: 'addHabit'; id: string; name: string; goal?: WeeklyGoal }
   | { type: 'renameHabit'; habitId: string; name: string }
   | { type: 'setGoal'; habitId: string; goal: WeeklyGoal }
   | { type: 'removeHabit'; habitId: string }
@@ -109,24 +110,32 @@ export function trackerReducer(state: TrackerState, action: TrackerAction): Trac
     case 'nextDay':
       return { ...state, dayOffset: state.dayOffset + 1 };
     case 'addHabit': {
-      const name = action.name.trim();
-      if (!name) return state;
+      // Name rules (habitName.ts): never blank, never a duplicate, at most 20 characters.
+      if (nameProblem(action.name, state.habits)) return state;
+      if (state.habits.length >= MAX_HABITS) return state;
+      if (state.habits.some((h) => h.id === action.id)) return state;
+      const goal = (action.goal && cleanGoal(action.goal)) ?? {
+        kind: 'specificDays',
+        days: EVERY_DAY,
+      };
       return {
         ...state,
         habits: [
           ...state.habits,
           {
             id: action.id,
-            name,
-            goal: { kind: 'specificDays', days: EVERY_DAY },
+            name: cleanName(action.name),
+            goal,
             color: leastUsedColor(state.habits),
           },
         ],
       };
     }
     case 'renameHabit':
-      // Empty names are allowed while typing; the screen shows a hint instead of blocking.
-      return updateHabit(state, action.habitId, { name: action.name });
+      // Only valid names save. While the field is blank or a duplicate, the habit keeps
+      // its last valid name and the screen shows a hint.
+      if (nameProblem(action.name, state.habits, action.habitId)) return state;
+      return updateHabit(state, action.habitId, { name: cleanName(action.name) });
     case 'setGoal': {
       const goal = cleanGoal(action.goal);
       return goal ? updateHabit(state, action.habitId, { goal }) : state;
