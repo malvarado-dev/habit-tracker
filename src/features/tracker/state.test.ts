@@ -42,10 +42,6 @@ describe('trackerReducer', () => {
     expect(state.log[MON]?.diet).toBe('NailedIt');
   });
 
-  it('Next day moves the test date forward', () => {
-    expect(apply(createInitialState(), { type: 'nextDay' }).dayOffset).toBe(1);
-  });
-
   it('adds a trimmed habit and ignores a blank one', () => {
     const added = apply(createInitialState(), { type: 'addHabit', id: 'read', name: '  Reading ' });
     expect(added.habits.at(-1)).toEqual({
@@ -99,15 +95,6 @@ describe('trackerReducer', () => {
       state = trackerReducer(state, { type: 'removeHabit', habitId: habit.id });
     }
     expect(state.habits).toHaveLength(1);
-  });
-
-  it('reset goes back to a fresh start', () => {
-    const state = apply(
-      createInitialState(),
-      { type: 'tapHabit', date: MON, habitId: 'sleep' },
-      { type: 'reset' },
-    );
-    expect(state).toEqual(createInitialState());
   });
 });
 

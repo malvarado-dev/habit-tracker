@@ -19,11 +19,9 @@ import { cleanName, nameProblem } from '@/features/habits/habitName';
 
 export interface TrackerState {
   /** Bumped when the saved shape changes. Older saves are upgraded step by step (save.ts). */
-  version: 4;
+  version: 5;
   habits: Habit[];
   log: CheckInLog;
-  /** Test tools only: how many days ahead of the real date the app is pretending to be. */
-  dayOffset: number;
   /** Results saved for good when each day locked (T16). Days with no check-in have no entry. */
   locked: Record<DateKey, LockedDay>;
   /** Every day up to and including this one is locked. Null until the first lock. */
@@ -66,10 +64,9 @@ export function cleanGoal(goal: WeeklyGoal): WeeklyGoal | null {
 
 export function createInitialState(): TrackerState {
   return {
-    version: 4,
+    version: 5,
     habits: DEFAULT_HABITS,
     log: {},
-    dayOffset: 0,
     locked: {},
     lockedThrough: null,
   };
@@ -78,15 +75,12 @@ export function createInitialState(): TrackerState {
 export type TrackerAction =
   | { type: 'tapHabit'; date: DateKey; habitId: string }
   | { type: 'setCheckIn'; date: DateKey; habitId: string; checkIn: CheckIn | undefined }
-  | { type: 'nextDay' }
-  | { type: 'backToToday' }
   | { type: 'addHabit'; id: string; name: string; goal?: WeeklyGoal }
   | { type: 'renameHabit'; habitId: string; name: string }
   | { type: 'setGoal'; habitId: string; goal: WeeklyGoal }
   | { type: 'removeHabit'; habitId: string }
   | { type: 'restoreHabit'; habit: Habit; index: number }
-  | { type: 'lockDays'; today: DateKey }
-  | { type: 'reset' };
+  | { type: 'lockDays'; today: DateKey };
 
 function withCheckIn(
   state: TrackerState,
@@ -119,11 +113,6 @@ export function trackerReducer(state: TrackerState, action: TrackerAction): Trac
     case 'setCheckIn':
       if (isLocked(action.date, state.lockedThrough)) return state;
       return withCheckIn(state, action.date, action.habitId, action.checkIn);
-    case 'nextDay':
-      return { ...state, dayOffset: state.dayOffset + 1 };
-    case 'backToToday':
-      // Test tools: back to the real date. Check-ins stay.
-      return { ...state, dayOffset: 0 };
     case 'addHabit': {
       // Name rules (habitName.ts): never blank, never a duplicate, at most 20 characters.
       if (nameProblem(action.name, state.habits)) return state;
@@ -169,7 +158,5 @@ export function trackerReducer(state: TrackerState, action: TrackerAction): Trac
     }
     case 'lockDays':
       return lockDays(state, action.today);
-    case 'reset':
-      return createInitialState();
   }
 }

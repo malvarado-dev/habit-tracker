@@ -31,7 +31,7 @@ const BACK = {
 
 export default function DayScreen() {
   const styles = useStyles();
-  const { state, dispatch, today, realToday } = useTracker();
+  const { state, dispatch, today } = useTracker();
   const { goalStyle } = useSettings();
   const params = useLocalSearchParams<{ date?: string; from?: string }>();
   const back = BACK[params.from === 'today' ? 'today' : 'history'];
@@ -65,7 +65,7 @@ export default function DayScreen() {
     );
   }
 
-  const status = dayStatusText(date, realToday, state.lockedThrough);
+  const status = dayStatusText(date, today, state.lockedThrough);
   const result = historyDay(state, date);
   const dayLog = state.log[date] ?? {};
   // Same bar math as Today (T18). Locked days keep their saved rank face; the bar is live.

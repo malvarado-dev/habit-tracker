@@ -7,7 +7,7 @@
 import type { CheckInLog, Habit } from '@/rules/scoring';
 import type { TrackerState } from './state';
 
-export const CURRENT_VERSION = 4;
+export const CURRENT_VERSION = 5;
 
 /** v3 (before T16): habits, check-ins, and the test-tools day offset. */
 interface SaveV3 {
@@ -25,7 +25,14 @@ function isV3(v: Record<string, unknown>): v is SaveV3 & Record<string, unknown>
   );
 }
 
-function isV4(v: Record<string, unknown>): v is TrackerState & Record<string, unknown> {
+/** v4 (T16): v3 plus locked days. */
+interface SaveV4 extends Omit<SaveV3, 'version'> {
+  version: 4;
+  locked: Record<string, unknown>;
+  lockedThrough: string | null;
+}
+
+function isV4(v: Record<string, unknown>): v is SaveV4 & Record<string, unknown> {
   return (
     v.version === 4 &&
     Array.isArray(v.habits) &&
@@ -36,12 +43,22 @@ function isV4(v: Record<string, unknown>): v is TrackerState & Record<string, un
   );
 }
 
+function isV5(v: Record<string, unknown>): v is TrackerState & Record<string, unknown> {
+  return (
+    v.version === 5 &&
+    Array.isArray(v.habits) &&
+    isObject(v.log) &&
+    isObject(v.locked) &&
+    (v.lockedThrough === null || typeof v.lockedThrough === 'string')
+  );
+}
+
 /** One step per version: takes a valid save of that version, returns the next version. */
 const UPGRADES: Record<number, (save: Record<string, unknown>) => Record<string, unknown>> = {
   // v3 to v4: adds locked days. Habits and check-ins are copied exactly as they were.
   3: (save) => {
     if (!isV3(save)) throw new Error('Not a valid v3 save');
-    const v4: TrackerState = {
+    const v4: SaveV4 = {
       version: 4,
       habits: save.habits,
       log: save.log,
@@ -50,6 +67,19 @@ const UPGRADES: Record<number, (save: Record<string, unknown>) => Record<string,
       lockedThrough: null,
     };
     return v4 as unknown as Record<string, unknown>;
+  },
+  // v4 to v5 (T17): the pretend date leaves the save. Test mode keeps its own, apart from this
+  // shape, so the real save can never be moved off today. Everything else is copied as it was.
+  4: (save) => {
+    if (!isV4(save)) throw new Error('Not a valid v4 save');
+    const v5: TrackerState = {
+      version: 5,
+      habits: save.habits,
+      log: save.log,
+      locked: save.locked as TrackerState['locked'],
+      lockedThrough: save.lockedThrough,
+    };
+    return v5 as unknown as Record<string, unknown>;
   },
 };
 
@@ -88,7 +118,7 @@ export function loadSave(raw: string | null): LoadResult {
     return { kind: 'unreadable', raw };
   }
 
-  if (!isV4(save)) return { kind: 'unreadable', raw };
+  if (!isV5(save)) return { kind: 'unreadable', raw };
   return { kind: 'loaded', state: save, upgradedFrom: from === CURRENT_VERSION ? null : from };
 }
 

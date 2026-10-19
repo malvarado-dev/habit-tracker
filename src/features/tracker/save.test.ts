@@ -28,7 +28,7 @@ describe('loadSave', () => {
     expect(loadSave(null)).toEqual({ kind: 'empty' });
   });
 
-  it('upgrades v3 to v4 keeping every habit and check-in exactly as it was', () => {
+  it('upgrades v3 through v4 to v5 keeping every habit and check-in exactly as it was', () => {
     const result = loadSave(JSON.stringify(v3));
     expect(result.kind).toBe('loaded');
     if (result.kind !== 'loaded') return;
@@ -36,7 +36,8 @@ describe('loadSave', () => {
     expect(result.state.version).toBe(CURRENT_VERSION);
     expect(result.state.habits).toEqual(v3.habits);
     expect(result.state.log).toEqual(v3.log);
-    expect(result.state.dayOffset).toBe(2);
+    // The pretend date leaves the save in v5 (T17).
+    expect('dayOffset' in result.state).toBe(false);
     expect(result.state.locked).toEqual({});
     expect(result.state.lockedThrough).toBeNull();
   });
@@ -53,7 +54,7 @@ describe('loadSave', () => {
     ['a version with no upgrade step', JSON.stringify({ ...v3, version: 1 })],
     ['a v3 save missing its habits', JSON.stringify({ ...v3, habits: undefined })],
     [
-      'a v4 save missing locked days',
+      'a current save missing locked days',
       JSON.stringify({ ...createInitialState(), locked: undefined }),
     ],
   ])('an unreadable save (%s) is returned whole for the backup slot', (_, raw) => {

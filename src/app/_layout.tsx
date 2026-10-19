@@ -1,9 +1,10 @@
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { TestModeBanner } from '@/components/TestModeBanner';
 import { ThemeProvider, useTheme } from '@/design/theme/ThemeProvider';
 import { SettingsProvider } from '@/features/settings/SettingsProvider';
 import { TrackerProvider } from '@/features/tracker/TrackerProvider';
@@ -34,12 +35,16 @@ function AppStack() {
     <>
       {/* Status bar icons follow the sky, not the theme (Technical Design). */}
       <StatusBar style={statusBarStyle(getSkyTime(new Date().getHours()))} />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: colors.surfaceSheet },
-        }}
-      />
+      {/* Screens fill the space above the Test mode strip, so it never covers them (T17). */}
+      <View style={styles.root}>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: colors.surfaceSheet },
+          }}
+        />
+      </View>
+      <TestModeBanner />
     </>
   );
 }
