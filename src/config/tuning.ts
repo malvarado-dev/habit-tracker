@@ -3,8 +3,38 @@
 // Times are milliseconds. Distances are points.
 
 export const tuning = {
-  /** Rank moment plays this long after the last habit is scored (T15 uses it in the Background). */
+  /** Rank moment plays this long after the last habit is scored (T15, in the Background). */
   celebrationDelayMs: 2000,
+
+  /**
+   * End-of-day rank moment (T15). Bigger at each rank; C still celebrates showing up.
+   * flash: how bright the sky gets (0 to 1, behind the critter). pulse: sun or moon scale.
+   * hops and hopHeight: critter hops (points). sparkles: how many (B twinkle, A burst, S shower).
+   */
+  moment: {
+    flash: { C: 0, B: 0, A: 0.25, S: 0.35 },
+    reducedMotionFlash: { C: 0.12, B: 0.2, A: 0.3, S: 0.42 },
+    pulse: { C: 1.12, B: 1.15, A: 1.2, S: 1.25 },
+    hops: { C: 1, B: 1, A: 2, S: 1 },
+    hopHeight: { C: 14, B: 18, A: 20, S: 40 },
+    sparkles: { C: 0, B: 6, A: 10, S: 18 },
+    /** How long each part plays. */
+    flashMs: 900,
+    reducedMotionFlashMs: 1400,
+    pulseMs: 900,
+    hopMs: 210,
+    twinkleMs: 900,
+    twinkleStaggerMs: 90,
+    burstMs: 1000,
+    showerMs: 1400,
+    showerSpreadMs: 500,
+    rayFlareMs: 1500,
+    /** Distances in points: twinkle ring around the sun, burst reach, shower fall. */
+    twinkleRadius: 44,
+    burstDistance: 80,
+    showerFall: 220,
+    sparkleSize: 12,
+  },
 
   rank: {
     /** Lowest daily score (0 to 1) for each rank. Anything lower is C. One set for everyone. */
@@ -65,6 +95,8 @@ export const tuning = {
     /** C-rank and asleep inviting pulse, each way. */
     pulseMs: 1600,
     pulseScale: 1.06,
+    /** Crescent moon: inner curve width as a share of the moon's radius (smaller = fatter crescent). */
+    crescentInner: 0.6,
   },
 
   energy: {
@@ -101,6 +133,13 @@ export const tuning = {
   },
 
   critter: {
+    /** The body runs this far below its box (viewBox units), so the biggest hop never shows an edge. */
+    bodyExtension: 80,
+    /** Asleep Zs: each one drifts up and fades over zDriftMs, starting zStaggerMs apart. */
+    zDriftMs: 2600,
+    zStaggerMs: 900,
+    zRise: 40,
+    zSize: 30,
     /** Small wiggle when the critter is tapped: how far it turns, and each half of the wiggle. */
     wiggleDegrees: 6,
     wiggleMs: 90,

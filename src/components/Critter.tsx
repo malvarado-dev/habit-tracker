@@ -1,9 +1,11 @@
 // The critter (critter.md): a flat sunny dome with eyes and a mouth, its body running behind the
-// habit sheet. Idle motion is subtle: slow breathing, a blink every few seconds, and an
-// occasional glance. Asleep before the first check-in; the first check-in wakes it with a hop.
-// It hops a little on each score and its mouth follows the live rank. Tap plays a small wiggle.
-// Reduced motion: breathing at half strength and blinking stay; glancing, hops, and the wiggle
-// are off.
+// habit sheet and well past its box, so a hop never shows an edge. Idle motion is subtle: slow
+// breathing, a blink every few seconds, and an occasional glance. The mouth follows the live rank:
+// flat at C, a closed smile at B, a big smile at A and S. At C (and before the first check-in)
+// it's asleep when the app opens, with Zs drifting up; a tap or any score wakes it with a hop.
+// It hops on each score, and hops bigger for the rank moment (T15). Tap an awake critter to wiggle.
+// Reduced motion: breathing at half strength and blinking stay, the Zs hold still; glancing,
+// hops, and the wiggle are off.
 
 import { useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
@@ -18,11 +20,12 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Path, Text as SvgText } from 'react-native-svg';
 
 import { tuning } from '@/config/tuning';
-import { critter } from '@/design/tokens';
-import type { SkyLevel } from '@/rules/sky';
+import { background as sky, critter } from '@/design/tokens';
+import type { Rank } from '@/rules/rank';
+import type { SkyLevel, SkyTime } from '@/rules/sky';
 
 import { critterLabel, critterMood, randomGap, type CritterMood } from './critterMood';
 
@@ -32,16 +35,25 @@ const EYE_Y = 105;
 const EYE_R = 10;
 const EYES_X = [150, 210];
 
+/** A rank moment to play once; `id` changes each time one starts. */
+export type Moment = { rank: Rank; id: number };
+
 type Props = {
   width: number;
   level: SkyLevel;
+  /** Woken this visit by a tap or a score (see critterMood). */
+  woken: boolean;
+  onWake: () => void;
+  /** Sky time, so the Zs are dark on the day sky and light at dusk and night. */
+  time: SkyTime;
   /** Changes whenever a habit is scored, so the critter can hop. */
   reactKey: string;
+  moment: Moment | null;
 };
 
-export function Critter({ width, level, reactKey }: Props) {
+export function Critter({ width, level, woken, onWake, time, reactKey, moment }: Props) {
   const reduceMotion = useReducedMotion();
-  const mood = critterMood(level);
+  const mood = critterMood(level, woken);
   const asleep = mood === 'asleep';
   const s = width / VIEW_W;
   const height = width * (VIEW_H / VIEW_W);
@@ -140,6 +152,15 @@ export function Critter({ width, level, reactKey }: Props) {
     }
   }, [mood, reactKey, reduceMotion, asleep, hop, stretch, c]);
 
+  // Rank moment: hops sized by the rank (tuning.moment). Off with reduced motion.
+  useEffect(() => {
+    if (!moment || reduceMotion) return;
+    const m = tuning.moment;
+    const up = withTiming(-m.hopHeight[moment.rank], { duration: m.hopMs });
+    const down = withTiming(0, { duration: m.hopMs });
+    hop.set(m.hops[moment.rank] > 1 ? withSequence(up, down, up, down) : withSequence(up, down));
+  }, [moment, reduceMotion, hop]);
+
   const breathStrength = reduceMotion ? c.reducedMotionBreathStrength : 1;
 
   const outerStyle = useAnimatedStyle(() => ({
@@ -153,7 +174,8 @@ export function Critter({ width, level, reactKey }: Props) {
     transform: [{ translateX: glance.value * s }, { scaleY: 1 - 0.9 * blink.value }],
   }));
 
-  const wiggle = () => {
+  const onPress = () => {
+    if (asleep) return onWake();
     if (reduceMotion) return;
     const { wiggleDegrees: d, wiggleMs: ms } = c;
     turn.value = withSequence(
@@ -165,12 +187,13 @@ export function Critter({ width, level, reactKey }: Props) {
 
   return (
     <Pressable
-      onPress={wiggle}
+      onPress={onPress}
       testID="critter"
       accessibilityRole="button"
       accessibilityLabel={critterLabel(mood)}
-      accessibilityHint="Tap to make it wiggle."
+      accessibilityHint={asleep ? 'Tap to wake it up.' : 'Tap to make it wiggle.'}
     >
+      {asleep ? <Zs width={width} time={time} still={reduceMotion} /> : null}
       <Animated.View style={[{ width, height }, outerStyle]}>
         <Animated.View
           testID="critter-body"
@@ -184,6 +207,14 @@ export function Critter({ width, level, reactKey }: Props) {
             {asleep ? <SleepyEyes /> : null}
             <Mouth mood={mood} />
           </Svg>
+          {/* The body keeps going below the box, so hops never show its bottom edge. */}
+          <View
+            testID="critter-body-extension"
+            style={[
+              styles.extension,
+              { top: height - 1, height: c.bodyExtension * s, backgroundColor: critter.bodySunny },
+            ]}
+          />
           {asleep ? null : (
             <Animated.View
               testID="critter-eyes"
@@ -249,31 +280,25 @@ function Mouth({ mood }: { mood: CritterMood }) {
       />
     );
   }
-  if (mood === 'okay') {
+  // C (awake) and Rest day: a flat mouth.
+  if (mood === 'flat') {
+    return (
+      <Path d="M166 138 L194 138" stroke={critter.ink} strokeWidth={6} strokeLinecap="round" />
+    );
+  }
+  // B: a closed smile.
+  if (mood === 'smile') {
     return (
       <Path
-        d="M164 136 Q180 146 196 136"
+        d="M156 132 Q180 154 204 132"
         stroke={critter.ink}
-        strokeWidth={6}
+        strokeWidth={7}
         fill="none"
         strokeLinecap="round"
       />
     );
   }
-  if (mood === 'happy') {
-    return (
-      <>
-        <Path
-          d="M154 127 Q180 129 206 127 Q202 157 180 157 Q158 157 154 127 Z"
-          fill={critter.ink}
-        />
-        <Path
-          d="M168 149 Q180 141 192 149 Q188 157 180 157 Q172 157 168 149 Z"
-          fill={critter.mouth}
-        />
-      </>
-    );
-  }
+  // A and S: a big open smile.
   return (
     <>
       <Path d="M146 124 Q180 128 214 124 Q210 170 180 170 Q150 170 146 124 Z" fill={critter.ink} />
@@ -285,8 +310,60 @@ function Mouth({ mood }: { mood: CritterMood }) {
   );
 }
 
+/** Zs drifting up beside the head while asleep. Still with reduced motion. */
+function Zs({ width, time, still }: { width: number; time: SkyTime; still: boolean }) {
+  const c = tuning.critter;
+  const s = width / VIEW_W;
+  const color = time === 'day' ? sky.onSkyDay : sky.onSkyDark;
+  return (
+    <View
+      style={[styles.zs, { left: 230 * s, top: -10 * s }]}
+      pointerEvents="none"
+      testID="critter-zs"
+    >
+      {[0, 1, 2].map((i) => (
+        <DriftingZ key={i} index={i} size={(c.zSize + i * 3) * s} color={color} still={still} />
+      ))}
+    </View>
+  );
+}
+
+function DriftingZ(props: { index: number; size: number; color: string; still: boolean }) {
+  const c = tuning.critter;
+  const t = useSharedValue(props.still ? 0.5 : 0);
+  useEffect(() => {
+    if (props.still) {
+      t.value = 0.5;
+      return;
+    }
+    t.value = withDelay(
+      props.index * c.zStaggerMs,
+      withRepeat(withTiming(1, { duration: c.zDriftMs, easing: Easing.out(Easing.quad) }), -1),
+    );
+  }, [props.still, props.index, t, c.zStaggerMs, c.zDriftMs]);
+  const style = useAnimatedStyle(() => ({
+    opacity: props.still ? 0.8 : t.value < 0.3 ? t.value / 0.3 : 1 - (t.value - 0.3) / 0.7,
+    transform: [
+      { translateX: props.index * props.size * 0.8 + t.value * c.zRise * 0.4 },
+      { translateY: -props.index * props.size * 0.8 - t.value * c.zRise },
+    ],
+  }));
+  return (
+    <Animated.View style={[styles.z, style]}>
+      <Svg width={props.size * 1.2} height={props.size * 1.2}>
+        <SvgText x={0} y={props.size} fontSize={props.size} fontWeight="700" fill={props.color}>
+          {props.index === 2 ? 'Z' : 'z'}
+        </SvgText>
+      </Svg>
+    </Animated.View>
+  );
+}
+
 const styles = StyleSheet.create({
   body: { transformOrigin: 'bottom' },
   eyes: { position: 'absolute', left: 0 },
   eye: { position: 'absolute', top: 0 },
+  extension: { position: 'absolute', left: 0, right: 0 },
+  zs: { position: 'absolute' },
+  z: { position: 'absolute', left: 0, top: 0 },
 });

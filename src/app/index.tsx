@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Background } from '@/components/Background';
 import { Critter } from '@/components/Critter';
+import { useCritterAndMoment } from '@/components/useCritterAndMoment';
 import { HabitSheet } from '@/components/HabitSheet';
 import { HistoryPlaceholder } from '@/components/HistoryPlaceholder';
 import { MenuButton } from '@/components/MenuButton';
@@ -35,6 +36,8 @@ export default function HomeScreen() {
   const skyLevel = getSkyLevel(result);
   const skyTime = getSkyTime(new Date().getHours());
   const reactKey = JSON.stringify(state.log[today] ?? {});
+  const { woken, wake, moment } = useCritterAndMoment(result, today, reactKey);
+  const critterProps = { level: skyLevel, woken, onWake: wake, time: skyTime, reactKey, moment };
 
   const [menuOpen, setMenuOpen] = useState(false);
   const menu = <SideMenu open={menuOpen} onClose={() => setMenuOpen(false)} />;
@@ -52,12 +55,12 @@ export default function HomeScreen() {
         </View>
         <View style={styles.rightColumn} testID="wide-right-column">
           <View style={[styles.scene, { height: sceneHeight }]} testID="background-card">
-            <Background time={skyTime} level={skyLevel} />
+            <Background time={skyTime} level={skyLevel} moment={moment} />
             <View
               style={[styles.critter, { bottom: -critterHeight * wide.critterSink }]}
               pointerEvents="box-none"
             >
-              <Critter width={critterWidth} level={skyLevel} reactKey={reactKey} />
+              <Critter width={critterWidth} {...critterProps} />
             </View>
           </View>
           <HistoryPlaceholder />
@@ -74,13 +77,13 @@ export default function HomeScreen() {
   return (
     <View style={styles.screen} testID="today-screen">
       {/* The Background never scrolls; it sits behind everything. */}
-      <Background time={skyTime} level={skyLevel} />
+      <Background time={skyTime} level={skyLevel} moment={moment} />
 
       <View
         style={[styles.critter, { top: sheetTop + todayLayout.critterOverlap - critterHeight }]}
         pointerEvents="box-none"
       >
-        <Critter width={critterWidth} level={skyLevel} reactKey={reactKey} />
+        <Critter width={critterWidth} {...critterProps} />
       </View>
 
       <View style={[styles.menu, { top: insets.top + space.sm, left: insets.left + space.lg }]}>

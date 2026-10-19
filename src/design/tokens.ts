@@ -102,6 +102,7 @@ export const background = {
   nightHorizon: '#A9BC8E',
   nightMoon: '#F4F1FF',
   star: '#FFFFFF',
+  daySparkle: '#B45309',
   onSkyDay: '#1F1F1F',
   onSkyDark: '#FFFFFF',
 } as const;

@@ -1,21 +1,25 @@
 import { describe, expect, it } from '@jest/globals';
 import { critterLabel, critterMood, randomGap } from './critterMood';
 
-describe('critter mood (critter.md, T8)', () => {
+describe('acceptance: critter faces by rank (T15, critter.md)', () => {
   it.each([
-    ['asleep', 'asleep'],
-    ['rest', 'okay'],
-    ['C', 'okay'],
-    ['B', 'happy'],
-    ['A', 'happy'],
-    ['S', 'delighted'],
-  ] as const)('%s sky gives a %s critter', (level, mood) => {
-    expect(critterMood(level)).toBe(mood);
+    ['asleep', false, 'asleep'],
+    ['asleep', true, 'flat'],
+    ['C', false, 'asleep'],
+    ['C', true, 'flat'],
+    ['rest', false, 'flat'],
+    ['B', false, 'smile'],
+    ['A', false, 'big'],
+    ['S', false, 'big'],
+  ] as const)('%s sky, woken %s, gives a %s face', (level, woken, mood) => {
+    expect(critterMood(level, woken)).toBe(mood);
   });
 
   it('screen reader hears the mood', () => {
-    expect(critterLabel('asleep')).toBe('Your critter is asleep. Check in to wake it up.');
-    expect(critterLabel('delighted')).toBe('Your critter is delighted.');
+    expect(critterLabel('asleep')).toBe(
+      'Your critter is asleep. Tap it or check in to wake it up.',
+    );
+    expect(critterLabel('big')).toBe('Your critter is delighted.');
   });
 });
 
