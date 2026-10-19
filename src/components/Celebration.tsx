@@ -12,6 +12,7 @@ import Animated, {
 
 import type { Rank } from '@/rules/rank';
 import { colors, font, radius, space } from '@/theme';
+import { tuning } from '@/config/tuning';
 
 export type CelebrationKind = { type: 'hatch' } | { type: 'rest' } | { type: 'rank'; rank: Rank };
 
@@ -27,7 +28,7 @@ export function Celebration({ kind, onClose }: { kind: CelebrationKind; onClose:
   const scale = useSharedValue(reduceMotion ? 1 : 0.4);
 
   useEffect(() => {
-    scale.value = reduceMotion ? 1 : withSpring(1, { damping: 9 });
+    scale.value = reduceMotion ? 1 : withSpring(1, { damping: tuning.celebration.popDamping });
   }, [scale, reduceMotion]);
 
   const popStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));

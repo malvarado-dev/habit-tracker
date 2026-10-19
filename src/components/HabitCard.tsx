@@ -19,6 +19,7 @@ import Animated, {
 
 import { MAX_STARS, STARS, type CheckIn, type Habit } from '@/rules/scoring';
 import { colors, font, MIN_TAP_SIZE, radius, space } from '@/theme';
+import { tuning } from '@/config/tuning';
 
 const LABELS: Record<CheckIn, string> = {
   NotToday: 'Not today',
@@ -35,7 +36,7 @@ const EFFECTS: Partial<Record<CheckIn, string[]>> = {
 };
 
 /** How far the card must travel before a swipe counts. "Full swipe" = deliberate. */
-const SWIPE_THRESHOLD = 110;
+const SWIPE_THRESHOLD = tuning.card.swipeThreshold;
 
 interface HabitCardProps {
   habit: Habit;
@@ -75,7 +76,9 @@ export function HabitCard({ habit, checkIn, color, onTap, onSwipe }: HabitCardPr
       renderLeftActions={() => (
         <SwipeHint text="Nailed it ★★★" align="flex-start" color={colors.star} />
       )}
-      renderRightActions={() => <SwipeHint text="Not today" align="flex-end" color="#8A7C6E" />}
+      renderRightActions={() => (
+        <SwipeHint text="Not today" align="flex-end" color={colors.swipeHintMuted} />
+      )}
       onSwipeableWillOpen={handleSwipe}
       containerStyle={styles.swipeContainer}
     >
@@ -145,7 +148,7 @@ function CardEffect({ checkIn }: { checkIn: CheckIn | undefined }) {
   const particles = checkIn ? EFFECTS[checkIn] : undefined;
 
   useEffect(() => {
-    progress.value = withTiming(1, { duration: 900 });
+    progress.value = withTiming(1, { duration: tuning.card.effectMs });
   }, [progress]);
 
   const style = useAnimatedStyle(() => ({
@@ -167,8 +170,8 @@ function Particle({ symbol, index, total }: { symbol: string; index: number; tot
   const lift = useSharedValue(0);
   useEffect(() => {
     lift.value = withSequence(
-      withSpring(-18 - (index % 3) * 6),
-      withTiming(-30, { duration: 400 }),
+      withSpring(-tuning.card.particleLift - (index % 3) * tuning.card.particleLiftStagger),
+      withTiming(-tuning.card.particleDriftTo, { duration: tuning.card.particleDriftMs }),
     );
   }, [lift, index]);
   const style = useAnimatedStyle(() => ({ transform: [{ translateY: lift.value }] }));

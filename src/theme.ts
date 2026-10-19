@@ -1,4 +1,4 @@
-// Placeholder design tokens borrowed from v0 (SPEC-00). The real design system comes in Stage 4.
+// Old first-build colors, kept only until T3 moves screens onto src/design/tokens.ts (Spendio).
 // Screens use these names instead of raw values, so a restyle happens in one place.
 
 export const colors = {
@@ -25,6 +25,9 @@ export const colors = {
   moonGlow: '#FFF4C2',
   cloud: '#FFFFFF',
   overlay: 'rgba(20,14,8,0.55)',
+  sunRays: 'rgba(255, 214, 90, 0.55)',
+  swipeHintMuted: '#8A7C6E',
+  ground: '#9CCB7A',
 } as const;
 
 /** Card colors per habit position, from v0. */
