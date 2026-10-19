@@ -2,7 +2,6 @@ import { describe, expect, it } from '@jest/globals';
 import {
   EVERY_DAY,
   getDailyResult,
-  getEnergy,
   getWeekProgress,
   isDue,
   nextCheckIn,
@@ -142,7 +141,6 @@ describe('getDailyResult', () => {
       isComplete: false,
       score: 0,
     });
-    expect(getEnergy(result)).toBe(0);
   });
 
   it('Skip on a due habit is removed from the math and never lowers the rank', () => {
@@ -178,45 +176,8 @@ describe('getDailyResult', () => {
     expect(getDailyResult(habits, { [MON]: { sleep: 'Started' } }, MON).isComplete).toBe(true);
   });
 
-  it('nothing due and nothing scored is a Rest day with a full Energy bar', () => {
+  it('nothing due and nothing scored is a Rest day', () => {
     const result = getDailyResult([exercise], {}, MON);
     expect(result).toMatchObject({ isRestDay: true, score: null, dueCount: 0 });
-    expect(getEnergy(result)).toBe(1);
-  });
-});
-
-describe('Energy bar follows stars', () => {
-  const diet = { ...sleep, id: 'diet', name: 'Diet' };
-
-  it('each star moves the bar, and 3 stars on everything fills it', () => {
-    expect(
-      getEnergy(getDailyResult([sleep, diet], { [MON]: { sleep: 'Started' } }, MON)),
-    ).toBeCloseTo(1 / 6);
-    expect(
-      getEnergy(getDailyResult([sleep, diet], { [MON]: { sleep: 'OnTrack' } }, MON)),
-    ).toBeCloseTo(2 / 6);
-    expect(
-      getEnergy(
-        getDailyResult([sleep, diet], { [MON]: { sleep: 'NailedIt', diet: 'NailedIt' } }, MON),
-      ),
-    ).toBe(1);
-  });
-
-  it('Skip drops a habit from what is possible', () => {
-    const result = getDailyResult(
-      [sleep, diet],
-      { [MON]: { sleep: 'NailedIt', diet: 'NotToday' } },
-      MON,
-    );
-    expect(getEnergy(result)).toBe(1);
-  });
-
-  it('an optional score can only raise the bar', () => {
-    const result = getDailyResult(
-      [sleep, diet, exercise],
-      { [MON]: { sleep: 'NotToday', exercise: 'NailedIt' } },
-      MON,
-    );
-    expect(getEnergy(result)).toBe(0.5);
   });
 });

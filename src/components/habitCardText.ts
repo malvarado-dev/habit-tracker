@@ -3,6 +3,8 @@
 
 import { MAX_STARS, STARS, type CheckIn } from '@/rules/scoring';
 
+import type { CardNeed } from '@/rules/energy';
+
 export const SCORE_LABELS: Record<CheckIn, string> = {
   NotToday: 'Skip',
   Started: 'Started',
@@ -10,13 +12,18 @@ export const SCORE_LABELS: Record<CheckIn, string> = {
   NailedIt: 'Nailed it',
 };
 
+export type { CardNeed } from '@/rules/energy';
+
 /**
- * The one status slot under the stars (SPEC-00): the score name after a tap, "To do"
- * on a due card that hasn't been scored, otherwise empty.
+ * The one status slot under the stars (SPEC-00, T18): the score name after a tap. Unscored, it
+ * says "To do" on a card that counts toward today's Energy bar, "Goal met" once its weekly goal
+ * is already met, otherwise nothing.
  */
-export function statusText(checkIn: CheckIn | undefined, isDue: boolean): string {
+export function statusText(checkIn: CheckIn | undefined, need: CardNeed): string {
   if (checkIn) return SCORE_LABELS[checkIn];
-  return isDue ? 'To do' : '';
+  if (need === 'toDo') return 'To do';
+  if (need === 'goalMet') return 'Goal met';
+  return '';
 }
 
 /** First letter of the name, as the icon placeholder until the icon sheet. */
@@ -33,13 +40,14 @@ export function weekProgressText(done: number, goal: number): string {
 export function cardAccessibilityLabel(
   name: string,
   checkIn: CheckIn | undefined,
-  isDue: boolean,
+  need: CardNeed,
   done: number,
   goal: number,
 ): string {
   const parts = [name.trim() || 'Untitled habit'];
   if (checkIn) parts.push(`${SCORE_LABELS[checkIn]}, ${STARS[checkIn]} of ${MAX_STARS} stars`);
-  else if (isDue) parts.push('To do');
+  else if (need === 'toDo') parts.push('To do');
+  else if (need === 'goalMet') parts.push('Goal met');
   else parts.push('optional today');
   parts.push(weekProgressText(done, goal));
   return parts.join(', ');

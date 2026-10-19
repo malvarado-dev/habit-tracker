@@ -18,7 +18,8 @@ import { canOpenDay, dayStatusText, shortDate } from '@/features/history/history
 import { useSettings } from '@/features/settings/SettingsProvider';
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import { historyDay } from '@/rules/locking';
-import { getWeekProgress, isDue, nextCheckIn, type CheckIn } from '@/rules/scoring';
+import { cardNeed, getEnergyBar } from '@/rules/energy';
+import { getWeekProgress, nextCheckIn, type CheckIn } from '@/rules/scoring';
 import { MIN_TAP_SIZE, space } from '@/theme';
 
 const DATE_KEY = /^\d{4}-\d{2}-\d{2}$/;
@@ -67,12 +68,8 @@ export default function DayScreen() {
   const status = dayStatusText(date, realToday, state.lockedThrough);
   const result = historyDay(state, date);
   const dayLog = state.log[date] ?? {};
-  const energy =
-    result.outcome === 'rest'
-      ? 1
-      : result.possibleStars > 0
-        ? result.earnedStars / result.possibleStars
-        : 0;
+  // Same bar math as Today (T18). Locked days keep their saved rank face; the bar is live.
+  const bar = getEnergyBar(state.habits, state.log, date);
 
   const checkIn = (habitId: string, value: CheckIn | undefined, viaTap: boolean) => {
     if (status.locked) return;
@@ -105,12 +102,7 @@ export default function DayScreen() {
           </View>
         </View>
 
-        <EnergyBar
-          energy={energy}
-          earnedStars={result.earnedStars}
-          possibleStars={result.possibleStars}
-          isRestDay={result.outcome === 'rest'}
-        />
+        <EnergyBar fill={bar.fill} isRestDay={bar.isRestDay} />
 
         <View style={styles.cards} testID="day-habit-list">
           {state.habits.map((habit) => {
@@ -120,7 +112,7 @@ export default function DayScreen() {
                 key={habit.id}
                 habit={habit}
                 checkIn={current}
-                isDue={!status.locked && isDue(habit, state.log, date)}
+                need={status.locked ? 'none' : cardNeed(habit, state.log, date)}
                 progress={getWeekProgress(habit, state.log, date)}
                 goalStyle={goalStyle}
                 locked={status.locked}

@@ -1,11 +1,12 @@
-// Energy bar at the top of the habit sheet: today's score, with no text on screen (SPEC-00).
-// Every star moves the lemon fill. A checkered flag stands on the bar at the S cutoff (90%),
-// like a finish line; 100% means 3 stars on everything that counts today (decided 2026-10-18).
-// Crossing the flag waves it and sweeps a shimmer across the fill; reaching 100% adds a brief
-// brighten and sparkles off the end. Reduced motion: only the brighten.
+// Energy bar at the top of the habit sheet (SPEC-00, T18): "Today" and a percentage over a dark
+// pill with a lemon fill. Three plain ticks mark the B, A, and S cutoffs and darken once the fill
+// passes them. The fill is today's share of what counts (rules/energy.ts), so every counted star
+// moves it the same amount. Crossing the top tick sweeps a shimmer across the fill; reaching 100%
+// adds a brief brighten and sparkles off the end. A goal-met glow pulses around the track when
+// `glowKey` changes. Reduced motion: only the brighten, and the glow without motion.
 
 import { useEffect, useRef, useState } from 'react';
-import { type LayoutChangeEvent, StyleSheet, View } from 'react-native';
+import { type LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -15,32 +16,37 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Path, Rect } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 
 import { tuning } from '@/config/tuning';
+import { textStyle } from '@/design/fonts';
 import { useTheme } from '@/design/theme/ThemeProvider';
+import { energyBar as bar } from '@/design/tokens';
 
 import { seeded } from './cardEffectLayout';
 import {
   clampEnergy,
   energyLabel,
   energyMilestone,
-  flagPosition,
+  percentText,
+  tickPositions,
   type EnergyMilestone,
 } from './energyBarText';
 
 type Props = {
-  /** 0 to 1, from getEnergy. */
-  energy: number;
-  earnedStars: number;
-  possibleStars: number;
+  /** 0 to 1, from getEnergyBar. */
+  fill: number;
   isRestDay: boolean;
+  /** "Today" on Today. The Day screen leaves it out, since its title is the date. */
+  label?: string;
+  /** Changes each time Weekly goal met plays, to pulse the glow. */
+  glowKey?: number;
 };
 
-export function EnergyBar({ energy, earnedStars, possibleStars, isRestDay }: Props) {
+export function EnergyBar({ fill, isRestDay, label, glowKey = 0 }: Props) {
   const { colors } = useTheme();
   const reduceMotion = useReducedMotion();
-  const fraction = clampEnergy(energy);
+  const fraction = clampEnergy(fill);
   const [trackWidth, setTrackWidth] = useState(0);
   const innerWidth = Math.max(0, trackWidth - TRACK_PADDING * 2);
   const fillWidth = useSharedValue(0);
@@ -59,7 +65,7 @@ export function EnergyBar({ energy, earnedStars, possibleStars, isRestDay }: Pro
   const cel = tuning.energy.celebrate;
   const previous = useRef(fraction);
   const [burst, setBurst] = useState<{ id: number; kind: EnergyMilestone } | null>(null);
-  const tilt = useSharedValue(0);
+  const glow = useSharedValue(0);
   const shimmer = useSharedValue(0);
   const flash = useSharedValue(0);
 
@@ -78,23 +84,29 @@ export function EnergyBar({ energy, earnedStars, possibleStars, isRestDay }: Pro
       );
     }
     if (reduceMotion) return;
-    const d = cel.flagTiltDegrees;
-    const w = cel.flagWaveMs;
-    tilt.value = withDelay(
-      wait,
-      withSequence(
-        withTiming(-d, { duration: w }),
-        withTiming(d, { duration: w * 2 }),
-        withTiming(-d / 2, { duration: w * 2 }),
-        withTiming(0, { duration: w }),
-      ),
-    );
     shimmer.value = 0;
     shimmer.value = withDelay(wait, withTiming(1, { duration: cel.shimmerMs }));
     setBurst((b) => ({ id: (b?.id ?? 0) + 1, kind }));
-  }, [fraction, isRestDay, reduceMotion, tilt, shimmer, flash, cel]);
+  }, [fraction, isRestDay, reduceMotion, shimmer, flash, cel]);
 
-  const flagStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${tilt.value}deg` }] }));
+  // Weekly goal met: a soft glow around the track. Reduced motion holds it, then drops it, with no fade.
+  const gm = tuning.energy.goalMet;
+  useEffect(() => {
+    if (glowKey === 0) return;
+    if (reduceMotion) {
+      glow.value = gm.glowOpacity;
+      const timer = setTimeout(() => {
+        glow.value = 0;
+      }, gm.glowMs);
+      return () => clearTimeout(timer);
+    }
+    glow.value = withSequence(
+      withTiming(gm.glowOpacity, { duration: gm.glowMs * 0.3 }),
+      withTiming(0, { duration: gm.glowMs * 0.7 }),
+    );
+  }, [glowKey, reduceMotion, glow, gm]);
+  const glowStyle = useAnimatedStyle(() => ({ opacity: glow.value }));
+
   const shimmerStyle = useAnimatedStyle(() => ({
     opacity: shimmer.value > 0 && shimmer.value < 1 ? cel.shimmerOpacity : 0,
     transform: [
@@ -105,93 +117,84 @@ export function EnergyBar({ energy, earnedStars, possibleStars, isRestDay }: Pro
 
   const onTrackLayout = (e: LayoutChangeEvent) => setTrackWidth(e.nativeEvent.layout.width);
 
-  // The pole's center sits on the S cutoff of the fill area.
-  const flagLeft = TRACK_PADDING + innerWidth * flagPosition() - POLE_WIDTH / 2;
+  const percent = Math.round(fraction * 100);
 
   return (
     <View
       testID="energy-bar"
       accessible
       accessibilityRole="progressbar"
-      accessibilityLabel={energyLabel(earnedStars, possibleStars, isRestDay)}
-      accessibilityValue={isRestDay ? undefined : { min: 0, max: possibleStars, now: earnedStars }}
+      accessibilityLabel={energyLabel(fraction, isRestDay)}
+      accessibilityValue={isRestDay ? undefined : { min: 0, max: 100, now: percent }}
       style={styles.wrap}
     >
-      <View onLayout={onTrackLayout} style={[styles.track, { backgroundColor: colors.track }]}>
-        <Animated.View
-          testID="energy-fill"
-          style={[styles.fill, { backgroundColor: colors.primary }, fillStyle]}
-        >
-          <Animated.View
-            pointerEvents="none"
-            style={[
-              styles.shimmer,
-              { width: cel.shimmerWidth, backgroundColor: colors.onInverse },
-              shimmerStyle,
-            ]}
-          />
-          <Animated.View
-            pointerEvents="none"
-            style={[styles.flash, { backgroundColor: colors.onInverse }, flashStyle]}
-          />
-        </Animated.View>
+      <View style={styles.labelRow} importantForAccessibility="no-hide-descendants">
+        <Text style={[styles.labelText, { color: colors.onSurface }]} testID="energy-label">
+          {label ?? ''}
+        </Text>
+        <Text style={[styles.labelText, { color: colors.onSurface }]} testID="energy-percent">
+          {percentText(fraction)}
+        </Text>
       </View>
-      {trackWidth > 0 ? (
-        <Animated.View style={[styles.flag, { left: flagLeft }, flagStyle]}>
-          {/* onSurface and the sheet color: dark flag on the light sheet, light flag on the dark sheet. */}
-          <CheckeredFlag light={colors.surfaceSheet} dark={colors.onSurface} />
-        </Animated.View>
-      ) : null}
-      {burst?.kind === 'full' && trackWidth > 0 ? (
-        <EndSparkles
-          key={burst.id}
-          seed={burst.id}
-          x={TRACK_PADDING + innerWidth}
-          color={colors.primary}
-          outline={colors.onSurface}
-          delayMs={tuning.energy.fillMs}
+      <View>
+        <Animated.View
+          pointerEvents="none"
+          testID="energy-glow"
+          style={[styles.glow, { backgroundColor: colors.primary }, glowStyle]}
         />
-      ) : null}
-    </View>
-  );
-}
-
-/** Pole plus a 4 by 3 checker, drawn in the card white and the inverse dark so it reads on both sheets. */
-function CheckeredFlag({ light, dark }: { light: string; dark: string }) {
-  const cols = 4;
-  const rows = 3;
-  const cell = 3;
-  const left = 2;
-  const squares = [];
-  for (let r = 0; r < rows; r += 1) {
-    for (let c = 0; c < cols; c += 1) {
-      squares.push(
-        <Rect
-          key={`${r}-${c}`}
-          x={left + c * cell}
-          y={1 + r * cell}
-          width={cell}
-          height={cell}
-          fill={(r + c) % 2 === 0 ? dark : light}
-        />,
-      );
-    }
-  }
-  return (
-    <View testID="energy-flag" importantForAccessibility="no-hide-descendants">
-      <Svg width={FLAG_SIZE} height={FLAG_SIZE} viewBox="0 0 18 18" accessible={false}>
-        <Rect x={0} y={0} width={2} height={18} rx={1} fill={dark} />
-        <Rect
-          x={left - 0.5}
-          y={0.5}
-          width={cols * cell + 1}
-          height={rows * cell + 1}
-          fill={light}
-          stroke={dark}
-          strokeWidth={1}
-        />
-        {squares}
-      </Svg>
+        <View onLayout={onTrackLayout} style={[styles.track, { backgroundColor: colors.track }]}>
+          <Animated.View
+            testID="energy-fill"
+            style={[styles.fill, { backgroundColor: colors.primary }, fillStyle]}
+          >
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.shimmer,
+                { width: cel.shimmerWidth, backgroundColor: colors.onInverse },
+                shimmerStyle,
+              ]}
+            />
+            <Animated.View
+              pointerEvents="none"
+              style={[styles.flash, { backgroundColor: colors.onInverse }, flashStyle]}
+            />
+          </Animated.View>
+          {trackWidth > 0
+            ? tickPositions().map((at, i, all) => {
+                const top = i === all.length - 1;
+                const passed = fraction >= at;
+                return (
+                  <View
+                    key={at}
+                    pointerEvents="none"
+                    testID={`energy-tick-${Math.round(at * 100)}`}
+                    style={[
+                      styles.tick,
+                      {
+                        left: bar.trackPadding + innerWidth * at - bar.tickWidth / 2,
+                        top: top ? -bar.topTickOverhang : bar.trackPadding,
+                        bottom: top ? -bar.topTickOverhang : bar.trackPadding,
+                        // Light on the dark track until the fill passes it, then dark on the lemon fill.
+                        backgroundColor: passed ? colors.onPrimary : colors.onInverse,
+                      },
+                    ]}
+                  />
+                );
+              })
+            : null}
+        </View>
+        {burst?.kind === 'full' && trackWidth > 0 ? (
+          <EndSparkles
+            key={burst.id}
+            seed={burst.id}
+            x={TRACK_PADDING + innerWidth}
+            color={colors.primary}
+            outline={colors.onSurface}
+            delayMs={tuning.energy.fillMs}
+          />
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -260,7 +263,7 @@ function Spark(p: {
       { scale: 0.4 + Math.min(t.value * 2, 1) * 0.6 },
     ],
   }));
-  const top = FLAG_SIZE + TRACK_HEIGHT / 2 - p.size / 2;
+  const top = bar.trackHeight / 2 - p.size / 2;
   return (
     <Animated.View style={[styles.spark, { left: p.x - p.size / 2, top }, style]}>
       <Svg width={p.size} height={p.size} viewBox="0 0 24 24">
@@ -275,18 +278,24 @@ function Spark(p: {
   );
 }
 
-// energy-bar component in design-system.md: 14 pt dark pill, 3 pt padding, 8 pt fill,
-// and an 18 pt checkered flag standing on the bar at the S cutoff.
-const TRACK_PADDING = 3;
-const TRACK_HEIGHT = 14;
-const FLAG_SIZE = 18;
-const POLE_WIDTH = 2;
+// energy-bar component in design-system.md: 14 pt dark pill, 3 pt padding, 8 pt fill, ticks at the cutoffs.
+const TRACK_PADDING = bar.trackPadding;
 
 const styles = StyleSheet.create({
-  wrap: { paddingTop: FLAG_SIZE },
-  track: { height: TRACK_HEIGHT, padding: TRACK_PADDING, borderRadius: 9999 },
-  fill: { height: 8, borderRadius: 9999, overflow: 'hidden' },
-  flag: { position: 'absolute', bottom: TRACK_HEIGHT, transformOrigin: 'bottom left' },
+  wrap: { gap: bar.labelGap },
+  labelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+  labelText: { ...textStyle('habitName', '700') },
+  track: { height: bar.trackHeight, padding: bar.trackPadding, borderRadius: 9999 },
+  fill: { height: bar.fillHeight, borderRadius: 9999, overflow: 'hidden' },
+  tick: { position: 'absolute', width: bar.tickWidth, borderRadius: 9999 },
+  glow: {
+    position: 'absolute',
+    top: -bar.glowSpread,
+    bottom: -bar.glowSpread,
+    left: -bar.glowSpread,
+    right: -bar.glowSpread,
+    borderRadius: 9999,
+  },
   shimmer: { position: 'absolute', top: 0, bottom: 0, left: 0, borderRadius: 9999 },
   flash: { ...StyleSheet.absoluteFill },
   sparkles: { ...StyleSheet.absoluteFill },
