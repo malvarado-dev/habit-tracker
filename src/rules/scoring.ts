@@ -1,22 +1,33 @@
 // Daily scoring rules from SPEC-00. Plain TypeScript with no screens attached, so every
 // rule here can be unit tested on its own.
 
-import { daysLeftInWeek, earlierDaysThisWeek, type DateKey } from './dates';
+import { earlierDaysThisWeek, weekdayIndex, type DateKey } from './dates';
 
-/** A check-in for one habit on one day. Names follow the Glossary. */
+/** A check-in for one habit on one day. Names follow the Glossary. No entry = Score needed. */
 export type CheckIn = 'NotToday' | 'Started' | 'OnTrack' | 'NailedIt';
+
+/** Monday is 0, Sunday is 6 (weeks run Monday to Sunday). */
+export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
+/**
+ * Two ways to set a weekly goal (SPEC-00):
+ * - Specific days: planned weekdays. The goal is the number of planned days.
+ * - Any days: a number of times a week, never due on any one day.
+ */
+export type WeeklyGoal =
+  { kind: 'specificDays'; days: Weekday[] } | { kind: 'anyDays'; timesPerWeek: number };
 
 export interface Habit {
   id: string;
   name: string;
-  /** Days per week the habit should be done, 1 to 7. */
-  weeklyTarget: number;
+  goal: WeeklyGoal;
 }
 
 /** Every check-in, keyed by date, then by habit id. */
 export type CheckInLog = Record<DateKey, Record<string, CheckIn>>;
 
 export const MAX_STARS = 3;
+export const EVERY_DAY: Weekday[] = [0, 1, 2, 3, 4, 5, 6];
 
 export const STARS: Record<CheckIn, number> = {
   NotToday: 0,
@@ -26,99 +37,130 @@ export const STARS: Record<CheckIn, number> = {
 };
 
 /**
- * What a tap on the card does. The first tap gives On track (the most common honest
- * answer), then it cycles so the same tap also works as undo.
+ * What a tap on the card does. Counts up from Score needed, then Not today, then back
+ * to Score needed, so the same tap also works as undo. Undefined means Score needed.
  */
-export function nextCheckIn(current: CheckIn | undefined): CheckIn {
+export function nextCheckIn(current: CheckIn | undefined): CheckIn | undefined {
   switch (current) {
     case undefined:
+      return 'Started';
+    case 'Started':
       return 'OnTrack';
     case 'OnTrack':
       return 'NailedIt';
     case 'NailedIt':
       return 'NotToday';
     case 'NotToday':
-      return 'Started';
-    case 'Started':
-      return 'OnTrack';
+      return undefined;
   }
 }
 
-/** Days earlier this week where the habit got at least one star. */
-export function daysDoneEarlierThisWeek(log: CheckInLog, habitId: string, date: DateKey): number {
-  return earlierDaysThisWeek(date).filter((day) => {
-    const checkIn = log[day]?.[habitId];
-    return checkIn !== undefined && STARS[checkIn] > 0;
-  }).length;
+/** How many days this week the habit needs to meet its goal. */
+export function goalCount(goal: WeeklyGoal): number {
+  return goal.kind === 'specificDays' ? goal.days.length : goal.timesPerWeek;
 }
 
-/** The weekly target was already met before today, so the habit collapses for the rest of the week. */
-export function isTargetMetEarlier(habit: Habit, log: CheckInLog, date: DateKey): boolean {
-  return daysDoneEarlierThisWeek(log, habit.id, date) >= habit.weeklyTarget;
+function counts(checkIn: CheckIn | undefined): checkIn is CheckIn {
+  return checkIn !== undefined && STARS[checkIn] > 0;
+}
+
+/** Days earlier this week scored Started, On track, or Nailed it. Not today never counts. */
+export function daysDoneEarlierThisWeek(log: CheckInLog, habitId: string, date: DateKey): number {
+  return earlierDaysThisWeek(date).filter((day) => counts(log[day]?.[habitId])).length;
+}
+
+/** Weekly goal progress including today, for the progress ring: "2 of 4 this week." */
+export function getWeekProgress(
+  habit: Habit,
+  log: CheckInLog,
+  date: DateKey,
+): { done: number; goal: number } {
+  const today = counts(log[date]?.[habit.id]) ? 1 : 0;
+  return {
+    done: daysDoneEarlierThisWeek(log, habit.id, date) + today,
+    goal: goalCount(habit.goal),
+  };
 }
 
 /**
- * Skipping is fine, as long as you can still hit your weekly goal. Not today is free when
- * the days left after today are still enough to meet the target. Otherwise it's a miss.
+ * Due today: a Specific days habit on one of its planned days, until its weekly goal is met
+ * on earlier days. An Any days habit is never due.
  */
-export function isFreeSkip(habit: Habit, log: CheckInLog, date: DateKey): boolean {
-  const stillNeeded = habit.weeklyTarget - daysDoneEarlierThisWeek(log, habit.id, date);
-  const daysAfterToday = daysLeftInWeek(date) - 1;
-  return daysAfterToday >= stillNeeded;
+export function isDue(habit: Habit, log: CheckInLog, date: DateKey): boolean {
+  if (habit.goal.kind === 'anyDays') return false;
+  if (!habit.goal.days.includes(weekdayIndex(date) as Weekday)) return false;
+  return daysDoneEarlierThisWeek(log, habit.id, date) < goalCount(habit.goal);
 }
 
 export interface DailyResult {
-  /** Habits shown on today's list (not collapsed). */
-  activeCount: number;
-  /** Active habits with any check-in, including Not today. */
+  /** Habits due today. Only these count for the Energy bar. */
+  dueCount: number;
+  /** Due habits with any check-in, including Not today. */
   checkedInCount: number;
+  /** Stars from due habits and optional (not due) habits. */
   earnedStars: number;
   possibleStars: number;
-  /** Every active habit has a check-in. */
+  /** Any habit has a check-in today, due or not. The first one wakes the critter. */
+  hasCheckIn: boolean;
+  /** Every due habit has a check-in. */
   isComplete: boolean;
-  /** Complete, with nothing due (everything collapsed or a free skip). No rank. */
+  /** Complete, and nothing counts toward a score (nothing due, or all Not today, and no optional scores). No rank. */
   isRestDay: boolean;
-  /** Earned divided by possible, 0 to 1. Null when nothing counts yet. */
+  /** 0 to 1. Null when nothing counts yet. */
   score: number | null;
 }
 
 export function getDailyResult(habits: Habit[], log: CheckInLog, date: DateKey): DailyResult {
   const today = log[date] ?? {};
-  let activeCount = 0;
+  let dueCount = 0;
   let checkedInCount = 0;
-  let earnedStars = 0;
-  let possibleStars = 0;
+  let dueEarned = 0;
+  let duePossible = 0;
+  let optionalEarned = 0;
+  let optionalPossible = 0;
 
   for (const habit of habits) {
-    if (isTargetMetEarlier(habit, log, date)) continue;
-    activeCount += 1;
-
     const checkIn = today[habit.id];
-    if (checkIn === undefined) {
-      // Not checked in yet: it still counts toward what's possible today.
-      possibleStars += MAX_STARS;
-      continue;
-    }
 
-    checkedInCount += 1;
-    if (checkIn === 'NotToday' && isFreeSkip(habit, log, date)) continue;
-    earnedStars += STARS[checkIn];
-    possibleStars += MAX_STARS;
+    if (isDue(habit, log, date)) {
+      dueCount += 1;
+      if (checkIn === undefined) {
+        // Score needed: still counts toward what's possible, so the score climbs as you check in.
+        duePossible += MAX_STARS;
+        continue;
+      }
+      checkedInCount += 1;
+      // Not today removes a due habit from today's math. It never lowers the rank.
+      if (checkIn === 'NotToday') continue;
+      dueEarned += STARS[checkIn];
+      duePossible += MAX_STARS;
+    } else if (counts(checkIn)) {
+      optionalEarned += STARS[checkIn];
+      optionalPossible += MAX_STARS;
+    }
   }
 
-  const isComplete = checkedInCount === activeCount;
+  // Optional scores can only raise the day: take the higher of due alone and due plus optional.
+  const dueScore = duePossible > 0 ? dueEarned / duePossible : null;
+  const allPossible = duePossible + optionalPossible;
+  const combined = allPossible > 0 ? (dueEarned + optionalEarned) / allPossible : null;
+  const score = dueScore === null ? combined : Math.max(dueScore, combined ?? dueScore);
+  const useOptional = score !== null && score === combined && optionalPossible > 0;
+
+  const isComplete = checkedInCount === dueCount;
   return {
-    activeCount,
+    dueCount,
     checkedInCount,
-    earnedStars,
-    possibleStars,
+    hasCheckIn: Object.keys(today).length > 0,
+    earnedStars: dueEarned + (useOptional ? optionalEarned : 0),
+    possibleStars: duePossible + (useOptional ? optionalPossible : 0),
     isComplete,
-    isRestDay: isComplete && possibleStars === 0,
-    score: possibleStars > 0 ? earnedStars / possibleStars : null,
+    isRestDay: isComplete && score === null,
+    score,
   };
 }
 
-/** How much of today is checked in, 0 to 1, for the energy bar. */
+/** How much of today is checked in, 0 to 1, for the Energy bar. Not today counts as checked in. */
 export function getEnergy(result: DailyResult): number {
-  return result.activeCount === 0 ? 1 : result.checkedInCount / result.activeCount;
+  return result.dueCount === 0 ? 1 : result.checkedInCount / result.dueCount;
 }

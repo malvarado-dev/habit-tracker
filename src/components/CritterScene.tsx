@@ -24,12 +24,11 @@ export interface Beam {
 }
 
 interface CritterSceneProps {
-  hatched: boolean;
   skyLevel: SkyLevel;
   isDay: boolean;
   energy: number;
   checkedInCount: number;
-  activeCount: number;
+  dueCount: number;
   /** 0 to 1. Drives how brightly the critter glows. */
   glow: number;
   beam: Beam | null;
@@ -38,10 +37,10 @@ interface CritterSceneProps {
 const CRITTER_SIZE = 120;
 
 export function CritterScene(props: CritterSceneProps) {
-  const { hatched, skyLevel, isDay, energy, checkedInCount, activeCount, glow, beam } = props;
+  const { skyLevel, isDay, energy, checkedInCount, dueCount, glow, beam } = props;
   const reduceMotion = useReducedMotion();
   const [size, setSize] = useState({ width: 0, height: 0 });
-  const asleep = hatched && skyLevel === 'asleep';
+  const asleep = skyLevel === 'asleep';
 
   const hop = useSharedValue(0);
   const orb = useSharedValue(0);
@@ -86,11 +85,9 @@ export function CritterScene(props: CritterSceneProps) {
   const onLayout = (e: LayoutChangeEvent) =>
     setSize({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height });
 
-  const critterLabel = !hatched
-    ? 'An egg, waiting for your first check-in.'
-    : asleep
-      ? 'Your critter is asleep. Check in to wake it up.'
-      : 'Your critter is awake.';
+  const critterLabel = asleep
+    ? 'Your critter is asleep. Check in to wake it up.'
+    : 'Your critter is awake.';
 
   return (
     <View style={styles.wrapper}>
@@ -98,16 +95,14 @@ export function CritterScene(props: CritterSceneProps) {
         <Sky level={skyLevel} isDay={isDay} />
 
         <Animated.View style={[styles.critterWrap, critterStyle]}>
-          <View
-            style={[styles.critterGlow, { opacity: hatched && !asleep ? 0.1 + glow * 0.35 : 0 }]}
-          />
+          <View style={[styles.critterGlow, { opacity: !asleep ? 0.1 + glow * 0.35 : 0 }]} />
           <Text
             style={styles.critter}
-            testID={hatched ? 'critter' : 'egg'}
+            testID="critter"
             accessibilityRole="image"
             accessibilityLabel={critterLabel}
           >
-            {hatched ? '🐣' : '🥚'}
+            🐣
           </Text>
           {asleep ? (
             <Text style={styles.zzz} importantForAccessibility="no">
@@ -134,8 +129,8 @@ export function CritterScene(props: CritterSceneProps) {
         testID="energy-bar"
         accessible
         accessibilityRole="progressbar"
-        accessibilityLabel={`${checkedInCount} of ${activeCount} habits checked in`}
-        accessibilityValue={{ min: 0, max: activeCount, now: checkedInCount }}
+        accessibilityLabel={`${checkedInCount} of ${dueCount} habits checked in`}
+        accessibilityValue={{ min: 0, max: dueCount, now: checkedInCount }}
       >
         <Text style={styles.energyIcon} importantForAccessibility="no">
           ⚡

@@ -1,22 +1,31 @@
-// Habits & Mode: one screen for the mode and for adding, renaming, removing habits and
-// setting weekly targets (SPEC-00, PRD-02). Opened by tapping the mode label.
+// Habits: add, rename, and remove habits, and change Any days goals (SPEC-00).
+// Temporary screen from the first build. T12 rebuilds it with the Specific days picker.
 
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { MAX_TARGET, MIN_TARGET } from '@/features/tracker/state';
+import { MAX_TIMES, MIN_TIMES } from '@/features/tracker/state';
 import { useTracker } from '@/features/tracker/TrackerProvider';
-import { RANK_CUTOFFS, type Mode } from '@/rules/rank';
+import { goalCount, type Habit } from '@/rules/scoring';
 import { colors, font, MIN_TAP_SIZE, radius, space } from '@/theme';
 
-const MODES: Mode[] = ['Beginner', 'Challenger', 'Pro'];
+function goalLabel(habit: Habit): string {
+  const n = goalCount(habit.goal);
+  return habit.goal.kind === 'anyDays' ? `${n}x/wk` : `${n} days`;
+}
 
 export default function HabitsScreen() {
   const { state, dispatch } = useTracker();
   const [newName, setNewName] = useState('');
   const canRemove = state.habits.length > 1;
+
+  const changeTimes = (habit: Habit, by: number) => {
+    if (habit.goal.kind !== 'anyDays') return;
+    const goal = { kind: 'anyDays', timesPerWeek: habit.goal.timesPerWeek + by } as const;
+    dispatch({ type: 'setGoal', habitId: habit.id, goal });
+  };
 
   const addHabit = () => {
     if (!newName.trim()) return;
@@ -40,36 +49,7 @@ export default function HabitsScreen() {
             </Pressable>
           </View>
           <Text style={styles.title} accessibilityRole="header">
-            Habits & Mode
-          </Text>
-
-          <Text style={styles.section} accessibilityRole="header">
-            Mode
-          </Text>
-          <View style={styles.modeRow} accessibilityRole="radiogroup">
-            {MODES.map((mode) => {
-              const selected = state.mode === mode;
-              const s = Math.round(RANK_CUTOFFS[mode].S * 100);
-              return (
-                <Pressable
-                  key={mode}
-                  onPress={() => dispatch({ type: 'setMode', mode })}
-                  style={[styles.modeOption, selected && styles.modeSelected]}
-                  testID={`mode-option-${mode.toLowerCase()}`}
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked: selected }}
-                  accessibilityLabel={`${mode}. S rank at ${s} percent.`}
-                >
-                  <Text style={[styles.modeName, selected && styles.modeNameSelected]}>{mode}</Text>
-                  <Text style={[styles.modeDetail, selected && styles.modeNameSelected]}>
-                    S at {s}%
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-          <Text style={styles.help}>
-            Harder modes need higher scores for each rank. You can switch any time.
+            Habits
           </Text>
 
           <Text style={styles.section} accessibilityRole="header">
@@ -89,32 +69,20 @@ export default function HabitsScreen() {
               <View style={styles.targetRow}>
                 <StepButton
                   label="−"
-                  a11y={`Fewer days for ${habit.name}`}
-                  disabled={habit.weeklyTarget <= MIN_TARGET}
+                  a11y={`Fewer times a week for ${habit.name}`}
+                  disabled={habit.goal.kind !== 'anyDays' || habit.goal.timesPerWeek <= MIN_TIMES}
                   testID={`target-down-${habit.id}`}
-                  onPress={() =>
-                    dispatch({
-                      type: 'setWeeklyTarget',
-                      habitId: habit.id,
-                      weeklyTarget: habit.weeklyTarget - 1,
-                    })
-                  }
+                  onPress={() => changeTimes(habit, -1)}
                 />
                 <Text style={styles.target} testID={`target-value-${habit.id}`}>
-                  {habit.weeklyTarget}/wk
+                  {goalLabel(habit)}
                 </Text>
                 <StepButton
                   label="+"
-                  a11y={`More days for ${habit.name}`}
-                  disabled={habit.weeklyTarget >= MAX_TARGET}
+                  a11y={`More times a week for ${habit.name}`}
+                  disabled={habit.goal.kind !== 'anyDays' || habit.goal.timesPerWeek >= MAX_TIMES}
                   testID={`target-up-${habit.id}`}
-                  onPress={() =>
-                    dispatch({
-                      type: 'setWeeklyTarget',
-                      habitId: habit.id,
-                      weeklyTarget: habit.weeklyTarget + 1,
-                    })
-                  }
+                  onPress={() => changeTimes(habit, 1)}
                 />
                 <Pressable
                   onPress={() => dispatch({ type: 'removeHabit', habitId: habit.id })}
@@ -198,22 +166,6 @@ const styles = StyleSheet.create({
   section: { fontSize: font.title, fontWeight: '700', color: colors.text, marginTop: space.md },
   help: { fontSize: font.small, color: colors.textMuted },
   warning: { fontSize: font.small, color: colors.danger },
-  modeRow: { flexDirection: 'row', gap: space.sm },
-  modeOption: {
-    flex: 1,
-    minHeight: MIN_TAP_SIZE + space.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    padding: space.sm,
-  },
-  modeSelected: { backgroundColor: colors.accent, borderColor: colors.accent },
-  modeName: { fontWeight: '800', color: colors.text },
-  modeDetail: { fontSize: font.small, color: colors.textMuted },
-  modeNameSelected: { color: colors.accentText },
   habitRow: {
     backgroundColor: colors.surface,
     borderRadius: radius.md,

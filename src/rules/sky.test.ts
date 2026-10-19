@@ -1,32 +1,42 @@
 import { describe, expect, it } from '@jest/globals';
-import { getDailyResult, type Habit } from './scoring';
+import { EVERY_DAY, getDailyResult, type Habit } from './scoring';
 import { getSkyLevel, isDaytime } from './sky';
 
 const habits: Habit[] = [
-  { id: 'sleep', name: 'Sleep', weeklyTarget: 7 },
-  { id: 'diet', name: 'Diet', weeklyTarget: 7 },
+  { id: 'sleep', name: 'Sleep', goal: { kind: 'specificDays', days: EVERY_DAY } },
+  { id: 'diet', name: 'Diet', goal: { kind: 'specificDays', days: EVERY_DAY } },
 ];
 const MON = '2026-10-12';
 
 describe('getSkyLevel', () => {
   it('is asleep before the first check-in', () => {
-    expect(getSkyLevel(getDailyResult(habits, {}, MON), 'Beginner')).toBe('asleep');
+    expect(getSkyLevel(getDailyResult(habits, {}, MON))).toBe('asleep');
   });
 
   it('wakes up and follows the live rank', () => {
     const half = getDailyResult(habits, { [MON]: { sleep: 'NailedIt' } }, MON);
-    expect(getSkyLevel(half, 'Beginner')).toBe('B');
+    expect(getSkyLevel(half)).toBe('B');
     const full = getDailyResult(habits, { [MON]: { sleep: 'NailedIt', diet: 'NailedIt' } }, MON);
-    expect(getSkyLevel(full, 'Pro')).toBe('S');
+    expect(getSkyLevel(full)).toBe('S');
   });
 
-  it('a missed 7-day habit still wakes the sky, at C', () => {
-    const missed = getDailyResult(habits, { [MON]: { sleep: 'NotToday' } }, MON);
-    expect(getSkyLevel(missed, 'Beginner')).toBe('C');
+  it('Not today wakes the sky but never lowers it', () => {
+    const skipped = getDailyResult(habits, { [MON]: { sleep: 'NotToday', diet: 'NailedIt' } }, MON);
+    expect(getSkyLevel(skipped)).toBe('S');
+  });
+
+  it('an optional check-in on a day with nothing due wakes the sky', () => {
+    const exercise: Habit = {
+      id: 'ex',
+      name: 'Exercise',
+      goal: { kind: 'anyDays', timesPerWeek: 3 },
+    };
+    const result = getDailyResult([exercise], { [MON]: { ex: 'NailedIt' } }, MON);
+    expect(getSkyLevel(result)).toBe('S');
   });
 
   it('shows a calm Rest day sky when nothing is due', () => {
-    expect(getSkyLevel(getDailyResult([], {}, MON), 'Beginner')).toBe('rest');
+    expect(getSkyLevel(getDailyResult([], {}, MON))).toBe('rest');
   });
 });
 
