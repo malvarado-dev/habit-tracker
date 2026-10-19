@@ -20,3 +20,22 @@ export function energyLabel(earned: number, possible: number, isRestDay: boolean
   const s = Math.round(flagPosition() * 100);
   return `${earned} of ${possible} stars. S rank at ${s} percent.`;
 }
+
+export type EnergyMilestone = 'flag' | 'full';
+
+/**
+ * Which celebration a fill change earns: reaching 100% beats reaching the flag. Only upward
+ * crossings count, so opening the app never plays one, and dropping back then crossing again
+ * plays it again. A Rest day is full without earning anything, so it never celebrates.
+ */
+export function energyMilestone(
+  previous: number,
+  next: number,
+  isRestDay: boolean,
+): EnergyMilestone | null {
+  if (isRestDay) return null;
+  if (next >= 1 && previous < 1) return 'full';
+  const flag = flagPosition();
+  if (next >= flag && previous < flag) return 'flag';
+  return null;
+}
