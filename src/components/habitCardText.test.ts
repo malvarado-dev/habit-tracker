@@ -2,8 +2,8 @@ import { describe, expect, it } from '@jest/globals';
 import { cardAccessibilityLabel, iconLetter, statusText, weekProgressText } from './habitCardText';
 
 describe('Habit Card status slot (SPEC-00)', () => {
-  it('a due card that has not been scored says Score needed', () => {
-    expect(statusText(undefined, true)).toBe('Score needed');
+  it('a due card that has not been scored says To do', () => {
+    expect(statusText(undefined, true)).toBe('To do');
   });
 
   it('a card that is not due and not scored says nothing', () => {
@@ -14,7 +14,7 @@ describe('Habit Card status slot (SPEC-00)', () => {
     ['Started', 'Started'],
     ['OnTrack', 'On track'],
     ['NailedIt', 'Nailed it'],
-    ['NotToday', 'Not today'],
+    ['NotToday', 'Skip'],
   ] as const)('after a tap, %s shows "%s"', (checkIn, text) => {
     expect(statusText(checkIn, true)).toBe(text);
     expect(statusText(checkIn, false)).toBe(text);
@@ -31,13 +31,13 @@ describe('screen reader', () => {
       'Sleep, On track, 2 of 3 stars, 2 of 4 this week',
     );
     expect(cardAccessibilityLabel('Sleep', undefined, true, 0, 7)).toBe(
-      'Sleep, Score needed, 0 of 7 this week',
+      'Sleep, To do, 0 of 7 this week',
     );
     expect(cardAccessibilityLabel('Exercise', undefined, false, 1, 3)).toBe(
       'Exercise, optional today, 1 of 3 this week',
     );
     expect(cardAccessibilityLabel('  ', 'NotToday', true, 0, 7)).toBe(
-      'Untitled habit, Not today, 0 of 3 stars, 0 of 7 this week',
+      'Untitled habit, Skip, 0 of 3 stars, 0 of 7 this week',
     );
   });
 });

@@ -1,7 +1,7 @@
 // Layout for the in-card score effects (SPEC-00, T9), kept apart from the component so it can be
 // tested without rendering. Every particle is a plain shape: same look on Android, iPad, and web.
 // Started = small sparkle, On track = applause pop (ring burst plus rising dots),
-// Nailed it = fireworks (two waves with trails), with no card bounce. Not today has no particles; the card dims.
+// Nailed it = fireworks (two waves with trails), with no card bounce. Skip has no particles; the card dims.
 
 import { tuning } from '@/config/tuning';
 import type { CheckIn } from '@/rules/scoring';

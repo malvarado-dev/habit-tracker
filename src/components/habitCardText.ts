@@ -4,19 +4,19 @@
 import { MAX_STARS, STARS, type CheckIn } from '@/rules/scoring';
 
 export const SCORE_LABELS: Record<CheckIn, string> = {
-  NotToday: 'Not today',
+  NotToday: 'Skip',
   Started: 'Started',
   OnTrack: 'On track',
   NailedIt: 'Nailed it',
 };
 
 /**
- * The one status slot under the stars (SPEC-00): the score name after a tap, "Score needed"
+ * The one status slot under the stars (SPEC-00): the score name after a tap, "To do"
  * on a due card that hasn't been scored, otherwise empty.
  */
 export function statusText(checkIn: CheckIn | undefined, isDue: boolean): string {
   if (checkIn) return SCORE_LABELS[checkIn];
-  return isDue ? 'Score needed' : '';
+  return isDue ? 'To do' : '';
 }
 
 /** First letter of the name, as the icon placeholder until the icon sheet. */
@@ -39,7 +39,7 @@ export function cardAccessibilityLabel(
 ): string {
   const parts = [name.trim() || 'Untitled habit'];
   if (checkIn) parts.push(`${SCORE_LABELS[checkIn]}, ${STARS[checkIn]} of ${MAX_STARS} stars`);
-  else if (isDue) parts.push('Score needed');
+  else if (isDue) parts.push('To do');
   else parts.push('optional today');
   parts.push(weekProgressText(done, goal));
   return parts.join(', ');

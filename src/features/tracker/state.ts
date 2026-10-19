@@ -82,7 +82,7 @@ function withCheckIn(
 ): TrackerState {
   const day = { ...state.log[date] };
   if (checkIn === undefined)
-    delete day[habitId]; // back to Score needed
+    delete day[habitId]; // back to To do
   else day[habitId] = checkIn;
   return { ...state, log: { ...state.log, [date]: day } };
 }

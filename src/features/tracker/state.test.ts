@@ -30,7 +30,7 @@ describe('trackerReducer', () => {
     expect(state.log[MON]?.sleep).toBe('Started');
   });
 
-  it('five taps go all the way around, back to Score needed', () => {
+  it('five taps go all the way around, back to To do', () => {
     const tap = { type: 'tapHabit', date: MON, habitId: 'sleep' } as const;
     const four = apply(createInitialState(), tap, tap, tap, tap);
     expect(four.log[MON]?.sleep).toBe('NotToday');
