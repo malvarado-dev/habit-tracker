@@ -103,10 +103,10 @@ export function appReducer(app: AppState, action: AppAction): AppState {
     case 'resetTest':
       // Erases only the test save. Real is never touched.
       if (app.mode !== 'test') return app;
-      // The fresh starter habits are added on the real date, since the pretend date goes back to it.
+      // Test starter habits have no added date, so they exist on every day the pretend date reaches.
       return {
         ...app,
-        test: { ...app.test, state: createInitialState(action.realDate) },
+        test: { ...app.test, state: createInitialState() },
         testOffset: 0,
       };
   }
@@ -133,8 +133,10 @@ export interface KeyValueStore {
  * copied to a backup key first; if that copy fails, saving stays off so nothing is lost.
  */
 export async function loadSlot(store: KeyValueStore, key: string, now: Date): Promise<Slot> {
-  // A fresh start adds the starter habits today, so their first week is scaled (#52).
-  const fresh = { state: createInitialState(toDateKey(now)), canSave: true };
+  // A fresh Real start adds the starter habits today, so their first week is scaled (#52).
+  // A fresh Test start leaves them undated, so past pretend days still show them.
+  const addedOn = key === TEST_KEY ? undefined : toDateKey(now);
+  const fresh = { state: createInitialState(addedOn), canSave: true };
   let raw: string | null;
   try {
     raw = await store.getItem(key);
