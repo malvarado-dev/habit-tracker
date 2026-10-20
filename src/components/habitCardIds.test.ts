@@ -20,6 +20,7 @@ const ids = [
   'habit-star-',
   'habit-label-',
   'habit-dim-',
+  'habit-hint-',
   'card-effect',
 ];
 

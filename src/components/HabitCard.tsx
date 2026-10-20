@@ -31,6 +31,7 @@ import { MIN_TAP_SIZE, radius, space } from '@/theme';
 
 import { CardEffect } from './CardEffect';
 import { cardMotion } from './cardEffectLayout';
+import { swipeHintsFor } from './habitCardLocked';
 import {
   cardAccessibilityLabel,
   iconLetter,
@@ -60,6 +61,7 @@ interface HabitCardProps {
 
 export function HabitCard(props: HabitCardProps) {
   const { habit, checkIn, need, progress, goalStyle, onTap, onSwipe, locked = false } = props;
+  const hints = swipeHintsFor(locked);
   const styles = useStyles();
   const { colors: c } = useTheme();
   const swipeRef = useRef<SwipeableMethods>(null);
@@ -130,13 +132,24 @@ export function HabitCard(props: HabitCardProps) {
       dragOffsetFromRight={-tuning.card.swipeStartOffset}
       overshootLeft={false}
       overshootRight={false}
-      renderLeftActions={() => <SwipeHint text="Nailed it" color={c.scoreNailedIt} start />}
-      renderRightActions={() => <SwipeHint text="Skip" color={c.onSurfaceMuted} />}
+      renderLeftActions={
+        hints.left
+          ? () => (
+              <SwipeHint habitId={id} text={hints.left as string} color={c.scoreNailedIt} start />
+            )
+          : undefined
+      }
+      renderRightActions={
+        hints.right
+          ? () => <SwipeHint habitId={id} text={hints.right as string} color={c.onSurfaceMuted} />
+          : undefined
+      }
       onSwipeableWillOpen={handleSwipe}
       enabled={!locked}
-      containerStyle={[styles.swipeContainer, locked && { opacity: LOCKED_OPACITY }]}
+      containerStyle={styles.swipeContainer}
     >
-      <Animated.View style={scaleStyle}>
+      {/* Dim the card itself, not the swipe container, so nothing behind it shows through. */}
+      <Animated.View style={[scaleStyle, locked && { opacity: LOCKED_OPACITY }]}>
         <Pressable
           onPress={onTap}
           disabled={locked}
@@ -340,10 +353,15 @@ function starColor(c: ThemeColors, checkIn: CheckIn | undefined, filled: boolean
   return c.scoreNailedItStar;
 }
 
-function SwipeHint({ text, color, start }: { text: string; color: string; start?: boolean }) {
+function SwipeHint(props: { habitId: string; text: string; color: string; start?: boolean }) {
+  const { habitId, text, color, start } = props;
+  const side = start ? 'left' : 'right';
   const styles = useStyles();
   return (
-    <View style={[styles.hint, { alignItems: start ? 'flex-start' : 'flex-end' }]}>
+    <View
+      testID={`habit-hint-${side}-${habitId}`}
+      style={[styles.hint, { alignItems: start ? 'flex-start' : 'flex-end' }]}
+    >
       <Text style={[styles.hintText, { color }]}>{text}</Text>
     </View>
   );
