@@ -14,6 +14,7 @@ import {
   type KeyValueStore,
 } from './modes';
 import { createInitialState } from './state';
+import { existsOn } from '../../rules/scoring';
 
 // Pretend dates. Monday 2026-10-19 is the real date.
 const REAL = '2026-10-19';
@@ -86,7 +87,7 @@ describe('Real and Test never cross', () => {
     );
     const { app, keys } = run(start.app, { type: 'resetTest', realDate: REAL });
     expect(keys).toEqual([TEST_KEY]);
-    expect(app.test.state).toEqual(createInitialState(REAL));
+    expect(app.test.state).toEqual(createInitialState());
     expect(app.real.state.log[REAL]).toEqual({ sleep: 'Started' });
   });
 
@@ -146,7 +147,7 @@ describe('loading', () => {
     const app = await loadAppState(fakeStore(), new Date(2026, 9, 19, 12));
     expect(app.mode).toBe('real');
     // A fresh start adds the starter habits today, so their first week is scaled (#52).
-    expect(app.test.state).toEqual(createInitialState(REAL));
+    expect(app.test.state).toEqual(createInitialState());
     expect(app.real.state.habits.every((h) => h.addedOn === REAL)).toBe(true);
     expect(app.testOffset).toBe(0);
   });
@@ -186,5 +187,25 @@ describe('loading', () => {
     const app = await loadAppState(store, new Date('2026-10-19T12:00:00Z'));
     expect(Object.keys(store.data).some((k) => k.startsWith(`${REAL_KEY}/backup/`))).toBe(true);
     expect(app.real.canSave).toBe(true);
+  });
+});
+
+describe('Test starter habits exist on every day', () => {
+  const FOUR_BACK = '2026-10-15';
+
+  it('after Reset test data, a day 4 days back shows all four starter habits', () => {
+    const start: AppState = { ...createAppState(), mode: 'test' };
+    const { app } = run(start, tap('sleep'), { type: 'resetTest', realDate: REAL });
+    const habits = app.test.state.habits;
+    expect(habits).toHaveLength(4);
+    expect(habits.every((h) => h.addedOn === undefined)).toBe(true);
+    expect(habits.filter((h) => existsOn(h, FOUR_BACK))).toHaveLength(4);
+  });
+
+  it('a brand-new Test save shows all four starter habits 4 days back, while Real stays dated', async () => {
+    const app = await loadAppState(fakeStore(), new Date(2026, 9, 19, 12));
+    expect(app.test.state.habits.filter((h) => existsOn(h, FOUR_BACK))).toHaveLength(4);
+    expect(app.real.state.habits.every((h) => h.addedOn === REAL)).toBe(true);
+    expect(app.real.state.habits.some((h) => existsOn(h, FOUR_BACK))).toBe(false);
   });
 });
