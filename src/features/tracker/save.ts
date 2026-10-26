@@ -10,7 +10,7 @@ import type { Habit, LogCounts, Weekday } from '@/rules/habits';
 import { dayResult, allHabits, type LockedDay } from '@/rules/locking';
 import type { TrackerState } from './state';
 
-export const CURRENT_VERSION = 11;
+export const CURRENT_VERSION = 12;
 
 /** Before v9 (Prototype 1 and P2-07): a check-in was a star level per habit per day. */
 type OldCheckIn = 'NotToday' | 'Started' | 'OnTrack' | 'NailedIt';
@@ -54,7 +54,7 @@ function isV4(v: Record<string, unknown>): v is SaveV4 & Record<string, unknown>
   );
 }
 
-function isV5Shape(v: Record<string, unknown>, version: 5 | 6 | 7 | 8 | 9 | 10 | 11): boolean {
+function isV5Shape(v: Record<string, unknown>, version: 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12): boolean {
   return (
     v.version === version &&
     Array.isArray(v.habits) &&
@@ -86,7 +86,7 @@ const isV10 = (v: Record<string, unknown>) =>
   isObject(v.targets) &&
   Array.isArray(v.badHabits) &&
   isObject(v.slips);
-const isV11 = (v: Record<string, unknown>): v is TrackerState & Record<string, unknown> =>
+const isV11 = (v: Record<string, unknown>) =>
   isV5Shape(v, 11) &&
   Array.isArray(v.removed) &&
   isObject(v.pet) &&
@@ -95,6 +95,8 @@ const isV11 = (v: Record<string, unknown>): v is TrackerState & Record<string, u
   Array.isArray(v.badHabits) &&
   isObject(v.slips) &&
   isObject(v.skips);
+const isV12 = (v: Record<string, unknown>): v is TrackerState & Record<string, unknown> =>
+  isV11({ ...v, version: 11 }) && v.version === 12 && isObject(v.designTallies);
 
 /** v9: a weekly goal becomes a schedule (when it's due), and every habit starts at 1 time a day. */
 function upgradeHabit(old: OldHabit): Habit {
@@ -191,6 +193,12 @@ const UPGRADES: Record<number, (save: Record<string, unknown>) => Record<string,
     if (!isV10(save)) throw new Error('Not a valid v10 save');
     return { ...save, version: 11, skips: {} };
   },
+  // v11 to v12 (P2-10): adds the per-design playtest tally, empty. Older logs have no design, so
+  // they aren't counted in it. Everything else is copied as it was.
+  11: (save) => {
+    if (!isV11(save)) throw new Error('Not a valid v11 save');
+    return { ...save, version: 12, designTallies: {} };
+  },
 };
 
 export type LoadResult =
@@ -228,7 +236,7 @@ export function loadSave(raw: string | null): LoadResult {
     return { kind: 'unreadable', raw };
   }
 
-  if (!isV11(save)) return { kind: 'unreadable', raw };
+  if (!isV12(save)) return { kind: 'unreadable', raw };
   return { kind: 'loaded', state: save, upgradedFrom: from === CURRENT_VERSION ? null : from };
 }
 

@@ -28,7 +28,7 @@ const start = (): TrackerState => ({
   badHabits: [eatOut, soda],
 });
 const run = (state: TrackerState, ...actions: Parameters<typeof trackerReducer>[1][]) =>
-  actions.reduce(trackerReducer, state);
+  actions.reduce((s, a) => trackerReducer(s, a), state);
 const logEat = { type: 'logHabit', date: DAY, habitId: 'eat' } as const;
 const slipEatOut = { type: 'logSlip', date: DAY, badHabitId: 'eat-out' } as const;
 
