@@ -1,4 +1,5 @@
 /// <reference types="node" />
+// House rule (TESTING.md, rule 3): reads the code on purpose, like a lint rule.
 // CI runs Playwright inside Microsoft's Playwright image, which ships one browser build. If
 // @playwright/test is upgraded without the image, tests fail with "browser not found", so this
 // keeps the two in step.

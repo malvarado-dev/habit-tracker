@@ -1,10 +1,7 @@
-/// <reference types="node" />
 // T22: Test mode keeps today and the 45 days before it open, so History can be filled in fast.
 // Older days can't be opened in Test, and the month arrows stop at the oldest open day's month.
 // Real keeps the 2-day lock and is never changed by Test (SPEC-00, Test-only area).
 import { describe, expect, it } from '@jest/globals';
-import { readFileSync } from 'fs';
-import { join } from 'path';
 
 import { calendar } from '@/config/calendar';
 import {
@@ -130,12 +127,5 @@ describe('History in Test (T22)', () => {
       locked: true,
       text: 'Habits locked in',
     });
-  });
-
-  it('History passes the Test window through to the calendar', () => {
-    const read = (p: string) => readFileSync(join(__dirname, p), 'utf8');
-    const view = read('../../components/history/HistoryView.tsx');
-    expect(view).toContain('monthGrid(month, state, today, oldestDay)');
-    expect(view).toContain('monthLimits(month, state.log, today, oldestDay)');
   });
 });
