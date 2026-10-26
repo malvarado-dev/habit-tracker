@@ -43,3 +43,8 @@ coverage/
 
 # private art, copied in by scripts/sync-art.mjs (never commit it)
 assets/private/
+
+# Playwright results and reports (npm run e2e)
+playwright-report/
+test-results/
+blob-report/

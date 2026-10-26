@@ -7,6 +7,11 @@ module.exports = defineConfig([
   expoConfig,
   prettierConfig,
   {
-    ignores: ['dist/*', '.expo/*', 'coverage/*'],
+    ignores: ['dist/*', '.expo/*', 'coverage/*', 'playwright-report/*', 'test-results/*'],
+  },
+  {
+    // Playwright fixtures call `use()`, which the React rules mistake for a React hook.
+    files: ['e2e/**'],
+    rules: { 'react-hooks/rules-of-hooks': 'off' },
   },
 ]);
