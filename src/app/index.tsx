@@ -14,8 +14,10 @@ import { SceneLayout } from '@/components/SceneLayout';
 import { SideMenu } from '@/components/SideMenu';
 import { useAffectionPurr } from '@/components/useAffectionPurr';
 import { useCritterWake } from '@/components/useCritterWake';
+import { useExploreReveal } from '@/components/useExploreReveal';
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import { getActivityBar } from '@/rules/activityBar';
+import { isExploring } from '@/rules/explore';
 import { allHabits, barLog } from '@/rules/locking';
 import { hasHabitLog, petPlace } from '@/rules/petPlace';
 import { petStats } from '@/rules/petStats';
@@ -40,6 +42,7 @@ export default function HomeScreen() {
   const stats = petStats(state);
   const awake = hasHabitLog(state.log, today);
   useAffectionPurr(stats.love, awake, focused);
+  useExploreReveal(focused);
 
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -48,6 +51,7 @@ export default function HomeScreen() {
       testID="today-screen"
       critter={{ level: skyLevel, woken, onWake: wake, time: skyTime }}
       pet={petPlace(stats.confidence, awake)}
+      exploring={isExploring(state.explore, today)}
       corner={(onPage) => (
         <MenuButton time={skyTime} onPage={onPage} onPress={() => setMenuOpen(true)} />
       )}

@@ -173,9 +173,10 @@ describe('loading', () => {
     const store = fakeStore({ [REAL_KEY]: JSON.stringify(v4) });
     const app = await loadAppState(store, new Date());
     expect(app.real.state).toEqual({
-      version: 14,
+      version: 15,
       pet: UPGRADED_PET,
       quests: { heal: { acceptedOn: null, claimedOn: null } },
+      explore: { sent: [], seenThrough: null },
       habits,
       removed: [],
       log: { [REAL]: { sleep: 1 } },

@@ -185,6 +185,15 @@ export function TestTools() {
           >
             <Text style={styles.buttonText}>Reset quest</Text>
           </Pressable>
+          {/* Explore (P2-16): send the Test pet out without a full bar. Next day brings it home. */}
+          <Pressable
+            onPress={testTools.sendExploring}
+            style={styles.button}
+            testID="send-exploring"
+            accessibilityRole="button"
+          >
+            <Text style={styles.buttonText}>Send exploring now</Text>
+          </Pressable>
         </>
       ) : null}
 

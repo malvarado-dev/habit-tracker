@@ -76,6 +76,20 @@ export function onPetMomentStart(listener: Listener): () => void {
   };
 }
 
+const captions = new Set<(text: string) => void>();
+
+/** A narrator line with no pet moment (Explore, P2-16): the caption above the bar shows it. */
+export function announce(text: string): void {
+  captions.forEach((l) => l(text));
+}
+
+export function onAnnounce(listener: (text: string) => void): () => void {
+  captions.add(listener);
+  return () => {
+    captions.delete(listener);
+  };
+}
+
 /** Tests only: empty the queue. */
 export function resetPetMoments(): void {
   queue.length = 0;

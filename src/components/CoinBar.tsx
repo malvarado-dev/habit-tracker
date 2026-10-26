@@ -23,6 +23,7 @@ import { takeCoinOrigin, takeQuietCoins } from '@/features/coins/coinOrigin';
 import { playCoinSound } from '@/features/coins/coinSound';
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import { totalCoins } from '@/rules/coins';
+import { exploreCoins } from '@/rules/explore';
 import { allHabits } from '@/rules/locking';
 
 const BAR_HEIGHT = 44;
@@ -36,13 +37,15 @@ interface Flight {
 }
 
 export function CoinBar() {
-  const { state, mode } = useTracker();
+  const { state, mode, today } = useTracker();
   const reduceMotion = useReducedMotion();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const c = tuning.coins;
 
-  const balance = totalCoins({ ...state, habits: allHabits(state) });
+  // Log Coins plus what the pet found exploring (P2-16).
+  const balance =
+    totalCoins({ ...state, habits: allHabits(state) }) + exploreCoins(state.explore, today);
   const [shown, setShown] = useState(balance);
   const [flights, setFlights] = useState<Flight[]>([]);
   const last = useRef({ balance, mode });

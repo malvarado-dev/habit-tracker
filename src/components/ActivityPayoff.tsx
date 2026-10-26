@@ -16,7 +16,7 @@ import Animated, {
 import { tuning } from '@/config/tuning';
 import { textStyle } from '@/design/fonts';
 import { useTheme } from '@/design/theme/ThemeProvider';
-import { onPetMomentStart } from '@/scene/petMoments';
+import { onAnnounce, onPetMomentStart } from '@/scene/petMoments';
 
 const m = tuning.pet.moments;
 
@@ -100,18 +100,24 @@ export function MomentCaption() {
   const [text, setText] = useState('');
   const opacity = useSharedValue(0);
 
-  useEffect(
-    () =>
-      onPetMomentStart((moment) => {
-        if (moment.kind === 'react' || !moment.caption) return;
-        setText(moment.caption);
-        opacity.value = withSequence(
-          withTiming(1, { duration: m.captionFadeMs }),
-          withDelay(m.captionMs, withTiming(0, { duration: m.captionFadeMs })),
-        );
-      }),
-    [opacity],
-  );
+  useEffect(() => {
+    const show = (caption: string) => {
+      setText(caption);
+      opacity.value = withSequence(
+        withTiming(1, { duration: m.captionFadeMs }),
+        withDelay(m.captionMs, withTiming(0, { duration: m.captionFadeMs })),
+      );
+    };
+    const offMoment = onPetMomentStart((moment) => {
+      if (moment.kind !== 'react' && moment.caption) show(moment.caption);
+    });
+    // Narrator lines without a pet moment (Explore, P2-16).
+    const offAnnounce = onAnnounce(show);
+    return () => {
+      offMoment();
+      offAnnounce();
+    };
+  }, [opacity]);
 
   const style = useAnimatedStyle(() => ({ opacity: opacity.value }));
   return (

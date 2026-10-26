@@ -28,16 +28,19 @@ import { addToTally, habitsForDesign, timesFor, type DesignTallies } from '@/rul
 import { dayLogs, isSkipped, type Skips } from '@/rules/linked';
 import { allHabits, isLocked, lockDays, type LockedDay } from '@/rules/locking';
 import { adjustFor, type PetAdjust, type PetStat } from '@/rules/petStats';
+import { START_EXPLORE, type ExploreState } from '@/rules/explore';
 import { healStatus, START_QUESTS, testBonusFor, type QuestState } from '@/rules/quest';
 import { cleanName, nameProblem } from '@/features/habits/habitName';
 
 export interface TrackerState {
   /** Bumped when the saved shape changes. Older saves are upgraded step by step (save.ts). */
-  version: 14;
+  version: 15;
   /** Test nudges to the pet's Love and Confidence (P2-13). Confidence picks its spot (P2-12). */
   pet: PetState;
   /** Quests (P2-15): the Heal quest's accept and claim days. */
   quests: QuestState;
+  /** Explore (P2-16): days the pet was sent, and the newest reward shown. */
+  explore: ExploreState;
   /** Active habits, in card order. */
   habits: Habit[];
   /** Removed habits, each with the day it was removed, so their active days still score (T21). */
@@ -116,9 +119,10 @@ export function cleanSchedule(schedule: Schedule): Schedule | null {
 /** A fresh start. `addedOn` is the tracker's own date (Test uses its pretend date). */
 export function createInitialState(addedOn?: DateKey): TrackerState {
   return {
-    version: 14,
+    version: 15,
     pet: START_PET,
     quests: START_QUESTS,
+    explore: START_EXPLORE,
     removed: [],
     habits: addedOn ? DEFAULT_HABITS.map((h) => ({ ...h, addedOn })) : DEFAULT_HABITS,
     log: {},
@@ -159,6 +163,9 @@ export type TrackerAction =
   | { type: 'setHealCheckIns'; count: number; date: DateKey }
   /** Test tools: back to a new, unaccepted quest. */
   | { type: 'resetQuest' }
+  /** Explore (P2-16): send the pet out today (once), and mark a revealed reward as shown. */
+  | { type: 'sendExploring'; date: DateKey }
+  | { type: 'markExploreSeen'; date: DateKey }
   /** Add habit (P2-09): a bad habit, standalone or paired with one good habit. */
   | { type: 'addBadHabit'; id: string; name: string; pairedWith?: string; date: DateKey }
   /** Tray tap: one more slip. */
@@ -389,6 +396,16 @@ export function trackerReducer(
       const accepted = { ...state, quests: { heal } };
       const testBonus = testBonusFor(action.count, accepted, action.date);
       return { ...state, quests: { heal: { ...heal, testBonus } } };
+    }
+    case 'sendExploring': {
+      if (state.explore.sent.includes(action.date)) return state;
+      const sent = [...state.explore.sent, action.date].sort();
+      return { ...state, explore: { ...state.explore, sent } };
+    }
+    case 'markExploreSeen': {
+      const seen = state.explore.seenThrough;
+      if (seen !== null && seen >= action.date) return state;
+      return { ...state, explore: { ...state.explore, seenThrough: action.date } };
     }
     case 'resetQuest':
       return { ...state, quests: START_QUESTS };

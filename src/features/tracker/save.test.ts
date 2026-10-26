@@ -114,7 +114,7 @@ describe('loadSave', () => {
       kind: 'loaded',
       state: {
         ...v9,
-        version: 14,
+        version: 15,
         pet: anyPet,
         badHabits: [],
         slips: {},
@@ -130,7 +130,7 @@ describe('loadSave', () => {
     const v10 = { ...rest, pet: OLD_PET, version: 10, slips: { '2026-10-20': { soda: 2 } } };
     expect(loadSave(JSON.stringify(v10))).toEqual({
       kind: 'loaded',
-      state: { ...v10, version: 14, pet: anyPet, skips: {}, designTallies: {} },
+      state: { ...v10, version: 15, pet: anyPet, skips: {}, designTallies: {} },
       upgradedFrom: 10,
     });
   });
@@ -146,7 +146,7 @@ describe('loadSave', () => {
     };
     expect(loadSave(JSON.stringify(v11))).toEqual({
       kind: 'loaded',
-      state: { ...v11, version: 14, pet: anyPet, designTallies: {} },
+      state: { ...v11, version: 15, pet: anyPet, designTallies: {} },
       upgradedFrom: 11,
     });
   });
@@ -180,12 +180,27 @@ describe('loadSave', () => {
   });
 
   it('v13 to v14 (P2-15) adds the Heal quest, not accepted, and keeps everything else', () => {
-    const { quests: _q, ...rest } = createInitialState();
+    const { quests: _q, explore: _e, ...rest } = createInitialState();
     const v13 = { ...rest, version: 13, log: { '2026-10-20': { sleep: 1 } } };
     expect(loadSave(JSON.stringify(v13))).toEqual({
       kind: 'loaded',
-      state: { ...v13, version: 14, quests: { heal: { acceptedOn: null, claimedOn: null } } },
+      state: {
+        ...v13,
+        version: 15,
+        quests: { heal: { acceptedOn: null, claimedOn: null } },
+        explore: { sent: [], seenThrough: null },
+      },
       upgradedFrom: 13,
+    });
+  });
+
+  it('v14 to v15 (P2-16) adds Explore with nothing sent, and keeps everything else', () => {
+    const { explore: _e, ...rest } = createInitialState();
+    const v14 = { ...rest, version: 14, log: { '2026-10-20': { sleep: 1 } } };
+    expect(loadSave(JSON.stringify(v14))).toEqual({
+      kind: 'loaded',
+      state: { ...v14, version: 15, explore: { sent: [], seenThrough: null } },
+      upgradedFrom: 14,
     });
   });
 

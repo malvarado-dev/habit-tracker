@@ -65,6 +65,8 @@ interface TrackerContextValue {
     healCheckIns: number;
     setHealCheckIns: (count: number) => void;
     resetQuest: () => void;
+    /** Sends the Test pet exploring now (P2-16). */
+    sendExploring: () => void;
   };
 }
 
@@ -178,6 +180,7 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
         setHealCheckIns: (count) =>
           rawDispatch({ type: 'setTestHealCheckIns', count, realDate: realDate() }),
         resetQuest: () => rawDispatch({ type: 'resetTestQuest', realDate: realDate() }),
+        sendExploring: () => rawDispatch({ type: 'sendTestExploring', realDate: realDate() }),
       },
     }),
     [app, dispatch, now, badHabitDesign],
