@@ -5,7 +5,7 @@
 // screen shows its date and a percent row above the bar. Reduced motion: only the brighten.
 
 import { useEffect, useState } from 'react';
-import { Image, type LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
+import { type LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -23,7 +23,11 @@ import { useTheme } from '@/design/theme/ThemeProvider';
 import { energyBar as bar } from '@/design/tokens';
 import { activityArt } from '@/scene/art';
 
+import { MOMENT_NOTCH, momentCaption, notchesReached, pickMoment } from '@/rules/payoff';
+import { onPetMomentStart, requestPetMoment } from '@/scene/petMoments';
+
 import { activityBarLabel, clampFill, justFilled, notchPositions, seeded } from './activityBarText';
+import { MomentCaption, NotchIcon } from './ActivityPayoff';
 import { fillEasing, fillMs } from './motion';
 
 type Props = {
@@ -40,6 +44,8 @@ type Props = {
    * label row is left out. The icons rise above the track without adding height.
    */
   activityIcons?: boolean;
+  /** Habits finished today, for the full-bar caption (P2-14). Today only. */
+  finished?: number;
 };
 
 /** Activity Bar icons, one per notch, lowest notch first. */
@@ -50,7 +56,7 @@ const ACTIVITY_ICONS = [
 ] as const;
 
 export function ActivityBar(props: Props) {
-  const { fill, logs, target, isRestDay, label, activityIcons = false } = props;
+  const { fill, logs, target, isRestDay, label, activityIcons = false, finished = 0 } = props;
   const { colors } = useTheme();
   const reduceMotion = useReducedMotion();
   const fraction = clampFill(fill);
@@ -74,10 +80,34 @@ export function ActivityBar(props: Props) {
   const cel = tuning.energy.celebrate;
   const [previous, setPrevious] = useState(fraction);
   const [fills, setFills] = useState(0);
+  /** Times each notch was reached on an upward move, so its icon rattles (P2-14). */
+  const [rattles, setRattles] = useState<number[]>(() => notchPositions().map(() => 0));
   if (previous !== fraction) {
     setPrevious(fraction);
     if (justFilled(previous, fraction, isRestDay)) setFills((n) => n + 1);
+    const reached = isRestDay ? [] : notchesReached(previous, fraction);
+    if (reached.length > 0) setRattles((r) => r.map((n, i) => (reached.includes(i) ? n + 1 : n)));
   }
+
+  // A full bar on Today plays one pet moment, with a caption (P2-14). Visual only.
+  useEffect(() => {
+    if (fills === 0 || !activityIcons) return;
+    const kind = pickMoment(Math.random);
+    requestPetMoment({ kind, caption: momentCaption(kind, finished) });
+    // Only a new fill fires a moment; `finished` is read at that time.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fills, activityIcons]);
+
+  /** The moment that's playing pops its notch icon. */
+  const [pops, setPops] = useState<number[]>(() => notchPositions().map(() => 0));
+  useEffect(() => {
+    if (!activityIcons) return;
+    return onPetMomentStart((m) => {
+      if (m.kind === 'react' || !m.caption) return;
+      const i = MOMENT_NOTCH[m.kind];
+      setPops((p) => p.map((n, j) => (j === i ? n + 1 : n)));
+    });
+  }, [activityIcons]);
   const shimmer = useSharedValue(0);
   const flash = useSharedValue(0);
 
@@ -133,6 +163,7 @@ export function ActivityBar(props: Props) {
         </View>
       )}
       <View>
+        {activityIcons ? <MomentCaption /> : null}
         <View onLayout={onTrackLayout} style={[styles.track, { backgroundColor: colors.track }]}>
           <Animated.View
             testID="activity-bar-fill"
@@ -179,11 +210,13 @@ export function ActivityBar(props: Props) {
                 const [name, source] = ACTIVITY_ICONS[i] ?? ACTIVITY_ICONS[2];
                 const size = tuning.activityBar.iconSize;
                 return (
-                  <Image
+                  <NotchIcon
                     key={name}
+                    name={name}
                     source={source}
-                    pointerEvents="none"
-                    testID={`activity-icon-${name}`}
+                    rattle={rattles[i] ?? 0}
+                    pop={pops[i] ?? 0}
+                    reduceMotion={reduceMotion}
                     style={{
                       position: 'absolute',
                       width: size,

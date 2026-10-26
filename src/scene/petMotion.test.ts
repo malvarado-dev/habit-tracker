@@ -12,7 +12,6 @@ import {
   reactionEyesShut,
   reactionShape,
 } from './petMotion';
-import { onPetReactionRequest, requestPetReaction, takePetReaction } from './petReaction';
 
 const m = tuning.pet.motion;
 const fixed = (n: number) => () => n;
@@ -111,15 +110,5 @@ describe('reaction', () => {
     expect(crouch).toEqual([0, b.jump]);
     expect(landing[0]).toBe(b.land);
     expect(landing[1]).toBeGreaterThan(b.settle);
-  });
-
-  it('a request plays once', () => {
-    let heard = 0;
-    const off = onPetReactionRequest(() => heard++);
-    requestPetReaction();
-    off();
-    expect(heard).toBe(1);
-    expect(takePetReaction()).toBe(true);
-    expect(takePetReaction()).toBe(false);
   });
 });

@@ -3,14 +3,18 @@
 //   with a rest between breaths. No up/down bob, no even all-over scaling.
 // - Blink: random gaps, swaps to the eyes-closed PNG, sometimes twice.
 // - Reaction (P2-11b, #106): crouch and hold, jump with a stretch, hang, land hard and spring
-//   back, eyes shut on the crouch and the landing. Only on a request: wake, Test tools, and
-//   later Activity Bar moments (petReaction.ts). Never random.
+//   back, eyes shut on the crouch and the landing. Only on a request (wake, Test tools).
+// - Moments (P2-14, #85): eat, pounce, purr from the Activity Bar, petting, and the affection
+//   purr. Eyes close and small hearts rise; the bowl or toy comes in (PetMomentLayer). Everything
+//   plays one at a time from the moment queue (petMoments.ts). Never random on its own.
+// Tap or swipe the awake pet to pet it: it purrs.
 // Reduced motion: blink plus breathing at half strength, no reaction. Asleep: slower, deeper
 // breaths, no blink, no reaction. Every number is in tuning.pet.motion.
 
 import { useIsFocused } from 'expo-router';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Image, StyleSheet, type ImageSourcePropType } from 'react-native';
+import { Image, StyleSheet, View, type ImageSourcePropType } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
   cancelAnimation,
@@ -23,13 +27,23 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { tuning } from '@/config/tuning';
-import { onPetReactionRequest, requestPetReaction, takePetReaction } from '@/scene/petReaction';
+import { momentPlan } from '@/rules/payoff';
+import {
+  finishPetMoment,
+  onPetMomentRequest,
+  requestPetReaction,
+  requestPetting,
+  takePetMoment,
+  type PetMoment,
+} from '@/scene/petMoments';
+import { PetMomentLayer, type HeartSpec, type PropSpec } from './PetMomentLayer';
 import {
   canBlink,
   canReact,
   isWake,
   nextBlink,
   nextBreath,
+  reactionBeats,
   reactionEyesShut,
   reactionShape,
 } from '@/scene/petMotion';
@@ -152,23 +166,85 @@ export function PetMotion({
     ]);
   }, [pose, reduceMotion, squash, hop]);
 
-  // Reaction requests (wake, Test tools): play once the pet is on screen.
+  const [hearts, setHearts] = useState<HeartSpec[]>([]);
+  const [prop, setProp] = useState<PropSpec | null>(null);
+  const [moves, setMoves] = useState(true);
+  const ids = useRef(0);
+
+  /** Plays one moment and returns how long until the next may start. */
+  const run = useCallback(
+    (moment: PetMoment, timers: ReturnType<typeof setTimeout>[]): number => {
+      const later = (fn: () => void, ms: number) => timers.push(setTimeout(fn, ms));
+      if (moment.kind === 'react') {
+        timers.push(...react());
+        return reactionBeats().settle + motion.reaction.eyesOpenAfterLandMs;
+      }
+      const plan = momentPlan(moment.kind, {
+        reduceMotion,
+        hopMs: reactionBeats().settle + motion.reaction.eyesOpenAfterLandMs,
+      });
+      setMoves(plan.moves);
+      for (const [from, to] of plan.eyesShut) {
+        later(() => setSqueezing(true), from);
+        later(() => setSqueezing(false), to);
+      }
+      setHearts(plan.hearts.map((delayMs) => ({ id: ++ids.current, delayMs })));
+      if (plan.prop) setProp({ id: ++ids.current, ...plan.prop });
+      if (plan.hopAt !== undefined) later(() => timers.push(...react()), plan.hopAt);
+      later(() => {
+        setHearts([]);
+        setProp(null);
+      }, plan.totalMs);
+      return plan.totalMs;
+    },
+    [react, reduceMotion],
+  );
+
+  // The moment queue: play one at a time while Today is on screen.
   useEffect(() => {
-    if (!focused) return;
-    let timers: ReturnType<typeof setTimeout>[] = [];
+    if (!focused || asleep) return;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    let busy = false;
     const play = () => {
-      if (!takePetReaction()) return;
-      timers.forEach(clearTimeout);
-      timers = [setTimeout(() => (timers = [...timers, ...react()]), motion.reaction.startDelayMs)];
+      if (busy) return;
+      const moment = takePetMoment();
+      if (!moment) return;
+      busy = true;
+      timers.push(
+        setTimeout(() => {
+          const ms = run(moment, timers);
+          timers.push(
+            setTimeout(() => {
+              finishPetMoment();
+              busy = false;
+              play();
+            }, ms),
+          );
+        }, motion.reaction.startDelayMs),
+      );
     };
     play();
-    const off = onPetReactionRequest(play);
+    const off = onPetMomentRequest(play);
     return () => {
       off();
       timers.forEach(clearTimeout);
+      if (busy) finishPetMoment();
       setSqueezing(false);
+      setHearts([]);
+      setProp(null);
     };
-  }, [focused, react]);
+  }, [focused, asleep, run]);
+
+  // Petting: tap or swipe the awake pet and it purrs.
+  const petting = Gesture.Race(
+    Gesture.Tap()
+      .runOnJS(true)
+      .onEnd(() => requestPetting()),
+    Gesture.Pan()
+      .minDistance(tuning.pet.moments.petSwipe)
+      .runOnJS(true)
+      .onStart(() => requestPetting()),
+  );
 
   const narrow = motion.breath.narrow;
   const squashWidth = motion.reaction.squashWidth;
@@ -219,6 +295,16 @@ export function PetMotion({
           />
         ) : null}
       </Animated.View>
+      <PetMomentLayer pet={image} hearts={hearts} prop={prop} moves={moves} />
+      {asleep ? null : (
+        <GestureDetector gesture={petting}>
+          <View
+            style={[styles.abs, boxStyle(image)]}
+            // The room is decoration to screen readers; petting is for feel only.
+            testID="pet-touch"
+          />
+        </GestureDetector>
+      )}
     </>
   );
 }

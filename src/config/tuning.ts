@@ -52,6 +52,51 @@ export const tuning = {
     },
     /** Test tools Love and Confidence steppers: how much each tap moves them. */
     statStep: 10,
+
+    /** Activity Bar payoff and petting (P2-14, #85, rules/payoff.ts). Visual only. */
+    moments: {
+      /** Love above this purrs at you once per app open (PRD-09). */
+      affectionLoveAbove: 30,
+      /** One small heart: rise and fade. */
+      heartMs: 1100,
+      /** Heart size and how far it rises, in points. */
+      heartSize: 14,
+      heartRise: 18,
+      /** Purr: this many hearts, each starting when the last is this far through (0 to 1). */
+      purrHearts: 3,
+      purrHeartOverlap: 0.7,
+      /** Eat and pounce end with a "thank you": eyes closed and one heart. */
+      thanksDelayMs: 150,
+      thanksMs: 900,
+      /** Bowl slides in; toy is tossed in and bounces twice. */
+      bowlInMs: 600,
+      toyInMs: 1000,
+      /** Toy bounce heights, as a share of the toss height. */
+      toyBounces: [0.3, 0.12] as const,
+      /** Prop size (a share of the pet's width) and the gap beside the pet's right side. */
+      propSize: 0.32,
+      propGap: 4,
+      /** How far up the toss starts, and how far right of the pet, in points. */
+      tossHeight: 110,
+      tossFrom: 140,
+      /** The prop stays a moment after the thank you, then fades. */
+      propHoldMs: 300,
+      propOutMs: 400,
+      /** Quiet gap before the next queued moment. */
+      restMs: 300,
+      /** Swipe distance on the pet that counts as petting, in points. */
+      petSwipe: 24,
+      /** Full-bar caption above the bar. */
+      captionMs: 3000,
+      captionFadeMs: 300,
+      /** Notch icon: rattle when reached, pop when its moment plays. */
+      rattleDegrees: 18,
+      rattleMs: 450,
+      popScale: 1.45,
+      popMs: 400,
+      /** Reduced motion: the notch icon brightens instead. */
+      brightenOpacity: 0.45,
+    },
     /** Spots (P2-12, PRD-09): under hideBelow the pet hides behind the bed; up to restUpTo it
      * rests on the bed once awake; above that it sits in the middle of the room. */
     hideBelow: 10,

@@ -26,7 +26,7 @@ import { tuning } from '@/config/tuning';
 import { BAD_HABIT_DESIGNS, BAD_HABIT_DESIGN_LABELS } from '@/features/settings/settings';
 import { useSettings } from '@/features/settings/SettingsProvider';
 import { useTracker } from '@/features/tracker/TrackerProvider';
-import { requestPetReaction } from '@/scene/petReaction';
+import { requestPetReaction } from '@/scene/petMoments';
 import { MAX_STAT, MIN_STAT, type PetStat } from '@/rules/petStats';
 import { timesPerDay } from '@/rules/habits';
 import type { Mode } from '@/features/tracker/modes';

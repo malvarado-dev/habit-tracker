@@ -21,6 +21,7 @@ import { slipCount, trayHabits, type BadHabit } from '@/rules/badHabits';
 import { type Habit } from '@/rules/habits';
 import { dayLogs, linkedBadHabit } from '@/rules/linked';
 import { allHabits, barLog } from '@/rules/locking';
+import { finishedCount } from '@/rules/payoff';
 import { groupHabits } from '@/rules/sheet';
 import { space } from '@/theme';
 
@@ -121,6 +122,7 @@ export function HabitSheet({ bottomPadding }: { bottomPadding: number }) {
         target={bar.target}
         isRestDay={bar.isRestDay}
         activityIcons
+        finished={finishedCount(allHabits(state), log, today)}
       />
       <ScrollView
         style={styles.scroll}

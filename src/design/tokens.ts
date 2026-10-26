@@ -86,6 +86,11 @@ export const critter = {
   mouth: '#FF4D3A',
 } as const;
 
+/** The pet's own colors (P2-14). Kept apart from the themes, like the critter palette. */
+export const petColors = {
+  heart: '#E8547A',
+} as const;
+
 /** Shared skies (background.md). Change only with time of day, never with the theme. */
 export const background = {
   dayTop: '#F6D58E',

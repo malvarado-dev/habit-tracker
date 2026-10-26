@@ -63,7 +63,7 @@ export function RoomScene({
   const petLayer = (
     <View
       style={StyleSheet.absoluteFill}
-      pointerEvents="none"
+      pointerEvents="box-none"
       testID="pet-layer"
       nativeID={`pet-at-${place.spot}-${place.layer}`}
     >
@@ -81,7 +81,8 @@ export function RoomScene({
   return (
     <View
       style={[StyleSheet.absoluteFill, styles.floor]}
-      pointerEvents="none"
+      // Only the pet takes touches (petting, P2-14); everything else in the room passes them on.
+      pointerEvents="box-none"
       testID="room-scene"
       accessible={false}
       importantForAccessibility="no-hide-descendants"
