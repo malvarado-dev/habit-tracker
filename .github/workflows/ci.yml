@@ -34,6 +34,11 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # Microsoft's Playwright image already has Chromium and the Linux packages it needs, so there
+    # is no browser install step. The tag must match @playwright/test in package.json
+    # (src/config/ci.test.ts checks it).
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -41,8 +46,6 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Install Chromium for Playwright
-        run: npx playwright install --with-deps chromium
       - name: End-to-end tests
         run: npm run e2e
       # The HTML report, with traces and screenshots, downloadable from the run when a test fails.

@@ -96,6 +96,17 @@ describe('loadSave', () => {
     });
   });
 
+  it('v9 to v10 (P2-09) adds empty bad habits and slips, and keeps everything else', () => {
+    const { badHabits: _b, slips: _s, ...rest } = createInitialState();
+    const v9 = { ...rest, version: 9, log: { '2026-10-20': { sleep: 1 } } };
+    const result = loadSave(JSON.stringify(v9));
+    expect(result).toEqual({
+      kind: 'loaded',
+      state: { ...v9, version: 10, badHabits: [], slips: {} },
+      upgradedFrom: 9,
+    });
+  });
+
   it('upgrades a v3 save all the way to the current shape', () => {
     const result = loadSave(JSON.stringify(v3));
     expect(result.kind).toBe('loaded');
@@ -128,6 +139,10 @@ describe('loadSave', () => {
     [
       'a current save missing its targets',
       JSON.stringify({ ...createInitialState(), targets: undefined }),
+    ],
+    [
+      'a current save missing its slips',
+      JSON.stringify({ ...createInitialState(), slips: undefined }),
     ],
   ])('an unreadable save (%s) is returned whole for the backup slot', (_, raw) => {
     expect(loadSave(raw)).toEqual({ kind: 'unreadable', raw });

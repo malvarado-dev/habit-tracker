@@ -174,12 +174,14 @@ describe('loading', () => {
     const store = fakeStore({ [REAL_KEY]: JSON.stringify(v4) });
     const app = await loadAppState(store, new Date());
     expect(app.real.state).toEqual({
-      version: 9,
+      version: 10,
       pet: START_PET,
       habits,
       removed: [],
       log: { [REAL]: { sleep: 1 } },
       targets: {},
+      badHabits: [],
+      slips: {},
       locked: {},
       lockedThrough: v4.lockedThrough,
     });

@@ -3,13 +3,15 @@
 // they never live in the Real or Test save. Kept on the device.
 // Plain functions so they can be tested with a fake storage.
 
+import type { BadHabitDesign } from '@/rules/badHabits';
+
 interface SettingsStorage {
   getItem: (key: string) => Promise<string | null>;
   setItem: (key: string, value: string) => Promise<void>;
 }
 
 /** Bad habit layout under test (SPEC-01 question 4). Design 1: linked. Design 2: separate section. */
-export type BadHabitDesign = 'design1' | 'design2';
+export type { BadHabitDesign };
 
 export const BAD_HABIT_DESIGNS: BadHabitDesign[] = ['design1', 'design2'];
 export const BAD_HABIT_DESIGN_LABELS: Record<BadHabitDesign, string> = {

@@ -4,6 +4,7 @@
 import { test as base, type Page } from '@playwright/test';
 
 import type { TrackerState } from '../../src/features/tracker/state';
+import type { BadHabit } from '../../src/rules/badHabits';
 import type { Habit } from '../../src/rules/habits';
 import { HomePage } from './pages/HomePage';
 
@@ -26,28 +27,36 @@ export function dailyHabit(id: string, name: string, timesPerDay = 1): Habit {
   };
 }
 
-/** A current (v9) save with these habits and nothing logged yet. */
-export function saveWith(habits: Habit[]): TrackerState {
+/** A current save with these habits (and bad habits) and nothing logged yet. */
+export function saveWith(habits: Habit[], badHabits: BadHabit[] = []): TrackerState {
   return {
-    version: 9,
+    version: 10,
     pet: { confidence: 20 },
     habits,
     removed: [],
     log: {},
     targets: {},
+    badHabits,
+    slips: {},
     locked: {},
     lockedThrough: null,
   };
 }
 
 /** Puts a save in the browser before the app's own code runs, then opens Today. */
-export async function openWithSave(page: Page, save: TrackerState): Promise<void> {
+export async function openWithSave(page: Page, save: TrackerState, path = ''): Promise<void> {
   await page.clock.setFixedTime(FIXED_NOW);
-  await page.addInitScript(([key, value]) => window.localStorage.setItem(key, value), [
-    REAL_KEY,
-    JSON.stringify(save),
-  ] as const);
-  await page.goto('');
+  // The save goes in once per test: later page loads keep whatever the app saved, so a test can
+  // add a habit on one screen and find it on another.
+  await page.addInitScript(
+    ([key, value]) => {
+      if (window.sessionStorage.getItem('e2e-seeded')) return;
+      window.localStorage.setItem(key, value);
+      window.sessionStorage.setItem('e2e-seeded', '1');
+    },
+    [REAL_KEY, JSON.stringify(save)] as const,
+  );
+  await page.goto(path);
 }
 
 /**
