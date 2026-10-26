@@ -123,6 +123,31 @@ export const tuning = {
     longPressMs: 450,
   },
 
+  /** Coins from logs (PRD-15 Scoring, P2-08c). */
+  coins: {
+    /** Coins each log earns, gold or linked slate. */
+    perLog: 1,
+    /** Only this many logs per habit per day earn Coins. */
+    logsPerHabitPerDay: 3,
+    /** Most Coins logs can earn in a day. Null means no cap: set once Coin prices exist. */
+    dailyCap: null as number | null,
+    /** Coin bar: slide in and out, and how long it stays after the last Coin lands. */
+    barSlideMs: 260,
+    barHoldMs: 1200,
+    /** Each flying coin's trip from the card to the bar, and the gap between coins. */
+    flyMs: 520,
+    flyGapMs: 90,
+    /** At most this many coins fly at once; more Coins still count, they just don't all fly. */
+    maxFlying: 6,
+    /** How high a flying coin arcs on its way to the bar, in points. */
+    flyArc: 60,
+    /** Placeholder coin and bar colors, fixed like art (not theme colors) until the coin art exists. */
+    coinFill: '#F2B705',
+    coinEdge: '#B07D00',
+    barColor: 'rgba(31, 31, 31, 0.92)',
+    barText: '#FFFFFF',
+  },
+
   habits: {
     /** How long the Undo bar stays after a log or a remove. */
     undoMs: 5000,

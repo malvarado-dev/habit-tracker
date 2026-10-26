@@ -7,11 +7,14 @@ export class HomePage {
   readonly activityBar: Locator;
   readonly undoBar: Locator;
   readonly undoButton: Locator;
+  /** The Coin bar's balance (P2-08c). It counts up as coins land, so assert with toHaveText. */
+  readonly coinBalance: Locator;
 
   constructor(readonly page: Page) {
     this.activityBar = page.getByTestId('activity-bar');
     this.undoBar = page.getByTestId('undo-bar');
     this.undoButton = page.getByTestId('undo-button');
+    this.coinBalance = page.getByTestId('coin-balance');
   }
 
   /** The app has loaded its save and drawn the habit sheet. */
