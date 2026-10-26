@@ -221,7 +221,12 @@ export const history = {
   dayFaceWidth: 56,
   /** Future days and days outside the month are this faint. */
   faintOpacity: 0.4,
-  /** Locked days on the Day screen: cards dimmed to this. */
+  /** Streak band (P2-18a): lemon at this strength, and the round day marker's size. */
+  bandAlpha: 0.55,
+  dayMarker: 36,
+  /** Round month arrows inside the calendar card. */
+  arrowSize: 44,
+  /** Locked days: cards and tray dimmed to this. */
   lockedCardOpacity: 0.5,
   /** Week panel progress dots. */
   dot: 9,

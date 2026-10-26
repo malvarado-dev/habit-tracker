@@ -71,10 +71,13 @@ interface HabitCardProps {
   onEdit?: () => void;
   /** A locked day in History (T16): dimmed, and taps are off. */
   locked?: boolean;
+  /** History before day edits (P2-18a): taps are off, not dimmed. */
+  readOnly?: boolean;
 }
 
 export function HabitCard(props: HabitCardProps) {
-  const { habit, count, slate = 0, linked, onLog, locked = false } = props;
+  const { habit, count, slate = 0, linked, onLog, locked = false, readOnly = false } = props;
+  const off = locked || readOnly;
   const styles = useStyles();
   const { colors: c } = useTheme();
   const reduceMotion = useReducedMotion();
@@ -86,10 +89,13 @@ export function HabitCard(props: HabitCardProps) {
   const [menu, setMenu] = useState(false);
   const habitColor = c[habit.color];
   const times = timesPerDay(habit);
-  const ring = ringFor(times, count, slate);
+  // History shows a one-segment ring on once-a-day habits too, with "Done" or the slip's name
+  // (P2-18a boards). Today keeps them ringless; a finished card leaves the sheet there.
+  const ring = ringFor(times, count, slate) ?? (readOnly ? onceRing(count, slate) : null);
+  const onceText = readOnly && times <= 1 ? (count > 0 ? 'Done' : linked?.name) : undefined;
   const name = habit.name.trim() || 'Untitled habit';
   const id = habit.id;
-  const canSlide = !locked && !!props.onSkip;
+  const canSlide = !off && !!props.onSkip;
 
   const scaleStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
@@ -100,7 +106,7 @@ export function HabitCard(props: HabitCardProps) {
     ).catch(() => {});
 
   const log = () => {
-    if (locked) return;
+    if (off) return;
     if (Date.now() - slidAt.current < tuning.card.ignoreTapAfterSlideMs) return;
     // Haptics never block the tap; a phone or browser without them just stays quiet.
     buzz(count + slate + 1 >= times);
@@ -140,17 +146,19 @@ export function HabitCard(props: HabitCardProps) {
         onPress={log}
         onLongPress={canSlide ? () => setMenu(true) : undefined}
         delayLongPress={tuning.card.longPressMs}
-        disabled={locked}
-        accessibilityState={{ disabled: locked }}
+        disabled={off}
+        accessibilityState={{ disabled: off }}
         testID={`habit-card-${id}`}
         accessibilityRole="button"
         accessibilityLabel={cardAccessibilityLabel(name, count + slate, times)}
         accessibilityHint={
           locked
             ? 'This day is locked.'
-            : canSlide
-              ? 'Tap to log one time. Long-press for more.'
-              : 'Tap to log one time.'
+            : readOnly
+              ? undefined
+              : canSlide
+                ? 'Tap to log one time. Long-press for more.'
+                : 'Tap to log one time.'
         }
         accessibilityActions={
           canSlide
@@ -178,7 +186,14 @@ export function HabitCard(props: HabitCardProps) {
             {name}
           </Text>
 
-          {ring ? (
+          {onceText ? (
+            <Text
+              style={[styles.count, { color: count > 0 ? tuning.ring.gold : tuning.ring.slate }]}
+              testID={`habit-count-${id}`}
+            >
+              {onceText}
+            </Text>
+          ) : ring ? (
             <Text style={styles.count} testID={`habit-count-${id}`}>
               {ring.label}
             </Text>
@@ -295,6 +310,14 @@ function MenuItem(props: { label: string; onPress: () => void; testID: string })
 }
 
 /** The letter placeholder in a tinted circle, until the icon sheet. */
+/** A once-a-day habit's ring in History: one segment, gold if done, slate if slipped. */
+function onceRing(count: number, slate: number) {
+  const gold = Math.min(count, 1);
+  const slateFill = gold ? 0 : Math.min(slate, 1);
+  const filled = gold + slateFill;
+  return { segments: 1, filled, gold, slate: slateFill, label: `${filled}/1` };
+}
+
 function LetterIcon({ id, name, color }: { id: string; name: string; color: string }) {
   const styles = useStyles();
   return (

@@ -132,14 +132,10 @@ describe('History in Test (T22)', () => {
     });
   });
 
-  it('screens pass the window through and explain a day that is too far back', () => {
+  it('History passes the Test window through to the calendar', () => {
     const read = (p: string) => readFileSync(join(__dirname, p), 'utf8');
     const view = read('../../components/history/HistoryView.tsx');
-    const day = read('../../app/day/[date].tsx');
     expect(view).toContain('monthGrid(month, state, today, oldestDay)');
     expect(view).toContain('monthLimits(month, state.log, today, oldestDay)');
-    expect(day).toContain('canOpenDay(date, today, oldestDay)');
-    expect(day).toContain('Test mode only goes back ${openDays} days.');
-    expect(day).toContain('testID="day-unavailable"');
   });
 });

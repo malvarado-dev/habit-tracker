@@ -4,6 +4,8 @@
 // and each tracker saves only to its own key, so Test can never touch real data.
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AppState as RNAppState } from 'react-native';
+import { DAY_EDITS, isStaleTap } from '@/rules/dayOnScreen';
 import { useSettings } from '@/features/settings/SettingsProvider';
 import { designView } from './designView';
 import {
@@ -112,16 +114,39 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
   }, [app, loaded]);
 
   useEffect(() => {
-    // Notice when midnight passes while the app is open, and lock the day that just closed.
+    // Lock days that closed while the app is open. Today itself stays on the day on screen
+    // until the app is opened again or comes back from the background (P2-18a).
     const timer = setInterval(() => {
-      setNow(realDate());
       rawDispatch({ type: 'lock', realDate: realDate() });
     }, 60_000);
-    return () => clearInterval(timer);
+    const sub = RNAppState.addEventListener('change', (next) => {
+      if (next !== 'active') return;
+      setNow(realDate());
+      rawDispatch({ type: 'lock', realDate: realDate() });
+    });
+    return () => {
+      clearInterval(timer);
+      sub.remove();
+    };
   }, []);
+
+  // The latest app state for taps, which run outside render.
+  const latest = useRef(app);
+  useEffect(() => {
+    latest.current = app;
+  }, [app]);
 
   // Screens change only the active tracker; the app reducer locks it first.
   const dispatch = useCallback<Dispatch<TrackerAction>>((action) => {
+    // A tap on a day that has locked since the screen was drawn moves Today to the real day.
+    if (DAY_EDITS.has(action.type) && 'date' in action) {
+      const current = latest.current;
+      const realToday = modeToday(current, realDate());
+      if (isStaleTap(action.date, realToday, openDaysFor(current.mode))) {
+        setNow(realDate());
+        return;
+      }
+    }
     rawDispatch({ type: 'tracker', action, realDate: realDate() });
   }, []);
 
