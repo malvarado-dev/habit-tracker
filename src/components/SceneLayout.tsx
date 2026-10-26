@@ -5,7 +5,6 @@
 // and iPad landscape): the page is the sheet color, with the sheet on the left and, on the right,
 // the Background as a rounded card with the critter above History (T16).
 
-import { tuning } from '@/config/tuning';
 import type { ComponentProps, ReactNode } from 'react';
 import { useMemo } from 'react';
 import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
@@ -13,6 +12,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Background } from '@/components/Background';
 import { Critter } from '@/components/Critter';
+import { RoomScene } from '@/components/RoomScene';
+import { roomGeometry } from '@/scene/roomGeometry';
 import { HistoryView } from '@/components/history/HistoryView';
 import { layoutMode, wideSizes } from '@/components/todayLayoutMode';
 import { useTheme } from '@/design/theme/ThemeProvider';
@@ -79,21 +80,14 @@ export function SceneLayout({ testID, critter, corner, sheet, onOpenDay, overlay
     );
   }
 
-  const sheetTop = Math.round(height * tuning.scene.sheetTopRatio);
-  const critterWidth = Math.min(width * todayLayout.critterWidthRatio, todayLayout.critterMaxWidth);
-  const critterHeight = critterWidth * CRITTER_ASPECT;
+  // Phone and iPad portrait: the living room fills the screen behind the sheet (P2-06).
+  const room = roomGeometry(width, height, insets.top);
+  const sheetTop = room.sheetTop;
 
   return (
     <View style={styles.screen} testID={testID}>
-      {/* The Background never scrolls; it sits behind everything. */}
-      <Background time={time} level={level} moment={moment} />
-
-      <View
-        style={[styles.critter, { top: sheetTop + todayLayout.critterOverlap - critterHeight }]}
-        pointerEvents="box-none"
-      >
-        <Critter width={critterWidth} {...critter} />
-      </View>
+      {/* The room never scrolls; it sits behind everything. */}
+      <RoomScene geometry={room} petSpot="room" />
 
       <View style={[styles.corner, { top: insets.top + space.sm, left: insets.left + space.lg }]}>
         {corner(false)}

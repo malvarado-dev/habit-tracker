@@ -11,8 +11,19 @@ export const tuning = {
   /** Living room scene (Prototype 2). Art-measured numbers come from room-layout.json. */
   scene: {
     ...roomLayout,
-    /** Where the habit sheet starts, as a share of the screen height. */
+    /** Where the habit sheet starts, as a share of the screen height. Moved lower only when the bed
+     * or pet would sit under it (tall tablets). */
     sheetTopRatio: 0.4,
+    /** Points between the status bar and the top of the window glass. The room moves up to fit. */
+    windowGapBelowStatusBar: 6,
+    /** Points kept between the lowest of the bed or pet and the top of the sheet. */
+    sceneClearOfSheet: 12,
+    /** Room color shown under the room art if a tall screen ever runs past it (the floor). */
+    floorColor: '#AD7F5A',
+    /** Menu button over the room: dark ink on a see-through light circle (3:1 on the wall). Fixed,
+     * not theme colors, because the room is art. */
+    menuInk: '#2B2622',
+    menuButton: 'rgba(255, 255, 255, 0.45)',
   },
 
   /** The pet's starting values (Prototype 2). */

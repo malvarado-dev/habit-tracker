@@ -1,12 +1,12 @@
-// The subtle, see-through menu button, top left of the Background (SPEC-00). 44 pt tap area,
-// on-sky colors with 3:1 contrast. On the wide layout it sits on the page instead, as a card-white
+// The subtle, see-through menu button, top left over the living room (SPEC-00, P2-06). 44 pt tap
+// area, fixed room colors with 3:1 contrast (the room never changes with the theme). On the wide layout it sits on the page instead, as a card-white
 // circle in the theme colors. Opens the side menu (T11).
 
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { withAlpha } from '@/design/theme/theme';
+import { tuning } from '@/config/tuning';
+
 import { useTheme } from '@/design/theme/ThemeProvider';
-import { background as sky } from '@/design/tokens';
 import type { SkyTime } from '@/rules/sky';
 
 export function MenuButton({
@@ -19,11 +19,10 @@ export function MenuButton({
   onPage?: boolean;
 }) {
   const { colors } = useTheme();
-  const skyInk = time === 'day' ? sky.onSkyDay : sky.onSkyDark;
-  const ink = onPage ? colors.onSurface : skyInk;
+  const ink = onPage ? colors.onSurface : tuning.scene.menuInk;
   const look = onPage
     ? { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }
-    : { backgroundColor: withAlpha(skyInk, 0.12) };
+    : { backgroundColor: tuning.scene.menuButton };
   return (
     <Pressable
       onPress={onPress}

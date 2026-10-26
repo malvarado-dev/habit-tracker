@@ -40,3 +40,6 @@ yarn-error.*
 /ios
 /android
 coverage/
+
+# private art, copied in by scripts/sync-art.mjs (never commit it)
+assets/private/
