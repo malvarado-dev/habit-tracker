@@ -66,7 +66,7 @@ export function TestTools() {
                 style={[styles.chip, on && styles.chipOn]}
                 testID={`mode-${m.key}`}
                 accessibilityRole="radio"
-                accessibilityState={{ selected: on }}
+                aria-checked={on}
                 accessibilityLabel={m.label}
               >
                 <Text style={[styles.chipText, on && styles.chipTextOn]}>{m.label}</Text>
@@ -197,7 +197,9 @@ export function TestTools() {
               style={styles.stepRow}
               accessibilityRole="adjustable"
               accessibilityLabel={`${name}, times per day`}
-              accessibilityValue={{ min: 1, max: maxTimes, now: times }}
+              aria-valuemin={1}
+              aria-valuemax={maxTimes}
+              aria-valuenow={times}
               accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
               onAccessibilityAction={(e) =>
                 set(times + (e.nativeEvent.actionName === 'increment' ? 1 : -1))
@@ -342,7 +344,9 @@ function StatStepper({
         style={styles.row}
         accessibilityRole="adjustable"
         accessibilityLabel={label}
-        accessibilityValue={{ min: MIN_STAT, max: MAX_STAT, now: value }}
+        aria-valuemin={MIN_STAT}
+        aria-valuemax={MAX_STAT}
+        aria-valuenow={value}
         accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
         onAccessibilityAction={(e) =>
           onSet(value + (e.nativeEvent.actionName === 'increment' ? step : -step))

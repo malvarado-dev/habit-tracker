@@ -12,8 +12,16 @@ import { THEME_LABELS, THEME_PREFERENCES, withAlpha } from '@/design/theme/theme
 import { useTheme } from '@/design/theme/ThemeProvider';
 import { critter, tints, type ThemeColors } from '@/design/tokens';
 import { MIN_TAP_SIZE, radius, space } from '@/theme';
+import type { Metadata } from 'expo-router/server';
+
+import { pageTitle } from '@/components/pageTitle';
 
 type Open = 'theme' | null;
+
+/** The page title on the web build (#113). */
+export function generateMetadata(): Metadata {
+  return { title: pageTitle('profile') };
+}
 
 export default function ProfileScreen() {
   const styles = useStyles();

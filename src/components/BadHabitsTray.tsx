@@ -134,7 +134,8 @@ function Chip(props: {
       accessibilityRole="adjustable"
       accessibilityLabel={`${name}, ${count} ${count === 1 ? 'slip' : 'slips'} today`}
       accessibilityHint="Tap to count a slip. Long-press to change the count."
-      accessibilityValue={{ min: 0, now: count }}
+      aria-valuemin={0}
+      aria-valuenow={count}
       accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
       onAccessibilityAction={(e) =>
         props.onSetCount(count + (e.nativeEvent.actionName === 'increment' ? 1 : -1))

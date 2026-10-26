@@ -18,6 +18,14 @@ import { useSettings } from '@/features/settings/SettingsProvider';
 import { MAX_BAD_HABITS } from '@/features/tracker/state';
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import { MIN_TAP_SIZE, radius, space } from '@/theme';
+import type { Metadata } from 'expo-router/server';
+
+import { pageTitle } from '@/components/pageTitle';
+
+/** The page title on the web build (#113). */
+export function generateMetadata(): Metadata {
+  return { title: pageTitle('add-habit/bad') };
+}
 
 export default function AddBadHabitScreen() {
   const styles = useStyles();

@@ -25,6 +25,14 @@ import { useSettings } from '@/features/settings/SettingsProvider';
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import { HABIT_COLORS } from '@/rules/habits';
 import { MIN_TAP_SIZE, radius, space } from '@/theme';
+import type { Metadata } from 'expo-router/server';
+
+import { pageTitle } from '@/components/pageTitle';
+
+/** The page title on the web build (#113). */
+export function generateMetadata(): Metadata {
+  return { title: pageTitle('add-habit/index') };
+}
 
 export default function PickHabitScreen() {
   const styles = useStyles();
@@ -79,15 +87,18 @@ export default function PickHabitScreen() {
                     ]}
                     testID={`pick-habit-${p.key}`}
                     accessibilityRole="button"
-                    accessibilityLabel={added ? `${p.name}, already added` : p.name}
+                    // Spoken name is the visible name (#113); added shows as disabled.
                     accessibilityState={{ disabled: added }}
                   >
-                    <View style={[styles.icon, { backgroundColor: withAlpha(color, tints.icon) }]}>
+                    <View
+                      style={[styles.icon, { backgroundColor: withAlpha(color, tints.icon) }]}
+                      aria-hidden
+                    >
                       <Text style={[styles.iconLetter, { color }]}>{iconLetter(p.name)}</Text>
                     </View>
                     <Text style={styles.itemName}>{p.name}</Text>
                     {added ? (
-                      <Text style={styles.check} testID={`pick-habit-${p.key}-added`}>
+                      <Text style={styles.check} testID={`pick-habit-${p.key}-added`} aria-hidden>
                         ✓
                       </Text>
                     ) : null}

@@ -19,11 +19,19 @@ import { listLine } from '@/features/habits/schedule';
 import { MAX_HABITS } from '@/features/tracker/state';
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import { MIN_TAP_SIZE, radius, space } from '@/theme';
+import type { Metadata } from 'expo-router/server';
+
+import { pageTitle } from '@/components/pageTitle';
 
 const BACK = {
   today: { label: 'Today', path: '/' },
   profile: { label: 'Profile', path: '/profile' },
 } as const;
+
+/** The page title on the web build (#113). */
+export function generateMetadata(): Metadata {
+  return { title: pageTitle('habits') };
+}
 
 export default function HabitsScreen() {
   const styles = useStyles();

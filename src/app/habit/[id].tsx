@@ -17,6 +17,14 @@ import { nameHint } from '@/features/habits/habitName';
 import { setRemoved } from '@/features/habits/undoRemove';
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import { MIN_TAP_SIZE, radius, space } from '@/theme';
+import type { Metadata } from 'expo-router/server';
+
+import { pageTitle } from '@/components/pageTitle';
+
+/** The page title on the web build (#113). */
+export function generateMetadata(): Metadata {
+  return { title: pageTitle('habit/[id]') };
+}
 
 export default function EditHabitScreen() {
   const styles = useStyles();

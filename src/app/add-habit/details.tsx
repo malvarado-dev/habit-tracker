@@ -18,6 +18,14 @@ import { MAX_HABITS } from '@/features/tracker/state';
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import { EVERY_DAY, type Schedule } from '@/rules/habits';
 import { MIN_TAP_SIZE, radius, space } from '@/theme';
+import type { Metadata } from 'expo-router/server';
+
+import { pageTitle } from '@/components/pageTitle';
+
+/** The page title on the web build (#113). */
+export function generateMetadata(): Metadata {
+  return { title: pageTitle('add-habit/details') };
+}
 
 export default function AddHabitDetailsScreen() {
   const styles = useStyles();

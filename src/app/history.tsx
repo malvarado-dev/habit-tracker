@@ -12,11 +12,19 @@ import { textStyle } from '@/design/fonts';
 import { useTheme } from '@/design/theme/ThemeProvider';
 import { todayLayout, type ThemeColors } from '@/design/tokens';
 import { MIN_TAP_SIZE, radius, space } from '@/theme';
+import type { Metadata } from 'expo-router/server';
+
+import { pageTitle } from '@/components/pageTitle';
 
 const BACK = {
   today: { label: 'Today', path: '/' },
   profile: { label: 'Profile', path: '/profile' },
 } as const;
+
+/** The page title on the web build (#113). */
+export function generateMetadata(): Metadata {
+  return { title: pageTitle('history') };
+}
 
 export default function HistoryScreen() {
   const styles = useStyles();
