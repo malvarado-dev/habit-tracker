@@ -10,6 +10,8 @@ import { PetMotion } from '@/components/PetMotion';
 import { tuning } from '@/config/tuning';
 import type { PetPlace } from '@/rules/petPlace';
 import { useSettings } from '@/features/settings/SettingsProvider';
+import { useTracker } from '@/features/tracker/TrackerProvider';
+import { isBandaged } from '@/rules/quest';
 import { roomArt } from '@/scene/art';
 import { petLook } from '@/scene/petLooks';
 import { petGeometry, shiftOf, type Box, type RoomGeometry } from '@/scene/roomGeometry';
@@ -53,6 +55,9 @@ export function RoomScene({
   const { room, bed, bedShadow } = geometry;
   // The look picked in Test tools (P2-15a): its art, size, and accessory anchors.
   const { petLook: lookId, showBandages } = useSettings();
+  // Bandaged until the Heal quest is claimed (P2-15), or when Test tools asks to see them.
+  const { state } = useTracker();
+  const bandaged = showBandages || isBandaged(state.quests);
   const look = petLook(lookId);
   const pet = petGeometry(place.spot, {
     scale: geometry.scale,
@@ -72,7 +77,7 @@ export function RoomScene({
         pose={pet.pose}
         image={pet.image}
         look={look}
-        bandages={showBandages}
+        bandages={bandaged}
         shadowBox={pet.shadow}
         shadow={<SoftShadow box={{ ...pet.shadow, left: 0, top: 0 }} id="pet-shadow" />}
       />

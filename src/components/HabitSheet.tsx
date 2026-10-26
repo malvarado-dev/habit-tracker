@@ -10,6 +10,7 @@ import { ActivityBar } from '@/components/ActivityBar';
 import { BadHabitsTray } from '@/components/BadHabitsTray';
 import { HabitCard } from '@/components/HabitCard';
 import { MainQuestCard } from '@/components/MainQuestCard';
+import { QuestSheet } from '@/components/QuestSheet';
 import { UndoBar } from '@/components/UndoBar';
 import { tuning } from '@/config/tuning';
 import { textStyle } from '@/design/fonts';
@@ -22,14 +23,23 @@ import { type Habit } from '@/rules/habits';
 import { dayLogs, linkedBadHabit } from '@/rules/linked';
 import { allHabits, barLog } from '@/rules/locking';
 import { finishedCount } from '@/rules/payoff';
+import { healCheckIns, healStatus } from '@/rules/quest';
+import { requestPetMoment } from '@/scene/petMoments';
 import { groupHabits } from '@/rules/sheet';
 import { space } from '@/theme';
 
 // Main Quest stand-in until P2-15 (#86) gives the sheet the real quest.
-const QUEST_PLACEHOLDER = { name: 'Heal Neko', done: 0, total: 7, unit: 'days' } as const;
 
 export function HabitSheet({ bottomPadding }: { bottomPadding: number }) {
   const { state, dispatch, today } = useTracker();
+  // Heal quest (P2-15): the card's state, the sheet, and Claim.
+  const quest = healStatus(state, today);
+  const questDone = healCheckIns(state, today);
+  const [questOpen, setQuestOpen] = useState(false);
+  const claimQuest = () => {
+    dispatch({ type: 'claimQuest', date: today });
+    requestPetMoment({ kind: 'celebrate', caption: 'Neko is all healed.' });
+  };
   const { colors: c } = useTheme();
   const { badHabitDesign } = useSettings();
   const log = barLog(state);
@@ -129,7 +139,17 @@ export function HabitSheet({ bottomPadding }: { bottomPadding: number }) {
         contentContainerStyle={[styles.content, { paddingBottom: bottomPadding }]}
         testID="habit-list"
       >
-        <MainQuestCard {...QUEST_PLACEHOLDER} />
+        {quest !== 'claimed' ? (
+          <MainQuestCard
+            name="Heal Neko"
+            status={quest}
+            done={questDone}
+            total={tuning.quest.heal.goal}
+            unit="days"
+            onOpen={() => setQuestOpen(true)}
+            onClaim={claimQuest}
+          />
+        ) : null}
         {section('today', 'Today', sections.today)}
         {section('anytime', 'Anytime', sections.anytime)}
         <BadHabitsTray
@@ -168,6 +188,16 @@ export function HabitSheet({ bottomPadding }: { bottomPadding: number }) {
           onUndo={undoLast}
         />
       ) : null}
+      <QuestSheet
+        open={questOpen}
+        accepted={quest !== 'new'}
+        done={questDone}
+        onAccept={() => {
+          dispatch({ type: 'acceptQuest', date: today });
+          setQuestOpen(false);
+        }}
+        onClose={() => setQuestOpen(false)}
+      />
     </>
   );
 }

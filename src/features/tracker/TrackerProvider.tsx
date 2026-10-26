@@ -3,6 +3,7 @@
 // Two trackers live here, Real and Test (T17, modes.ts). Screens only ever see the active one,
 // and each tracker saves only to its own key, so Test can never touch real data.
 
+import { healCheckIns } from '@/rules/quest';
 import { petStats, type PetStat, type PetStats } from '@/rules/petStats';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState as RNAppState } from 'react-native';
@@ -60,6 +61,10 @@ interface TrackerContextValue {
     /** The Test pet's Love and Confidence, 0 to 100 (P2-13). */
     stats: PetStats;
     setStat: (stat: PetStat, value: number) => void;
+    /** The Test save's Heal quest check-in days (P2-15). */
+    healCheckIns: number;
+    setHealCheckIns: (count: number) => void;
+    resetQuest: () => void;
   };
 }
 
@@ -169,6 +174,10 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
         stats: petStats(app.test.state),
         setStat: (stat, value) =>
           rawDispatch({ type: 'setTestStat', stat, value, realDate: realDate() }),
+        healCheckIns: healCheckIns(app.test.state, modeToday(app, now, 'test')),
+        setHealCheckIns: (count) =>
+          rawDispatch({ type: 'setTestHealCheckIns', count, realDate: realDate() }),
+        resetQuest: () => rawDispatch({ type: 'resetTestQuest', realDate: realDate() }),
       },
     }),
     [app, dispatch, now, badHabitDesign],

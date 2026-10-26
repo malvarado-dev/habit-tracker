@@ -28,13 +28,16 @@ import { addToTally, habitsForDesign, timesFor, type DesignTallies } from '@/rul
 import { dayLogs, isSkipped, type Skips } from '@/rules/linked';
 import { allHabits, isLocked, lockDays, type LockedDay } from '@/rules/locking';
 import { adjustFor, type PetAdjust, type PetStat } from '@/rules/petStats';
+import { healStatus, START_QUESTS, testBonusFor, type QuestState } from '@/rules/quest';
 import { cleanName, nameProblem } from '@/features/habits/habitName';
 
 export interface TrackerState {
   /** Bumped when the saved shape changes. Older saves are upgraded step by step (save.ts). */
-  version: 13;
+  version: 14;
   /** Test nudges to the pet's Love and Confidence (P2-13). Confidence picks its spot (P2-12). */
   pet: PetState;
+  /** Quests (P2-15): the Heal quest's accept and claim days. */
+  quests: QuestState;
   /** Active habits, in card order. */
   habits: Habit[];
   /** Removed habits, each with the day it was removed, so their active days still score (T21). */
@@ -113,8 +116,9 @@ export function cleanSchedule(schedule: Schedule): Schedule | null {
 /** A fresh start. `addedOn` is the tracker's own date (Test uses its pretend date). */
 export function createInitialState(addedOn?: DateKey): TrackerState {
   return {
-    version: 13,
+    version: 14,
     pet: START_PET,
+    quests: START_QUESTS,
     removed: [],
     habits: addedOn ? DEFAULT_HABITS.map((h) => ({ ...h, addedOn })) : DEFAULT_HABITS,
     log: {},
@@ -148,6 +152,13 @@ export type TrackerAction =
   | { type: 'fillDay'; date: DateKey }
   /** Test tools: makes a pet stat show this value (clamped to 0 to 100). */
   | { type: 'setStat'; stat: PetStat; value: number }
+  /** Heal quest (P2-15): Accept starts counting from `date`; Claim only once it's done. */
+  | { type: 'acceptQuest'; date: DateKey }
+  | { type: 'claimQuest'; date: DateKey }
+  /** Test tools: make the Heal quest show this many check-in days (accepts it if needed). */
+  | { type: 'setHealCheckIns'; count: number; date: DateKey }
+  /** Test tools: back to a new, unaccepted quest. */
+  | { type: 'resetQuest' }
   /** Add habit (P2-09): a bad habit, standalone or paired with one good habit. */
   | { type: 'addBadHabit'; id: string; name: string; pairedWith?: string; date: DateKey }
   /** Tray tap: one more slip. */
@@ -361,6 +372,26 @@ export function trackerReducer(
           : day.filter((id) => id !== action.habitId);
       return { ...state, skips: { ...state.skips, [action.date]: next } };
     }
+    case 'acceptQuest': {
+      if (state.quests.heal.acceptedOn !== null) return state;
+      return { ...state, quests: { heal: { ...state.quests.heal, acceptedOn: action.date } } };
+    }
+    case 'claimQuest': {
+      if (healStatus(state, action.date) !== 'done') return state;
+      return { ...state, quests: { heal: { ...state.quests.heal, claimedOn: action.date } } };
+    }
+    case 'setHealCheckIns': {
+      if (state.quests.heal.claimedOn !== null) return state;
+      const heal = {
+        ...state.quests.heal,
+        acceptedOn: state.quests.heal.acceptedOn ?? action.date,
+      };
+      const accepted = { ...state, quests: { heal } };
+      const testBonus = testBonusFor(action.count, accepted, action.date);
+      return { ...state, quests: { heal: { ...heal, testBonus } } };
+    }
+    case 'resetQuest':
+      return { ...state, quests: START_QUESTS };
     case 'setStat': {
       const key = action.stat === 'love' ? 'loveAdjust' : 'confidenceAdjust';
       const adjust = adjustFor(action.stat, action.value, state);

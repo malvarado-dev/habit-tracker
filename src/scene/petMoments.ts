@@ -3,13 +3,13 @@
 // Activity Bar's full-bar moment, petting, and the affection purr. A request made while the pet
 // isn't on screen waits until it is. The pet's layers ignore touches, so habit taps never wait.
 
-import type { MomentKind } from '@/rules/payoff';
+import type { PetMomentKind } from '@/rules/payoff';
 
 export type PetMoment =
   /** The reaction hop (wake, Test tools). */
   | { kind: 'react' }
-  /** A full-bar moment with its caption, petting, or the affection purr. */
-  | { kind: MomentKind; caption?: string };
+  /** A full-bar moment with its caption, petting, the affection purr, or a quest celebration. */
+  | { kind: PetMomentKind; caption?: string };
 
 type Listener = (moment: PetMoment) => void;
 
@@ -34,8 +34,17 @@ export function requestPetting(): boolean {
   return true;
 }
 
-/** The next moment to play, or nothing. Marks it as playing and tells listeners. */
-export function takePetMoment(): PetMoment | undefined {
+/** Moments that play while the pet sleeps: a quest's claim celebration (hearts over a sleeping
+ * pet). Everything else waits until it wakes. */
+export const playsAsleep = (m: PetMoment) => m.kind === 'celebrate';
+
+/**
+ * The next moment to play, or nothing. Marks it as playing and tells listeners. While the pet
+ * sleeps, only a moment that plays asleep is taken; the rest stay queued in order.
+ */
+export function takePetMoment({ asleep = false }: { asleep?: boolean } = {}):
+  PetMoment | undefined {
+  if (asleep && queue[0] && !playsAsleep(queue[0])) return undefined;
   const next = queue.shift();
   playing = next ?? null;
   if (next) started.forEach((l) => l(next));

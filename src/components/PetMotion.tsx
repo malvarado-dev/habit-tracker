@@ -210,12 +210,12 @@ export function PetMotion({
 
   // The moment queue: play one at a time while Today is on screen.
   useEffect(() => {
-    if (!focused || asleep) return;
+    if (!focused) return;
     const timers: ReturnType<typeof setTimeout>[] = [];
     let busy = false;
     const play = () => {
       if (busy) return;
-      const moment = takePetMoment();
+      const moment = takePetMoment({ asleep });
       if (!moment) return;
       busy = true;
       timers.push(

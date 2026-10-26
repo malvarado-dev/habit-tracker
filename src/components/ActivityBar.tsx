@@ -103,7 +103,7 @@ export function ActivityBar(props: Props) {
   useEffect(() => {
     if (!activityIcons) return;
     return onPetMomentStart((m) => {
-      if (m.kind === 'react' || !m.caption) return;
+      if (m.kind === 'react' || m.kind === 'celebrate' || !m.caption) return;
       const i = MOMENT_NOTCH[m.kind];
       setPops((p) => p.map((n, j) => (j === i ? n + 1 : n)));
     });

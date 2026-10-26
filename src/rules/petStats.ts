@@ -17,6 +17,7 @@ import { getActivityBar } from './activityBar';
 import type { DateKey } from './dates';
 import { existsOn, timesPerDay, type Habit, type LogCounts } from './habits';
 import { allHabits, barLog, type LockState } from './locking';
+import { questStatBonus, type QuestState } from './quest';
 
 export type PetStat = 'love' | 'confidence';
 
@@ -82,13 +83,17 @@ export function earnedStats(state: LockState, s: Stats = tuning.pet.stats): PetS
 
 /** The pet's Love and Confidence now: start value, plus earned, plus any test nudge, 0 to 100. */
 export function petStats(
-  state: LockState & { pet: PetAdjust },
+  state: LockState & { pet: PetAdjust; quests?: QuestState },
   s: Stats = tuning.pet.stats,
 ): PetStats {
   const earned = earnedStats(state, s);
+  // Claimed quests add their rewards (P2-15).
+  const quest = questStatBonus(state.quests);
   return {
-    love: clamp(s.startLove + earned.love + state.pet.loveAdjust),
-    confidence: clamp(s.startConfidence + earned.confidence + state.pet.confidenceAdjust),
+    love: clamp(s.startLove + earned.love + quest.love + state.pet.loveAdjust),
+    confidence: clamp(
+      s.startConfidence + earned.confidence + quest.confidence + state.pet.confidenceAdjust,
+    ),
   };
 }
 
@@ -96,10 +101,10 @@ export function petStats(
 export function adjustFor(
   stat: PetStat,
   value: number,
-  state: LockState,
+  state: LockState & { quests?: QuestState },
   s: Stats = tuning.pet.stats,
 ): number {
   const start = stat === 'love' ? s.startLove : s.startConfidence;
   const target = Number.isFinite(value) ? clamp(value) : start;
-  return target - start - earnedStats(state, s)[stat];
+  return target - start - earnedStats(state, s)[stat] - questStatBonus(state.quests)[stat];
 }

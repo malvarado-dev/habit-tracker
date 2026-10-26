@@ -26,6 +26,20 @@ export const tuning = {
     menuButton: 'rgba(255, 255, 255, 0.45)',
   },
 
+  /** Quests (P2-15, #86, PRD-14). Starting values for testing. */
+  quest: {
+    heal: {
+      /** Check-in days to heal, counted from the accept day. */
+      goal: 7,
+      /** Added to the worked-out stats once claimed (PRD-09: quests drive stats). */
+      rewardLove: 10,
+      rewardConfidence: 10,
+      /** Claim celebration: this many hearts, closer together than a purr. */
+      celebrateHearts: 5,
+      celebrateHeartOverlap: 0.45,
+    },
+  },
+
   /** The pet's starting values (Prototype 2). */
   pet: {
     /** Love and Confidence (P2-13, #84, PRD-09). Worked out from the log (rules/petStats.ts).
