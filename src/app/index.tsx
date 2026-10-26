@@ -3,6 +3,7 @@
 // sits above History on the right. The layout is shared with the Day screen (SceneLayout, T23).
 // No header; the subtle menu button sits top left.
 
+import { petStats } from '@/rules/petStats';
 import { useIsFocused } from 'expo-router';
 import { useState } from 'react';
 
@@ -34,7 +35,7 @@ export default function HomeScreen() {
     <SceneLayout
       testID="today-screen"
       critter={{ level: skyLevel, woken, onWake: wake, time: skyTime }}
-      pet={petPlace(state.pet.confidence, hasHabitLog(state.log, today))}
+      pet={petPlace(petStats(state).confidence, hasHabitLog(state.log, today))}
       corner={(onPage) => (
         <MenuButton time={skyTime} onPage={onPage} onPress={() => setMenuOpen(true)} />
       )}

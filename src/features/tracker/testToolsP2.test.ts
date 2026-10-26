@@ -1,9 +1,10 @@
-// Prototype 2 Test tools (P2-05, #76): Fill today, the pet's Confidence, and the v7 to v8 upgrade
+// Prototype 2 Test tools (P2-05, #76): Fill today, the pet's Love and Confidence (P2-13), and the v7 to v8 upgrade
 // that carries Prototype 1 tracking into Prototype 2. The safety rule under test: these tools
 // only ever write the Test save. Real is never touched.
 
 import { describe, expect, it } from '@jest/globals';
 import { tuning } from '@/config/tuning';
+import { petStats, type PetStat } from '@/rules/petStats';
 import {
   BAD_HABIT_DESIGN_STORAGE_KEY,
   loadBadHabitDesign,
@@ -36,11 +37,14 @@ function run(start: AppState, ...actions: AppAction[]) {
 
 const inTest = (): AppState => ({ ...createAppState(), mode: 'test' });
 const fill: AppAction = { type: 'fillTestDay', realDate: REAL };
-const confidence = (value: number): AppAction => ({
-  type: 'setTestConfidence',
+const setStat = (stat: PetStat, value: number): AppAction => ({
+  type: 'setTestStat',
+  stat,
   value,
   realDate: REAL,
 });
+const confidence = (value: number) => setStat('confidence', value);
+const testStats = (app: AppState) => petStats(app.test.state);
 
 describe('Fill today (Test only)', () => {
   it('finishes every habit on the pretend day and writes only the Test save', () => {
@@ -73,19 +77,19 @@ describe('Fill today (Test only)', () => {
   });
 });
 
-describe('Pet confidence (Test only)', () => {
+describe('Pet Love and Confidence steppers (Test only)', () => {
   it('sets the Test pet and leaves Real alone', () => {
     const start = inTest();
-    const { app, keys } = run(start, confidence(70));
-    expect(app.test.state.pet.confidence).toBe(70);
+    const { app, keys } = run(start, confidence(70), setStat('love', 40));
+    expect(testStats(app)).toEqual({ love: 40, confidence: 70 });
     expect(app.real).toBe(start.real);
-    expect(keys).toEqual([TEST_KEY]);
+    expect(keys).toEqual([TEST_KEY, TEST_KEY]);
   });
 
   it('stays between 0 and 100 and whole', () => {
-    expect(run(inTest(), confidence(140)).app.test.state.pet.confidence).toBe(100);
-    expect(run(inTest(), confidence(-5)).app.test.state.pet.confidence).toBe(0);
-    expect(run(inTest(), confidence(33.6)).app.test.state.pet.confidence).toBe(34);
+    expect(testStats(run(inTest(), confidence(140)).app).confidence).toBe(100);
+    expect(testStats(run(inTest(), confidence(-5)).app).confidence).toBe(0);
+    expect(testStats(run(inTest(), setStat('love', 33.6)).app).love).toBe(34);
   });
 
   it('does nothing in Real', () => {
@@ -93,9 +97,20 @@ describe('Pet confidence (Test only)', () => {
     expect(appReducer(start, confidence(90))).toBe(start);
   });
 
-  it('Reset test data puts it back to the start value', () => {
-    const { app } = run(inTest(), confidence(90), { type: 'resetTest', realDate: REAL });
-    expect(app.test.state.pet.confidence).toBe(tuning.pet.startConfidence);
+  it('a nudge stays on top of what the log earns', () => {
+    const { app } = run(inTest(), confidence(50), fill);
+    expect(testStats(app).confidence).toBeGreaterThan(50);
+  });
+
+  it('Reset test data puts both back to their start values', () => {
+    const { app } = run(inTest(), confidence(90), setStat('love', 90), {
+      type: 'resetTest',
+      realDate: REAL,
+    });
+    expect(testStats(app)).toEqual({
+      love: tuning.pet.stats.startLove,
+      confidence: tuning.pet.stats.startConfidence,
+    });
   });
 });
 
@@ -118,8 +133,14 @@ describe('Prototype 1 saves carry into Prototype 2', () => {
     expect(result.upgradedFrom).toBe(7);
     expect(result.state).toEqual({
       ...createInitialState(),
+      pet: expect.objectContaining({ loveAdjust: expect.any(Number) }),
       log: { [REAL]: { sleep: 1 } },
       lockedThrough: '2026-10-17',
+    });
+    // The pet starts at its start values, whatever the old log earns.
+    expect(petStats(result.state)).toEqual({
+      love: tuning.pet.stats.startLove,
+      confidence: tuning.pet.stats.startConfidence,
     });
   });
 });

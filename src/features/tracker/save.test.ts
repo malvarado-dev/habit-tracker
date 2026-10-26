@@ -1,10 +1,14 @@
 import { describe, expect, it } from '@jest/globals';
 
 import { tuning } from '@/config/tuning';
+import { petStats } from '@/rules/petStats';
 import { backupKey, CURRENT_VERSION, loadSave } from './save';
-import { createInitialState } from './state';
+import { createInitialState, type TrackerState } from './state';
 
-const START_PET = { confidence: tuning.pet.startConfidence };
+/** The pet as saves before v13 kept it: a stored Confidence. */
+const OLD_PET = { confidence: tuning.pet.stats.startConfidence };
+const anyPet = expect.objectContaining({ loveAdjust: expect.any(Number) });
+const stats = (state: TrackerState | null | undefined) => (state ? petStats(state) : null);
 const EVERY = [0, 1, 2, 3, 4, 5, 6];
 
 // Prototype 1 habits, as they were saved before v9: a weekly goal, no schedule.
@@ -91,7 +95,7 @@ describe('loadSave', () => {
     });
 
     it('keeps the pet and starts with no saved targets', () => {
-      expect(state?.pet).toEqual({ confidence: 40 });
+      expect(stats(state)).toEqual({ love: tuning.pet.stats.startLove, confidence: 40 });
       expect(state?.targets).toEqual({});
     });
   });
@@ -104,21 +108,29 @@ describe('loadSave', () => {
       designTallies: _d,
       ...rest
     } = createInitialState();
-    const v9 = { ...rest, version: 9, log: { '2026-10-20': { sleep: 1 } } };
+    const v9 = { ...rest, pet: OLD_PET, version: 9, log: { '2026-10-20': { sleep: 1 } } };
     const result = loadSave(JSON.stringify(v9));
     expect(result).toEqual({
       kind: 'loaded',
-      state: { ...v9, version: 12, badHabits: [], slips: {}, skips: {}, designTallies: {} },
+      state: {
+        ...v9,
+        version: 13,
+        pet: anyPet,
+        badHabits: [],
+        slips: {},
+        skips: {},
+        designTallies: {},
+      },
       upgradedFrom: 9,
     });
   });
 
   it('v10 to v11 (P2-08b) adds empty skips, and keeps everything else', () => {
     const { skips: _k, designTallies: _d, ...rest } = createInitialState();
-    const v10 = { ...rest, version: 10, slips: { '2026-10-20': { soda: 2 } } };
+    const v10 = { ...rest, pet: OLD_PET, version: 10, slips: { '2026-10-20': { soda: 2 } } };
     expect(loadSave(JSON.stringify(v10))).toEqual({
       kind: 'loaded',
-      state: { ...v10, version: 12, skips: {}, designTallies: {} },
+      state: { ...v10, version: 13, pet: anyPet, skips: {}, designTallies: {} },
       upgradedFrom: 10,
     });
   });
@@ -127,18 +139,47 @@ describe('loadSave', () => {
     const { designTallies: _d, ...rest } = createInitialState();
     const v11 = {
       ...rest,
+      pet: OLD_PET,
       version: 11,
       log: { '2026-10-20': { sleep: 1 } },
       skips: { '2026-10-20': ['diet'] },
     };
     expect(loadSave(JSON.stringify(v11))).toEqual({
       kind: 'loaded',
-      state: { ...v11, version: 12, designTallies: {} },
+      state: { ...v11, version: 13, pet: anyPet, designTallies: {} },
       upgradedFrom: 11,
     });
   });
 
-  it('a v12 save without the design tally is unreadable', () => {
+  describe('v12 to v13 (P2-13)', () => {
+    // Sleep (Daily Maintenance) finished on a day it was due, so the log earns Confidence.
+    const { designTallies: _d, ...rest } = createInitialState('2026-10-01');
+    const v12 = {
+      ...rest,
+      version: 12,
+      pet: { confidence: 60 },
+      log: { '2026-10-20': { sleep: 1 } },
+      designTallies: {},
+    };
+    const result = loadSave(JSON.stringify(v12));
+    const state = result.kind === 'loaded' ? result.state : null;
+
+    it('keeps the saved Confidence, so the pet stays in its spot', () => {
+      expect(result.kind === 'loaded' && result.upgradedFrom).toBe(12);
+      expect(stats(state)?.confidence).toBe(60);
+    });
+
+    it('Love starts at its start value', () => {
+      expect(stats(state)?.love).toBe(tuning.pet.stats.startLove);
+    });
+
+    it('keeps the log and everything else', () => {
+      expect(state?.log).toEqual(v12.log);
+      expect(state?.habits).toEqual(v12.habits);
+    });
+  });
+
+  it('a current save without the design tally is unreadable', () => {
     const { designTallies: _d, ...rest } = createInitialState();
     expect(loadSave(JSON.stringify(rest)).kind).toBe('unreadable');
   });
@@ -156,7 +197,10 @@ describe('loadSave', () => {
     });
     // The pretend date leaves the save in v5 (T17).
     expect('dayOffset' in result.state).toBe(false);
-    expect(result.state.pet).toEqual(START_PET);
+    expect(stats(result.state)).toEqual({
+      love: tuning.pet.stats.startLove,
+      confidence: tuning.pet.stats.startConfidence,
+    });
     expect(result.state.removed).toEqual([]);
   });
 

@@ -3,6 +3,7 @@
 // Two trackers live here, Real and Test (T17, modes.ts). Screens only ever see the active one,
 // and each tracker saves only to its own key, so Test can never touch real data.
 
+import { petStats, type PetStat, type PetStats } from '@/rules/petStats';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState as RNAppState } from 'react-native';
 import { DAY_EDITS, isStaleTap } from '@/rules/dayOnScreen';
@@ -56,9 +57,9 @@ interface TrackerContextValue {
     reset: () => void;
     /** Checks in every habit on the pretend day. */
     fillToday: () => void;
-    /** The Test pet's Confidence, 0 to 100. */
-    confidence: number;
-    setConfidence: (value: number) => void;
+    /** The Test pet's Love and Confidence, 0 to 100 (P2-13). */
+    stats: PetStats;
+    setStat: (stat: PetStat, value: number) => void;
   };
 }
 
@@ -165,9 +166,9 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
         backToToday: () => rawDispatch({ type: 'backToToday' }),
         reset: () => rawDispatch({ type: 'resetTest', realDate: realDate() }),
         fillToday: () => rawDispatch({ type: 'fillTestDay', realDate: realDate() }),
-        confidence: app.test.state.pet.confidence,
-        setConfidence: (value) =>
-          rawDispatch({ type: 'setTestConfidence', value, realDate: realDate() }),
+        stats: petStats(app.test.state),
+        setStat: (stat, value) =>
+          rawDispatch({ type: 'setTestStat', stat, value, realDate: realDate() }),
       },
     }),
     [app, dispatch, now, badHabitDesign],
