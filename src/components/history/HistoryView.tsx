@@ -12,7 +12,7 @@ import { HabitCard } from '@/components/HabitCard';
 import { textStyle } from '@/design/fonts';
 import { withAlpha } from '@/design/theme/theme';
 import { useTheme } from '@/design/theme/ThemeProvider';
-import { history as size, type ThemeColors } from '@/design/tokens';
+import { cardEdge, history as size, type ThemeColors } from '@/design/tokens';
 import {
   dayCellLabel,
   dayHeaderText,
@@ -246,18 +246,17 @@ function DayCellView(props: {
 }
 
 function useStyles() {
-  const { colors } = useTheme();
-  return useMemo(() => makeStyles(colors), [colors]);
+  const { colors, scheme } = useTheme();
+  return useMemo(() => makeStyles(colors, scheme), [colors, scheme]);
 }
 
-const makeStyles = (c: ThemeColors) =>
+const makeStyles = (c: ThemeColors, scheme: 'light' | 'dark') =>
   StyleSheet.create({
     wrap: { gap: space.lg },
     panel: {
       backgroundColor: c.surface,
       borderRadius: size.panelRadius,
-      borderWidth: 1,
-      borderColor: c.border,
+      ...cardEdge(scheme, c.border),
       padding: space.md,
       gap: space.xs,
     },
