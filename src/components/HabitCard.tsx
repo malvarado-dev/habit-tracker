@@ -50,7 +50,7 @@ import {
 } from '@/rules/ring';
 import { MIN_TAP_SIZE, radius, space } from '@/theme';
 
-import { cardAccessibilityLabel, iconLetter } from './habitCardText';
+import { iconLetter } from './habitCardText';
 import { fillEasing, fillMs } from './motion';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
@@ -154,7 +154,8 @@ export function HabitCard(props: HabitCardProps) {
         accessibilityState={{ disabled: off }}
         testID={`habit-card-${id}`}
         accessibilityRole={readOnly ? undefined : 'button'}
-        accessibilityLabel={cardAccessibilityLabel(name, count + slate, times)}
+        // No custom label: the spoken name is the card's visible text (name and count), so voice
+        // control users can say what they see (#113, WCAG 2.5.3). The letter icon is hidden.
         accessibilityHint={
           locked
             ? 'This day is locked.'
@@ -175,7 +176,7 @@ export function HabitCard(props: HabitCardProps) {
         onAccessibilityAction={(e) => (e.nativeEvent.actionName === 'slip' ? slip() : skip())}
         style={[styles.card, { backgroundColor: c.surface }]}
       >
-        <View importantForAccessibility="no-hide-descendants" style={styles.row}>
+        <View style={styles.row}>
           {ring ? (
             <SegmentRing id={id} fills={segmentFills(ring)} filled={ring.filled}>
               <LetterIcon id={id} name={name} color={habitColor} />
@@ -339,7 +340,8 @@ function LetterIcon({ id, name, color }: { id: string; name: string; color: stri
 
 /**
  * One segment per time a day around the icon: gold, then slate, then empty, clockwise from the
- * top. The ring's accessibility label carries the count, so tests and screen readers can read it.
+ * top. Hidden from screen readers: the card's visible count says the same (#113). The label stays
+ * so tests can read the ring.
  */
 function SegmentRing(props: {
   id: string;
@@ -356,6 +358,7 @@ function SegmentRing(props: {
     <View
       style={styles.ringSlot}
       testID={`habit-ring-${props.id}`}
+      aria-hidden
       accessibilityLabel={`${props.filled} of ${props.fills.length} done today`}
     >
       <Svg width={size.ring} height={size.ring} style={styles.ringSvg}>

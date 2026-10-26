@@ -87,7 +87,7 @@ export default function PickHabitScreen() {
                     ]}
                     testID={`pick-habit-${p.key}`}
                     accessibilityRole="button"
-                    accessibilityLabel={added ? `${p.name}, already added` : p.name}
+                    // Spoken name is the visible name (#113); added shows as disabled.
                     accessibilityState={{ disabled: added }}
                   >
                     <View
@@ -98,7 +98,7 @@ export default function PickHabitScreen() {
                     </View>
                     <Text style={styles.itemName}>{p.name}</Text>
                     {added ? (
-                      <Text style={styles.check} testID={`pick-habit-${p.key}-added`}>
+                      <Text style={styles.check} testID={`pick-habit-${p.key}-added`} aria-hidden>
                         ✓
                       </Text>
                     ) : null}

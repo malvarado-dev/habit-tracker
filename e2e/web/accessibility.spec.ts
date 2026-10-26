@@ -1,17 +1,8 @@
-// QA-02: automated accessibility scan (axe) on the main screens. Fails on serious and critical
-// problems not on the known list. The manual pass with a screen reader still happens before release (Test Strategy).
+// QA-02: automated accessibility scan (axe) on the main screens. Fails on any serious or critical
+// problem (the known list from #113 is cleared). The manual pass with a screen reader still happens before release (Test Strategy).
 import AxeBuilder from '@axe-core/playwright';
 
 import { dailyHabit, expect, openWithSave, saveWith, test } from './fixtures';
-
-/** Known problems, tracked in #113. The scan fails on anything not listed here. Remove each one
- * as it's fixed; the list should end up empty. */
-const KNOWN: Record<string, string[]> = {
-  Today: ['document-title', 'aria-required-attr', 'label-content-name-mismatch'],
-  History: ['document-title'],
-  'Add habit': ['document-title', 'label-content-name-mismatch'],
-  'Test tools': ['document-title', 'aria-required-attr'],
-};
 
 const SAVE = saveWith(
   [dailyHabit('sleep', 'Sleep'), dailyHabit('water', 'Water', 3)],
@@ -30,7 +21,6 @@ for (const [name, path, ready] of [
     const results = await new AxeBuilder({ page }).analyze();
     const serious = results.violations
       .filter((v) => v.impact === 'serious' || v.impact === 'critical')
-      .filter((v) => !KNOWN[name]!.includes(v.id))
       .map((v) => `${v.id}: ${v.help} (${v.nodes.length})`);
     expect(serious).toEqual([]);
   });
