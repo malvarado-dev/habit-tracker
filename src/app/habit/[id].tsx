@@ -1,5 +1,5 @@
 // Edit habit (SPEC-00, T12; Figma "Edit habit · Specific days" and "· Any days").
-// Name and weekly goal, saved as you type. Only valid names save (never blank, never a
+// Name and schedule, saved as you type. Only valid names save (never blank, never a
 // duplicate, at most 20 characters); while the field is invalid a hint shows, and leaving
 // keeps the last valid name. Icon and color pickers come in MVP.
 // Remove goes back to Habits, which shows the Undo bar.
@@ -68,8 +68,10 @@ export default function EditHabitScreen() {
           name={draft}
           onNameChange={rename}
           nameHint={nameHint(draft, state.habits, habit.id)}
-          goal={habit.goal}
-          onGoalChange={(goal) => dispatch({ type: 'setGoal', habitId: habit.id, goal })}
+          schedule={habit.schedule}
+          onScheduleChange={(schedule) =>
+            dispatch({ type: 'setSchedule', habitId: habit.id, schedule })
+          }
         />
 
         <View style={styles.spacer} />

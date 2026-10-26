@@ -11,6 +11,7 @@
     "expo-asset": "~58.0.16",
     "expo-constants": "~58.0.12",
     "expo-font": "~58.0.8",
+    "expo-haptics": "~58.0.7",
     "expo-linking": "~58.0.13",
     "expo-router": "~58.0.23",
     "expo-status-bar": "~58.0.3",
@@ -27,6 +28,7 @@
   },
   "devDependencies": {
     "@jest/globals": "^30.5.2",
+    "@playwright/test": "^1.64.1",
     "@types/jest": "^30.0.0",
     "@types/react": "~19.3.0",
     "eslint": "^9.39.5",
@@ -52,14 +54,18 @@
     "check": "npm run lint && npm run format:check && npm run typecheck && npm test",
     "prepare": "husky",
     "art:sync": "node scripts/sync-art.mjs",
-    "postinstall": "node scripts/sync-art.mjs"
+    "postinstall": "node scripts/sync-art.mjs",
+    "e2e": "playwright test",
+    "e2e:ui": "playwright test --ui",
+    "e2e:report": "playwright show-report"
   },
   "private": true,
   "jest": {
     "preset": "jest-expo",
     "testPathIgnorePatterns": [
       "/node_modules/",
-      "/dist/"
+      "/dist/",
+      "/e2e/"
     ],
     "collectCoverageFrom": [
       "src/rules/**/*.ts",

@@ -3,7 +3,7 @@
 
 import { useSyncExternalStore } from 'react';
 
-import type { Habit } from '@/rules/scoring';
+import type { Habit } from '@/rules/habits';
 
 export interface RemovedHabit {
   habit: Habit;

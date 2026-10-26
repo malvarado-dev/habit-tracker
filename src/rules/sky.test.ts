@@ -1,43 +1,43 @@
 import { describe, expect, it } from '@jest/globals';
-import { EVERY_DAY, getDailyResult, type Habit } from './scoring';
+import { getActivityBar } from './activityBar';
+import { EVERY_DAY, type Habit } from './habits';
+import { dayResult } from './locking';
 import { getSkyLevel, getSkyTime, sceneLevel, statusBarStyle } from './sky';
 
 const habits: Habit[] = [
-  { id: 'sleep', name: 'Sleep', goal: { kind: 'specificDays', days: EVERY_DAY }, color: 'habit1' },
-  { id: 'diet', name: 'Diet', goal: { kind: 'specificDays', days: EVERY_DAY }, color: 'habit1' },
+  {
+    id: 'sleep',
+    name: 'Sleep',
+    schedule: { kind: 'specificDays', days: EVERY_DAY },
+    color: 'habit1',
+  },
+  {
+    id: 'diet',
+    name: 'Diet',
+    schedule: { kind: 'specificDays', days: EVERY_DAY },
+    color: 'habit1',
+  },
+  {
+    id: 'read',
+    name: 'Read',
+    schedule: { kind: 'specificDays', days: EVERY_DAY },
+    color: 'habit1',
+  },
 ];
 const MON = '2026-10-12';
 
-describe('getSkyLevel', () => {
-  it('is asleep before the first check-in', () => {
-    expect(getSkyLevel(getDailyResult(habits, {}, MON))).toBe('asleep');
+describe('getSkyLevel follows the Activity Bar (P2-08a)', () => {
+  it('is asleep before the first log', () => {
+    expect(getSkyLevel(getActivityBar(habits, {}, MON))).toBe('asleep');
   });
 
-  it('wakes up and follows the live rank', () => {
-    const half = getDailyResult(habits, { [MON]: { sleep: 'NailedIt' } }, MON);
-    expect(getSkyLevel(half)).toBe('B');
-    const full = getDailyResult(habits, { [MON]: { sleep: 'NailedIt', diet: 'NailedIt' } }, MON);
-    expect(getSkyLevel(full)).toBe('S');
+  it('is awake while logging, and full once the bar fills', () => {
+    expect(getSkyLevel(getActivityBar(habits, { [MON]: { sleep: 1 } }, MON))).toBe('awake');
+    expect(getSkyLevel(getActivityBar(habits, { [MON]: { sleep: 1, diet: 1 } }, MON))).toBe('full');
   });
 
-  it('Skip wakes the sky but never lowers it', () => {
-    const skipped = getDailyResult(habits, { [MON]: { sleep: 'NotToday', diet: 'NailedIt' } }, MON);
-    expect(getSkyLevel(skipped)).toBe('S');
-  });
-
-  it('an optional check-in on a day with nothing due wakes the sky', () => {
-    const exercise: Habit = {
-      id: 'ex',
-      name: 'Exercise',
-      goal: { kind: 'anyDays', timesPerWeek: 3 },
-      color: 'habit1',
-    };
-    const result = getDailyResult([exercise], { [MON]: { ex: 'NailedIt' } }, MON);
-    expect(getSkyLevel(result)).toBe('S');
-  });
-
-  it('shows a calm Rest day sky when nothing is due', () => {
-    expect(getSkyLevel(getDailyResult([], {}, MON))).toBe('rest');
+  it('shows a calm Rest day sky when there is nothing to log', () => {
+    expect(getSkyLevel(getActivityBar([], {}, MON))).toBe('rest');
   });
 });
 
@@ -64,23 +64,20 @@ describe('statusBarStyle', () => {
 });
 
 describe('acceptance: Day screen sky and critter (T23)', () => {
-  const stars = { earnedStars: 0, possibleStars: 0 };
-
-  it('a day with no check-in is a quiet sky with the critter asleep', () => {
-    expect(sceneLevel({ outcome: 'none', ...stars })).toBe('asleep');
+  it('a day with no logs is a quiet sky with the critter asleep', () => {
+    expect(sceneLevel({ outcome: 'none', logs: 0, target: 2 })).toBe('asleep');
   });
 
-  it('a Rest day shows the Rest sky', () => {
-    expect(sceneLevel({ outcome: 'rest', ...stars })).toBe('rest');
-  });
-
-  it.each(['C', 'B', 'A', 'S'] as const)('a %s day shows that rank', (rank) => {
-    expect(sceneLevel({ outcome: 'rank', rank, ...stars })).toBe(rank);
+  it('a day that fell short is awake; a check-in is full; a Rest day is calm', () => {
+    expect(sceneLevel({ outcome: 'none', logs: 1, target: 2 })).toBe('awake');
+    expect(sceneLevel({ outcome: 'checkIn', logs: 2, target: 2 })).toBe('full');
+    expect(sceneLevel({ outcome: 'rest', logs: 0, target: 0 })).toBe('rest');
   });
 
   it('matches Today for the same open day', () => {
-    const log = { [MON]: { sleep: 'NailedIt' as const } };
-    const live = getSkyLevel(getDailyResult(habits, log, MON));
-    expect(sceneLevel({ outcome: 'rank', rank: 'B', ...stars })).toBe(live);
+    const log = { [MON]: { sleep: 1 } };
+    expect(sceneLevel(dayResult(habits, log, MON))).toBe(
+      getSkyLevel(getActivityBar(habits, log, MON)),
+    );
   });
 });

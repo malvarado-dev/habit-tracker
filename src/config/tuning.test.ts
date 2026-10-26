@@ -2,7 +2,8 @@
 import { describe, expect, it } from '@jest/globals';
 import { readdirSync, readFileSync, statSync } from 'fs';
 import { join } from 'path';
-import { getRank } from '@/rules/rank';
+import { dayTarget } from '@/rules/activityBar';
+import type { Habit } from '@/rules/habits';
 import { tuning } from './tuning';
 
 const SCREEN_DIRS = ['../app', '../components'].map((d) => join(__dirname, d));
@@ -30,12 +31,18 @@ describe('acceptance: no hardcoded colors or timings in screens', () => {
 });
 
 describe('acceptance: changing tuning changes the app', () => {
-  it('a rank cutoff edit changes the rank the rules return', () => {
-    const cutoffs = tuning.rank.cutoffs as { S: number };
-    const original = cutoffs.S;
-    expect(getRank(0.85)).toBe('A');
-    cutoffs.S = 0.8;
-    expect(getRank(0.85)).toBe('S');
-    cutoffs.S = original;
+  it('a full-share edit changes the Activity Bar target the rules return', () => {
+    const bar = tuning.activityBar as { fullShare: number };
+    const original = bar.fullShare;
+    const habits: Habit[] = Array.from({ length: 10 }, (_, i) => ({
+      id: `h${i}`,
+      name: `h${i}`,
+      color: 'habit1',
+      schedule: { kind: 'anyDays' },
+    }));
+    expect(dayTarget(habits, '2026-10-25')).toBe(6);
+    bar.fullShare = 0.8;
+    expect(dayTarget(habits, '2026-10-25')).toBe(8);
+    bar.fullShare = original;
   });
 });

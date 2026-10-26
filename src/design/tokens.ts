@@ -236,4 +236,4 @@ export const history = {
 } as const;
 
 /** Sky brightness per live rank, 0 to 1 (SPEC-00: C dim, B a little glow, A bright, S rays). */
-export const skyGlow = { asleep: 0.1, rest: 0.3, C: 0.2, B: 0.4, A: 0.65, S: 0.9 } as const;
+export const skyGlow = { asleep: 0.1, rest: 0.3, awake: 0.4, full: 0.9 } as const;

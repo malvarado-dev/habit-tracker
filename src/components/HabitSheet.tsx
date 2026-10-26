@@ -1,22 +1,22 @@
-// The habit sheet's contents, shared by the phone and wide layouts (T10): the Energy bar on top,
-// "Weekly goal met" under it when a habit's goal is met (T18), then the habit cards, which scroll inside. The Background and critter are
-// never inside it, so they stay still while the cards scroll.
+// The habit sheet's contents, shared by the phone and wide layouts (T10): the Activity Bar on top,
+// then the Main Quest card and the habit cards, which scroll inside. The room and pet are never
+// inside it, so they stay still while the cards scroll. Every log shows the Undo bar (P2-08a).
 
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { EnergyBar } from '@/components/EnergyBar';
+import { ActivityBar } from '@/components/ActivityBar';
 import { HabitCard } from '@/components/HabitCard';
 import { MainQuestCard } from '@/components/MainQuestCard';
-import { WeeklyGoalMet, type GoalMetMoment } from '@/components/WeeklyGoalMet';
+import { UndoBar } from '@/components/UndoBar';
+import { tuning } from '@/config/tuning';
 import { textStyle } from '@/design/fonts';
 import { useTheme } from '@/design/theme/ThemeProvider';
-import { useSettings } from '@/features/settings/SettingsProvider';
-import { claimGoalMet } from '@/features/tracker/goalMetSession';
 import { useTracker } from '@/features/tracker/TrackerProvider';
-import { cardNeed, getEnergyBar, newlyScoredMetGoals } from '@/rules/energy';
-import { getWeekProgress, nextCheckIn, type CheckIn, type Habit } from '@/rules/scoring';
+import { getActivityBar } from '@/rules/activityBar';
+import { logCount, type Habit } from '@/rules/habits';
+import { allHabits } from '@/rules/locking';
 import { groupHabits } from '@/rules/sheet';
 import { space } from '@/theme';
 
@@ -28,45 +28,38 @@ const NO_BAD_HABITS: string[] = [];
 
 export function HabitSheet({ bottomPadding }: { bottomPadding: number }) {
   const { state, dispatch, today } = useTracker();
-  const { goalStyle } = useSettings();
   const { colors: c } = useTheme();
-  const bar = getEnergyBar(state.habits, state.log, today);
-  const todayLog = state.log[today] ?? {};
-  const [goalMet, setGoalMet] = useState<GoalMetMoment>(null);
+  const bar = getActivityBar(allHabits(state), state.log, today, state.targets[today]);
   const sections = groupHabits(state.habits, state.log, today);
   const badHabits = NO_BAD_HABITS;
+  // The last log, so Undo can take it back. `id` changes every log to restart the timer.
+  const [undo, setUndo] = useState<{ habit: Habit; id: number } | null>(null);
 
-  const checkIn = (habitId: string, value: CheckIn | undefined, viaTap: boolean) => {
-    // Weekly goal met: the first scoring tap of a habit whose goal is met, once per session.
-    const after = { ...state.log, [today]: { ...todayLog } };
-    if (value === undefined) delete after[today]![habitId];
-    else after[today]![habitId] = value;
-    const met = newlyScoredMetGoals(state.habits, state.log, after, today).find(
-      (h) => h.id === habitId && claimGoalMet(h.id, today),
-    );
-    if (met) setGoalMet((m) => ({ habit: met, id: (m?.id ?? 0) + 1 }));
-    dispatch(
-      viaTap
-        ? { type: 'tapHabit', date: today, habitId }
-        : { type: 'setCheckIn', date: today, habitId, checkIn: value },
-    );
+  useEffect(() => {
+    if (!undo) return;
+    const timer = setTimeout(() => setUndo(null), tuning.habits.undoMs);
+    return () => clearTimeout(timer);
+  }, [undo]);
+
+  const log = (habit: Habit) => {
+    dispatch({ type: 'logHabit', date: today, habitId: habit.id });
+    setUndo((u) => ({ habit, id: (u?.id ?? 0) + 1 }));
   };
 
-  const card = (habit: Habit) => {
-    const current = todayLog[habit.id];
-    return (
-      <HabitCard
-        key={habit.id}
-        habit={habit}
-        checkIn={current}
-        need={cardNeed(habit, state.log, today)}
-        progress={getWeekProgress(habit, state.log, today)}
-        goalStyle={goalStyle}
-        onTap={() => checkIn(habit.id, nextCheckIn(current), true)}
-        onSwipe={(value) => checkIn(habit.id, value, false)}
-      />
-    );
+  const undoLog = () => {
+    if (!undo) return;
+    dispatch({ type: 'undoLog', date: today, habitId: undo.habit.id });
+    setUndo(null);
   };
+
+  const card = (habit: Habit) => (
+    <HabitCard
+      key={habit.id}
+      habit={habit}
+      count={logCount(state.log, today, habit.id)}
+      onLog={() => log(habit)}
+    />
+  );
 
   const section = (id: string, title: string, habits: Habit[]) =>
     habits.length === 0 ? null : (
@@ -84,14 +77,13 @@ export function HabitSheet({ bottomPadding }: { bottomPadding: number }) {
 
   return (
     <>
-      <EnergyBar
+      <ActivityBar
         fill={bar.fill}
+        logs={bar.logs}
+        target={bar.target}
         isRestDay={bar.isRestDay}
-        label="Today"
-        glowKey={goalMet?.id ?? 0}
         activityIcons
       />
-      <WeeklyGoalMet moment={goalMet} />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[styles.content, { paddingBottom: bottomPadding }]}
@@ -130,6 +122,14 @@ export function HabitSheet({ bottomPadding }: { bottomPadding: number }) {
           </Text>
         </Pressable>
       </ScrollView>
+      {undo ? (
+        <UndoBar
+          key={undo.id}
+          text={`${undo.habit.name || 'Habit'} logged`}
+          undoLabel={`Undo, take back the last ${undo.habit.name || 'habit'} log`}
+          onUndo={undoLog}
+        />
+      ) : null}
     </>
   );
 }

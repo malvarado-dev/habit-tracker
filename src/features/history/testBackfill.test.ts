@@ -32,10 +32,10 @@ const OLDEST = '2026-09-04'; // 45 days before Oct 19
 const TOO_OLD = '2026-09-03';
 
 const run = (start: AppState, ...actions: AppAction[]) => actions.reduce(appReducer, start);
-const setCheckIn = (date: string, habitId: string): AppAction => ({
+const logHabit = (date: string, habitId: string): AppAction => ({
   type: 'tracker',
   realDate: REAL,
-  action: { type: 'setCheckIn', date, habitId, checkIn: 'NailedIt' },
+  action: { type: 'logHabit', date, habitId },
 });
 
 describe('Test open window (T22)', () => {
@@ -56,32 +56,28 @@ describe('Test open window (T22)', () => {
     expect(canOpenDay('2026-10-20', REAL, null)).toBe(false);
   });
 
-  it('a check-in 45 days back in Test is saved and scores the day', () => {
-    const app = run(
-      createAppState(),
-      { type: 'setMode', mode: 'test' },
-      setCheckIn(OLDEST, 'sleep'),
-    );
-    expect(app.test.state.log[OLDEST]).toEqual({ sleep: 'NailedIt' });
-    expect(historyDay(app.test.state, OLDEST)).toMatchObject({ outcome: 'rank' });
+  it('a log 45 days back in Test is saved and counts for the day', () => {
+    const app = run(createAppState(), { type: 'setMode', mode: 'test' }, logHabit(OLDEST, 'sleep'));
+    expect(app.test.state.log[OLDEST]).toEqual({ sleep: 1 });
+    expect(historyDay(app.test.state, OLDEST)).toMatchObject({ logs: 1 });
   });
 
-  it('a check-in older than the window is ignored in Test', () => {
+  it('a log older than the window is ignored in Test', () => {
     const app = run(
       createAppState(),
       { type: 'setMode', mode: 'test' },
-      setCheckIn(TOO_OLD, 'sleep'),
+      logHabit(TOO_OLD, 'sleep'),
     );
     expect(app.test.state.log[TOO_OLD]).toBeUndefined();
   });
 
-  it('Real still locks after 2 days and never gets Test check-ins', () => {
-    const app = run(createAppState(), setCheckIn('2026-10-10', 'sleep'));
+  it('Real still locks after 2 days and never gets Test logs', () => {
+    const app = run(createAppState(), logHabit('2026-10-10', 'sleep'));
     expect(app.real.state.log['2026-10-10']).toBeUndefined();
     const both = run(
       createAppState(),
       { type: 'setMode', mode: 'test' },
-      setCheckIn('2026-10-10', 'sleep'),
+      logHabit('2026-10-10', 'sleep'),
     );
     expect(both.real.state.log).toEqual({});
   });

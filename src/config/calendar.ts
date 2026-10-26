@@ -1,7 +1,7 @@
 // Calendar settings (SPEC-00). One week-start setting drives weekly goals, isDue, the progress
 // ring and dots, and History. Following the phone's region is Later.
 
-import type { Weekday } from '@/rules/scoring';
+import type { Weekday } from '@/rules/habits';
 
 export const calendar = {
   /**

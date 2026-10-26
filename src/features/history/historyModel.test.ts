@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { energyLabel } from '@/components/energyBarText';
+import { activityBarLabel } from '@/components/activityBarText';
 import { createInitialState, type TrackerState } from '@/features/tracker/state';
 import { lockDays } from '@/rules/locking';
 import {
@@ -14,17 +14,17 @@ import {
   monthTitle,
   stepMonth,
   weekdayLetters,
-  weekRows,
-  weekTitle,
 } from './historyModel';
 
 // Pretend dates: Monday 2026-10-19 is today. Oct 1 2026 is a Thursday.
 const TODAY = '2026-10-19';
-const nailed = { sleep: 'NailedIt', diet: 'NailedIt', wellbeing: 'NailedIt' } as const;
-const rest = { sleep: 'NotToday', diet: 'NotToday', wellbeing: 'NotToday' } as const;
+// Sleep, Diet, and Wellbeing are due every day: 2 of 3 fill the bar.
+const filled = { sleep: 1, diet: 1 };
+// Oct 15 was opened as a Rest day: a saved target of 0.
+const REST_DAY = '2026-10-15';
 
 function state(log: TrackerState['log']): TrackerState {
-  return lockDays({ ...createInitialState(), log }, TODAY);
+  return lockDays({ ...createInitialState(), log, targets: { [REST_DAY]: 0 } }, TODAY);
 }
 
 describe('month grid', () => {
@@ -47,30 +47,30 @@ describe('month grid', () => {
   });
 
   it('shows the saved result for locked days and live results for open days', () => {
-    const s = state({ '2026-10-14': nailed, '2026-10-15': rest, [TODAY]: { sleep: 'Started' } });
+    const s = state({ '2026-10-14': filled, [TODAY]: { sleep: 1 } });
     const cells = monthGrid('2026-10', s, TODAY).flat();
     const at = (d: string) => cells.find((c) => c.date === d)!;
-    expect(at('2026-10-14').result).toMatchObject({ outcome: 'rank', rank: 'S' });
-    expect(at('2026-10-15').result?.outcome).toBe('rest');
+    expect(at('2026-10-14').result?.outcome).toBe('checkIn');
+    expect(at(REST_DAY).result?.outcome).toBe('rest');
     expect(at('2026-10-16').result?.outcome).toBe('none');
-    expect(at(TODAY).result).toMatchObject({ outcome: 'rank', rank: 'C' });
+    expect(at(TODAY).result).toEqual({ outcome: 'none', logs: 1, target: 2 });
   });
 });
 
 describe('screen reader labels', () => {
-  const s = state({ '2026-10-14': nailed, '2026-10-15': rest });
+  const s = state({ '2026-10-14': filled });
   const cells = monthGrid('2026-10', s, TODAY).flat();
   const label = (d: string) => dayCellLabel(cells.find((c) => c.date === d)!);
 
-  it('reads the date and the rank, Rest day, or No check-in', () => {
-    expect(label('2026-10-14')).toBe('Wed, Oct 14, S rank');
+  it('reads the date and Check-in, Rest day, or No check-in', () => {
+    expect(label('2026-10-14')).toBe('Wed, Oct 14, Check-in');
     expect(label('2026-10-15')).toBe('Thu, Oct 15, Rest day');
     expect(label('2026-10-16')).toBe('Fri, Oct 16, No check-in');
   });
 });
 
 describe('month arrows', () => {
-  const log = { '2026-09-03': { sleep: 'Started' } } as TrackerState['log'];
+  const log: TrackerState['log'] = { '2026-09-03': { sleep: 1 } };
 
   it('can not go before the first month with data or past this month', () => {
     expect(firstMonth(log, TODAY)).toBe('2026-09');
@@ -143,31 +143,8 @@ describe('acceptance: Day screen bar label (T24)', () => {
   });
 
   it('screen readers hear the date in place of today', () => {
-    expect(energyLabel(0.64, false, 'Thu, Oct 15')).toBe(
-      '64 percent of Thu, Oct 15. Marks at 50, 75, and 90 percent.',
+    expect(activityBarLabel(1, 2, false, 'on Thu, Oct 15')).toBe(
+      'Activity Bar, 1 of 2 logs on Thu, Oct 15',
     );
-    expect(energyLabel(0.64, false)).toContain('percent of today.');
-  });
-});
-
-describe('week panel', () => {
-  const habits = createInitialState().habits;
-
-  it('counts days per habit for the week, and shows extra days past the goal', () => {
-    // Exercise (3 times a week) done 4 times in the week of Oct 11.
-    const log = {
-      '2026-10-11': { exercise: 'Started', sleep: 'NailedIt' },
-      '2026-10-12': { exercise: 'OnTrack', sleep: 'NotToday' },
-      '2026-10-14': { exercise: 'NailedIt' },
-      '2026-10-17': { exercise: 'Started' },
-      '2026-10-18': { exercise: 'NailedIt' },
-    } as TrackerState['log'];
-    const rows = weekRows(habits, log, '2026-10-14');
-    const row = (id: string) => rows.find((r) => r.habitId === id)!;
-    expect(row('exercise')).toMatchObject({ done: 4, goal: 3, label: '3 +1' });
-    expect(row('exercise').a11yLabel).toBe('Exercise, goal met, 1 extra this week');
-    // Skip never counts.
-    expect(row('sleep')).toMatchObject({ done: 1, goal: 7, label: '1 of 7' });
-    expect(weekTitle('2026-10-14')).toBe('Week of Oct 11');
   });
 });

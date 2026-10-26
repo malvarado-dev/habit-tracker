@@ -23,7 +23,6 @@ describe('acceptance: History (T16)', () => {
     [view, 'history-prev-month'],
     [view, 'history-next-month'],
     [view, 'history-day-${cell.date}'],
-    [view, 'history-week'],
     [historyScreen, 'history-back'],
     [dayScreen, 'day-back'],
   ])('has test ID %#', (source, id) => {
@@ -42,8 +41,8 @@ describe('acceptance: History (T16)', () => {
     }
   });
 
-  it('the Day screen uses the same scene and celebration as Today (T23, replaces T16 rule)', () => {
-    for (const mod of ['components/SceneLayout', 'components/useCritterAndMoment']) {
+  it('the Day screen uses the same scene and critter as Today (T23, replaces T16 rule)', () => {
+    for (const mod of ['components/SceneLayout', 'components/useCritterWake']) {
       expect(dayScreen).toContain(`/${mod}'`);
       expect(today).toContain(`/${mod}'`);
     }
@@ -60,9 +59,9 @@ describe('acceptance: History (T16)', () => {
 
 describe('acceptance: no week highlight in the calendar (T20)', () => {
   const view = readFileSync(join(__dirname, 'HistoryView.tsx'), 'utf8');
-  it('calendar rows have no gray highlight; the panel title names the week', () => {
+  it('calendar rows have no gray highlight, and the week panel is gone with weekly goals', () => {
     expect(view).not.toContain('focusRow');
     expect(view).not.toContain('surfaceDim');
-    expect(view).toContain('{weekTitle(date)}');
+    expect(view).not.toContain('WeekPanel');
   });
 });

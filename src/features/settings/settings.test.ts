@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import { GOAL_STYLE_STORAGE_KEY, loadGoalStyle, saveGoalStyle } from './settings';
+import { BAD_HABIT_DESIGN_STORAGE_KEY, loadBadHabitDesign, saveBadHabitDesign } from './settings';
 
 const fakeStorage = (initial: Record<string, string> = {}) => {
   const data = { ...initial };
@@ -12,23 +12,25 @@ const fakeStorage = (initial: Record<string, string> = {}) => {
   };
 };
 
-describe('Weekly goal style setting (T11)', () => {
-  it('defaults to Ring', async () => {
-    expect(await loadGoalStyle(fakeStorage())).toBe('ring');
+describe('Bad habits layout setting (P2-05)', () => {
+  it('defaults to Design 1', async () => {
+    expect(await loadBadHabitDesign(fakeStorage())).toBe('design1');
   });
 
   it('survives a restart: what is saved is what loads', async () => {
     const storage = fakeStorage();
-    await saveGoalStyle(storage, 'dots');
-    expect(storage.data[GOAL_STYLE_STORAGE_KEY]).toBe('dots');
-    expect(await loadGoalStyle(storage)).toBe('dots');
+    await saveBadHabitDesign(storage, 'design2');
+    expect(storage.data[BAD_HABIT_DESIGN_STORAGE_KEY]).toBe('design2');
+    expect(await loadBadHabitDesign(storage)).toBe('design2');
   });
 
   it('ignores a bad saved value', async () => {
-    expect(await loadGoalStyle(fakeStorage({ [GOAL_STYLE_STORAGE_KEY]: 'stars' }))).toBe('ring');
+    expect(
+      await loadBadHabitDesign(fakeStorage({ [BAD_HABIT_DESIGN_STORAGE_KEY]: 'design3' })),
+    ).toBe('design1');
   });
 
-  it('falls back to Ring if storage fails', async () => {
+  it('falls back to Design 1 if storage fails', async () => {
     const broken = {
       getItem: async () => {
         throw new Error('no storage');
@@ -37,7 +39,7 @@ describe('Weekly goal style setting (T11)', () => {
         throw new Error('no storage');
       },
     };
-    expect(await loadGoalStyle(broken)).toBe('ring');
-    await expect(saveGoalStyle(broken, 'dots')).resolves.toBeUndefined();
+    expect(await loadBadHabitDesign(broken)).toBe('design1');
+    await expect(saveBadHabitDesign(broken, 'design2')).resolves.toBeUndefined();
   });
 });

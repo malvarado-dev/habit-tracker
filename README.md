@@ -11,7 +11,7 @@ A habit tracker where checking in takes seconds and a critter companion grows wi
 
 ## Tech
 
-Expo (React Native) with Expo Router, TypeScript in strict mode, Jest for unit tests. App rules (scores, ranks, weekly goals) live in plain TypeScript in `src/rules`, separate from the screens in `src/app`. Every interactive element has a test ID for Playwright (web) and Maestro (phones).
+Expo (React Native) with Expo Router, TypeScript in strict mode, Jest for unit tests, and Playwright for end-to-end tests on the web build. App rules (logging, the Activity Bar, rings, locked days) live in plain TypeScript in `src/rules`, separate from the screens in `src/app`. Every interactive element has a test ID for Playwright (web) and Maestro (phones).
 
 ## Run it locally
 
@@ -19,6 +19,9 @@ Expo (React Native) with Expo Router, TypeScript in strict mode, Jest for unit t
 npm install
 npm start          # dev server; press w for web
 npm run check      # lint, format, types, and tests
+npx playwright install chromium   # once, for end-to-end tests
+npm run e2e        # Playwright: builds the web app and runs e2e/web
+npm run e2e:report # open the last Playwright report
 ```
 
 The pet and room art is private and not in this repo. Without it, the app runs with plain placeholder images. With access, clone the art repo next to this one (or set `ART_DIR`), then run `npm run art:sync`.

@@ -1,248 +1,116 @@
-// One habit card (design-system.md, Habit Card). A white pill: the weekly goal (progress
-// ring around a letter icon, or progress dots under the name), the name, three stars, and
-// one status slot. Tap cycles Started, On track, Nailed it, Skip, back to To do,
-// so the same tap works as undo. Swipes are shortcuts, never the only way: full right = Nailed it,
-// full left = Skip. Short swipes were dropped in T6; vertical drags scroll and never score.
+// One habit card (PRD-15 Cards, P2-08a). A white pill with a letter icon and the habit's name.
+// One tap logs one time, with a quick press and a light haptic. Habits done more than once a day
+// show a segmented gold ring around the icon and a count ("3/8"); each log fills its segment
+// clockwise with the Activity Bar's easing. Once-a-day habits show no ring and no count.
+// Stars, swipes, Skip and weekly goals were removed in P2-08a; slide actions come in P2-08b.
+// Reduced motion: no press scale, and segments fill without moving.
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import * as Haptics from 'expo-haptics';
+import { useEffect, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import ReanimatedSwipeable, {
-  SwipeDirection,
-  type SwipeableMethods,
-} from 'react-native-gesture-handler/ReanimatedSwipeable';
 import Animated, {
+  useAnimatedProps,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Circle } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 
 import { tuning } from '@/config/tuning';
-import type { GoalStyle } from '@/features/settings/settings';
 import { withAlpha } from '@/design/theme/theme';
 import { useTheme } from '@/design/theme/ThemeProvider';
 import { textStyle } from '@/design/fonts';
-import { habitCardSizes as size, history, shadows, tints, typography } from '@/design/tokens';
+import { habitCardSizes as size, history, shadows, tints } from '@/design/tokens';
 import type { ThemeColors } from '@/design/tokens';
-import { MAX_STARS, STARS, type CheckIn, type Habit } from '@/rules/scoring';
+import { timesPerDay, type Habit } from '@/rules/habits';
+import { arcLength, arcPath, ringFor, segmentArcs } from '@/rules/ring';
 import { MIN_TAP_SIZE, radius, space } from '@/theme';
 
-import { CardEffect } from './CardEffect';
-import { cardMotion } from './cardEffectLayout';
-import { swipeHintsFor } from './habitCardLocked';
-import {
-  cardAccessibilityLabel,
-  iconLetter,
-  statusText,
-  weekProgressText,
-  type CardNeed,
-} from './habitCardText';
+import { cardAccessibilityLabel, iconLetter } from './habitCardText';
+import { fillEasing, fillMs } from './motion';
 
-export type { GoalStyle } from '@/features/settings/settings';
-
-const LOCKED_OPACITY = history.lockedCardOpacity;
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 interface HabitCardProps {
   habit: Habit;
-  checkIn: CheckIn | undefined;
-  /** Unscored, the card says "To do" (counts toward today's Energy bar), "Goal met", or nothing. */
-  need: CardNeed;
-  /** Days this week scored Started or better, and the weekly goal. */
-  progress: { done: number; goal: number };
-  /** Ring is the default; Dots is the Profile option (SPEC-00). */
-  goalStyle: GoalStyle;
-  onTap: () => void;
-  onSwipe: (checkIn: CheckIn) => void;
-  /** A locked day in History (T16): dimmed, and taps and swipes are off. */
+  /** Logs so far on the card's day. */
+  count: number;
+  /** One tap: log one more time. */
+  onLog: () => void;
+  /** A locked day in History (T16): dimmed, and taps are off. */
   locked?: boolean;
 }
 
-export function HabitCard(props: HabitCardProps) {
-  const { habit, checkIn, need, progress, goalStyle, onTap, onSwipe, locked = false } = props;
-  const hints = swipeHintsFor(locked);
+export function HabitCard({ habit, count, onLog, locked = false }: HabitCardProps) {
   const styles = useStyles();
   const { colors: c } = useTheme();
-  const swipeRef = useRef<SwipeableMethods>(null);
-  const habitColor = c[habit.color];
-
-  // Play the in-card effect only when the score changes, not for scores already saved.
-  const [shownCheckIn, setShownCheckIn] = useState(checkIn);
-  const [burstId, setBurstId] = useState(0);
-  if (shownCheckIn !== checkIn) {
-    setShownCheckIn(checkIn);
-    setBurstId((n) => n + 1);
-  }
   const reduceMotion = useReducedMotion();
-  const fx = tuning.card.effects;
   const scale = useSharedValue(1);
-  const dim = useSharedValue(checkIn === 'NotToday' ? 1 : 0);
-  const flash = useSharedValue(1);
-
-  // Card motion, the Skip dim, and the reduced-motion star flash, once per score change.
-  useEffect(() => {
-    if (burstId === 0) return;
-    const dimTo = checkIn === 'NotToday' ? 1 : 0;
-    dim.value = reduceMotion ? dimTo : withTiming(dimTo, { duration: fx.dimMs });
-    if (reduceMotion) {
-      if (checkIn && checkIn !== 'NotToday') {
-        flash.value = withSequence(
-          withTiming(fx.flashOpacity, { duration: fx.flashMs / 2 }),
-          withTiming(1, { duration: fx.flashMs / 2 }),
-        );
-      }
-      return;
-    }
-    const motion = cardMotion(checkIn);
-    if (motion === 'pulse') {
-      scale.value = withSequence(
-        withTiming(fx.pulseScale, { duration: fx.pulseMs }),
-        withTiming(1, { duration: fx.pulseMs }),
-      );
-    }
-  }, [burstId, checkIn, reduceMotion, dim, flash, scale, fx]);
-
-  const scaleStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-  const dimStyle = useAnimatedStyle(() => ({ opacity: dim.value }));
-  const flashStyle = useAnimatedStyle(() => ({ opacity: flash.value }));
-  const effectColors = {
-    started: c.scoreStartedStar,
-    onTrack: c.scoreOnTrackStar,
-    nailedIt: c.scoreNailedItStar,
-    habit: habitColor,
-  };
-
-  const stars = checkIn ? STARS[checkIn] : 0;
+  const habitColor = c[habit.color];
+  const times = timesPerDay(habit);
+  const ring = ringFor(times, count);
   const name = habit.name.trim() || 'Untitled habit';
   const id = habit.id;
 
-  const handleSwipe = (direction: SwipeDirection.LEFT | SwipeDirection.RIGHT) => {
-    onSwipe(direction === SwipeDirection.RIGHT ? 'NailedIt' : 'NotToday');
-    swipeRef.current?.close();
+  const scaleStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+
+  const log = () => {
+    if (locked) return;
+    const finishes = count + 1 >= times;
+    // Haptics never block the tap; a phone or browser without them just stays quiet.
+    const buzz = finishes
+      ? Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+      : Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    buzz.catch(() => {});
+    if (!reduceMotion) {
+      const { pressScale, pressMs } = tuning.card;
+      scale.set(
+        withSequence(
+          withTiming(pressScale, { duration: pressMs }),
+          withTiming(1, { duration: pressMs }),
+        ),
+      );
+    }
+    onLog();
   };
 
   return (
-    <ReanimatedSwipeable
-      ref={swipeRef}
-      friction={1.5}
-      leftThreshold={tuning.card.swipeThreshold}
-      rightThreshold={tuning.card.swipeThreshold}
-      dragOffsetFromLeft={tuning.card.swipeStartOffset}
-      dragOffsetFromRight={-tuning.card.swipeStartOffset}
-      overshootLeft={false}
-      overshootRight={false}
-      renderLeftActions={
-        hints.left
-          ? () => (
-              <SwipeHint habitId={id} text={hints.left as string} color={c.scoreNailedIt} start />
-            )
-          : undefined
-      }
-      renderRightActions={
-        hints.right
-          ? () => <SwipeHint habitId={id} text={hints.right as string} color={c.onSurfaceMuted} />
-          : undefined
-      }
-      onSwipeableWillOpen={handleSwipe}
-      enabled={!locked}
-      containerStyle={styles.swipeContainer}
-    >
-      {/* Dim the card itself, not the swipe container, so nothing behind it shows through. */}
-      <Animated.View style={[scaleStyle, locked && { opacity: LOCKED_OPACITY }]}>
-        <Pressable
-          onPress={onTap}
-          disabled={locked}
-          accessibilityState={{ disabled: locked }}
-          testID={`habit-card-${id}`}
-          accessibilityRole="button"
-          accessibilityLabel={cardAccessibilityLabel(
-            name,
-            checkIn,
-            need,
-            progress.done,
-            progress.goal,
-          )}
-          accessibilityHint={
-            locked
-              ? 'This day is locked.'
-              : 'Tap to change the score. Swipe right for Nailed it, left for Skip.'
-          }
-          accessibilityActions={
-            locked
-              ? []
-              : [
-                  { name: 'nailedIt', label: 'Nailed it' },
-                  { name: 'notToday', label: 'Skip' },
-                ]
-          }
-          onAccessibilityAction={(e) => {
-            if (locked) return;
-            onSwipe(e.nativeEvent.actionName === 'nailedIt' ? 'NailedIt' : 'NotToday');
-          }}
-          style={({ pressed }) => [
-            styles.card,
-            { backgroundColor: c.surface },
-            pressed && styles.pressed,
-          ]}
-        >
-          <Animated.View
-            pointerEvents="none"
-            testID={`habit-dim-${id}`}
-            style={[styles.dim, { backgroundColor: c.surfaceDim }, dimStyle]}
-          />
-          <View importantForAccessibility="no-hide-descendants" style={styles.row}>
-            {goalStyle === 'ring' ? (
-              <ProgressRing id={id} color={habitColor} track={c.onSurface} {...progress}>
-                <LetterIcon id={id} name={name} color={habitColor} />
-              </ProgressRing>
-            ) : (
+    <Animated.View style={[scaleStyle, locked && { opacity: history.lockedCardOpacity }]}>
+      <Pressable
+        onPress={log}
+        disabled={locked}
+        accessibilityState={{ disabled: locked }}
+        testID={`habit-card-${id}`}
+        accessibilityRole="button"
+        accessibilityLabel={cardAccessibilityLabel(name, count, times)}
+        accessibilityHint={locked ? 'This day is locked.' : 'Tap to log one time.'}
+        style={[styles.card, { backgroundColor: c.surface }]}
+      >
+        <View importantForAccessibility="no-hide-descendants" style={styles.row}>
+          {ring ? (
+            <SegmentRing id={id} segments={ring.segments} filled={ring.filled}>
               <LetterIcon id={id} name={name} color={habitColor} />
-            )}
-
-            <View style={styles.textBlock}>
-              <Text style={styles.name} numberOfLines={1} testID={`habit-name-${id}`}>
-                {name}
-              </Text>
-              {goalStyle === 'dots' ? (
-                <ProgressDots id={id} color={habitColor} {...progress} />
-              ) : null}
+            </SegmentRing>
+          ) : (
+            <View style={styles.ringSlot}>
+              <LetterIcon id={id} name={name} color={habitColor} />
             </View>
+          )}
 
-            <View style={styles.right}>
-              <Animated.View style={[styles.stars, flashStyle]} testID={`habit-stars-${id}`}>
-                {Array.from({ length: MAX_STARS }, (_, i) => (
-                  <View key={i} style={styles.starBox}>
-                    <Text
-                      testID={`habit-star-${id}-${i + 1}`}
-                      style={[styles.star, { color: starColor(c, checkIn, i < stars) }]}
-                    >
-                      {i < stars ? '★' : '☆'}
-                    </Text>
-                    {/* Skip: each outlined star is crossed out by a diagonal slash. */}
-                    {checkIn === 'NotToday' ? (
-                      <View
-                        testID={`habit-star-slash-${id}-${i + 1}`}
-                        style={[styles.slash, { backgroundColor: c.starNotToday }]}
-                      />
-                    ) : null}
-                  </View>
-                ))}
-              </Animated.View>
-              <Text
-                style={[styles.status, { color: labelColor(c, checkIn) }]}
-                testID={`habit-label-${id}`}
-              >
-                {statusText(checkIn, need)}
-              </Text>
-            </View>
-          </View>
-          {burstId > 0 && !reduceMotion ? (
-            <CardEffect key={burstId} checkIn={checkIn} colors={effectColors} />
+          <Text style={styles.name} numberOfLines={1} testID={`habit-name-${id}`}>
+            {name}
+          </Text>
+
+          {ring ? (
+            <Text style={styles.count} testID={`habit-count-${id}`}>
+              {ring.label}
+            </Text>
           ) : null}
-        </Pressable>
-      </Animated.View>
-    </ReanimatedSwipeable>
+        </View>
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -259,111 +127,70 @@ function LetterIcon({ id, name, color }: { id: string; name: string; color: stri
   );
 }
 
-/** A ring around the icon that fills one step per day done this week, full once the goal is met. */
-function ProgressRing(props: {
+/**
+ * One segment per time a day around the icon, filled gold clockwise from the top. The ring's
+ * accessibility label carries the count, so tests and screen readers can read it.
+ */
+function SegmentRing(props: {
   id: string;
-  color: string;
-  track: string;
-  done: number;
-  goal: number;
-  children: ReactNode;
+  segments: number;
+  filled: number;
+  children: React.ReactNode;
 }) {
   const styles = useStyles();
+  const { ring: r } = tuning;
   const center = size.ring / 2;
-  const r = center - size.ringStroke / 2 - 1;
-  const circumference = 2 * Math.PI * r;
-  const fraction = props.goal > 0 ? Math.min(props.done / props.goal, 1) : 0;
+  const radiusPx = center - r.stroke / 2 - 1;
+  const arcs = segmentArcs(props.segments, r.gapDegrees);
   return (
     <View
-      style={styles.ring}
+      style={styles.ringSlot}
       testID={`habit-ring-${props.id}`}
-      accessibilityLabel={weekProgressText(props.done, props.goal)}
+      accessibilityLabel={`${props.filled} of ${props.segments} done today`}
     >
       <Svg width={size.ring} height={size.ring} style={styles.ringSvg}>
-        <Circle
-          cx={center}
-          cy={center}
-          r={r}
-          fill="none"
-          stroke={withAlpha(props.track, tints.ringTrack)}
-          strokeWidth={size.ringStroke}
-        />
-        {fraction > 0 ? (
-          <Circle
-            cx={center}
-            cy={center}
-            r={r}
-            fill="none"
-            stroke={props.color}
-            strokeWidth={size.ringStroke}
-            strokeLinecap="round"
-            strokeDasharray={`${circumference * fraction} ${circumference}`}
-            transform={`rotate(-90 ${center} ${center})`}
+        {arcs.map((arc, i) => (
+          <RingSegment
+            key={i}
+            d={arcPath(center, radiusPx, arc)}
+            length={arcLength(radiusPx, arc)}
+            filled={i < props.filled}
           />
-        ) : null}
+        ))}
       </Svg>
       {props.children}
     </View>
   );
 }
 
-/** One dot per weekly goal day. Filled = solid, empty = outline, so it reads by shape, not color alone. */
-function ProgressDots(props: { id: string; color: string; done: number; goal: number }) {
-  const styles = useStyles();
+/** A track arc with a gold arc over it that draws in along the arc when the segment fills. */
+function RingSegment({ d, length, filled }: { d: string; length: number; filled: boolean }) {
+  const reduceMotion = useReducedMotion();
+  const { ring: r } = tuning;
+  const progress = useSharedValue(filled ? 1 : 0);
+
+  useEffect(() => {
+    const to = filled ? 1 : 0;
+    progress.set(reduceMotion ? to : withTiming(to, { duration: fillMs, easing: fillEasing }));
+  }, [filled, reduceMotion, progress]);
+
+  const animatedProps = useAnimatedProps(() => ({
+    strokeDashoffset: length * (1 - progress.value),
+  }));
+
   return (
-    <View style={styles.dots} testID={`habit-dots-${props.id}`}>
-      {Array.from({ length: props.goal }, (_, i) => {
-        const filled = i < props.done;
-        return (
-          <View
-            key={i}
-            testID={`habit-dot-${props.id}-${i + 1}${filled ? '-filled' : ''}`}
-            style={[
-              styles.dot,
-              { borderColor: props.color },
-              filled && { backgroundColor: props.color },
-            ]}
-          />
-        );
-      })}
-    </View>
-  );
-}
-
-/** Each score level has its own label color, AA on the card (design-system.md). */
-function labelColor(c: ThemeColors, checkIn: CheckIn | undefined): string {
-  switch (checkIn) {
-    case 'Started':
-      return c.scoreStarted;
-    case 'OnTrack':
-      return c.scoreOnTrack;
-    case 'NailedIt':
-      return c.scoreNailedIt;
-    default:
-      return c.onSurfaceMuted;
-  }
-}
-
-/** To do = outlined gray, Skip = outlined gray with a slash: different by shape, not shade alone. */
-function starColor(c: ThemeColors, checkIn: CheckIn | undefined, filled: boolean): string {
-  if (checkIn === 'NotToday') return c.starNotToday;
-  if (!filled) return c.starScoreNeeded;
-  if (checkIn === 'Started') return c.scoreStartedStar;
-  if (checkIn === 'OnTrack') return c.scoreOnTrackStar;
-  return c.scoreNailedItStar;
-}
-
-function SwipeHint(props: { habitId: string; text: string; color: string; start?: boolean }) {
-  const { habitId, text, color, start } = props;
-  const side = start ? 'left' : 'right';
-  const styles = useStyles();
-  return (
-    <View
-      testID={`habit-hint-${side}-${habitId}`}
-      style={[styles.hint, { alignItems: start ? 'flex-start' : 'flex-end' }]}
-    >
-      <Text style={[styles.hintText, { color }]}>{text}</Text>
-    </View>
+    <>
+      <Path d={d} stroke={r.track} strokeWidth={r.stroke} strokeLinecap="round" fill="none" />
+      <AnimatedPath
+        d={d}
+        stroke={r.gold}
+        strokeWidth={r.stroke}
+        strokeLinecap="round"
+        fill="none"
+        strokeDasharray={`${length} ${length}`}
+        animatedProps={animatedProps}
+      />
+    </>
   );
 }
 
@@ -374,7 +201,6 @@ function useStyles() {
 
 const makeStyles = (c: ThemeColors, scheme: 'light' | 'dark') =>
   StyleSheet.create({
-    swipeContainer: { borderRadius: radius.pill },
     card: {
       minHeight: MIN_TAP_SIZE + space.lg,
       borderRadius: radius.pill,
@@ -382,7 +208,6 @@ const makeStyles = (c: ThemeColors, scheme: 'light' | 'dark') =>
       borderWidth: scheme === 'dark' ? 1 : StyleSheet.hairlineWidth,
       borderColor: c.border,
       boxShadow: shadows.card,
-      // design-system.html: 8 px around the ring, 18 px before the stars.
       paddingVertical: space.sm,
       paddingLeft: space.sm,
       paddingRight: space.lg + 2,
@@ -390,8 +215,12 @@ const makeStyles = (c: ThemeColors, scheme: 'light' | 'dark') =>
       justifyContent: 'center',
     },
     row: { flexDirection: 'row', alignItems: 'center', gap: space.md },
-    pressed: { transform: [{ scale: 0.98 }] },
-    ring: { width: size.ring, height: size.ring, alignItems: 'center', justifyContent: 'center' },
+    ringSlot: {
+      width: size.ring,
+      height: size.ring,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     ringSvg: { position: 'absolute' },
     icon: {
       width: size.icon,
@@ -401,28 +230,6 @@ const makeStyles = (c: ThemeColors, scheme: 'light' | 'dark') =>
       justifyContent: 'center',
     },
     iconLetter: textStyle('habitName', '700'),
-    textBlock: { flex: 1, gap: space.xs },
-    name: { ...textStyle('habitName'), color: c.onSurface },
-    dots: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
-    dot: {
-      width: size.dot,
-      height: size.dot,
-      borderRadius: size.dot / 2,
-      borderWidth: size.dotStroke,
-    },
-    right: { alignItems: 'flex-end', gap: space.xs },
-    stars: { flexDirection: 'row', gap: 2 },
-    starBox: { justifyContent: 'center', alignItems: 'center' },
-    star: { fontSize: size.star, lineHeight: size.star + space.xs },
-    slash: {
-      position: 'absolute',
-      width: size.skipSlash,
-      height: size.star,
-      borderRadius: size.skipSlash / 2,
-      transform: [{ rotate: '45deg' }],
-    },
-    status: { ...textStyle('label'), minHeight: typography.label.lineHeight },
-    hint: { flex: 1, justifyContent: 'center', paddingHorizontal: space.lg },
-    hintText: textStyle('label'),
-    dim: { ...StyleSheet.absoluteFill },
+    name: { ...textStyle('habitName'), color: c.onSurface, flex: 1 },
+    count: { ...textStyle('label', '700'), color: c.onSurfaceMuted },
   });

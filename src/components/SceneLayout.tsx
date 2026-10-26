@@ -43,7 +43,7 @@ export function SceneLayout({ testID, critter, corner, sheet, onOpenDay, overlay
   const styles = useStyles();
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const { time, level, moment } = critter;
+  const { time, level } = critter;
 
   if (layoutMode(width, height) === 'wide') {
     const { sceneHeight, critterWidth } = wideSizes(width, height);
@@ -58,7 +58,7 @@ export function SceneLayout({ testID, critter, corner, sheet, onOpenDay, overlay
           </View>
           <View style={styles.rightColumn} testID="wide-right-column">
             <View style={[styles.scene, { height: sceneHeight }]} testID="background-card">
-              <Background time={time} level={level} moment={moment} />
+              <Background time={time} level={level} />
               <View
                 style={[styles.critter, { bottom: -critterHeight * wide.critterSink }]}
                 pointerEvents="box-none"

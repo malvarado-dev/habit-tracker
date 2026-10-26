@@ -2,33 +2,41 @@
 // given the current state and an action, it returns the next state. No screens here,
 // so it's easy to test.
 
+import { dayTarget } from '@/rules/activityBar';
 import type { DateKey } from '@/rules/dates';
-import { isLocked, lockDays, type LockedDay } from '@/rules/locking';
 import {
+  cleanTimesPerDay,
   EVERY_DAY,
   existsOn,
-  nextCheckIn,
-  type CheckIn,
   HABIT_COLORS,
-  type CheckInLog,
+  logCount,
+  timesPerDay,
   type Habit,
   type HabitColor,
-  type WeeklyGoal,
+  type LogCounts,
+  type Schedule,
   type Weekday,
-} from '@/rules/scoring';
+} from '@/rules/habits';
+import { allHabits, isLocked, lockDays, type LockedDay } from '@/rules/locking';
 import { tuning } from '@/config/tuning';
 import { cleanName, nameProblem } from '@/features/habits/habitName';
 
 export interface TrackerState {
   /** Bumped when the saved shape changes. Older saves are upgraded step by step (save.ts). */
-  version: 8;
+  version: 9;
   /** The pet's own values (Prototype 2). Confidence picks its spot in the room (P2-12). */
   pet: PetState;
   /** Active habits, in card order. */
   habits: Habit[];
   /** Removed habits, each with the day it was removed, so their active days still score (T21). */
   removed: Habit[];
-  log: CheckInLog;
+  /** Logs per habit per day (P2-08a). */
+  log: LogCounts;
+  /**
+   * Each day's Activity Bar target, saved on the first open of the day so habits added or
+   * removed later that day never move it (PRD-14).
+   */
+  targets: Record<DateKey, number>;
   /** Results saved for good when each day locked (T16). Days with no check-in have no entry. */
   locked: Record<DateKey, LockedDay>;
   /** Every day up to and including this one is locked. Null until the first lock. */
@@ -50,13 +58,23 @@ export function cleanConfidence(value: number): number {
 }
 
 export const DEFAULT_HABITS: Habit[] = [
-  { id: 'sleep', name: 'Sleep', goal: { kind: 'specificDays', days: EVERY_DAY }, color: 'habit1' },
-  { id: 'diet', name: 'Diet', goal: { kind: 'specificDays', days: EVERY_DAY }, color: 'habit3' },
-  { id: 'exercise', name: 'Exercise', goal: { kind: 'anyDays', timesPerWeek: 3 }, color: 'habit5' },
+  {
+    id: 'sleep',
+    name: 'Sleep',
+    schedule: { kind: 'specificDays', days: EVERY_DAY },
+    color: 'habit1',
+  },
+  {
+    id: 'diet',
+    name: 'Diet',
+    schedule: { kind: 'specificDays', days: EVERY_DAY },
+    color: 'habit3',
+  },
+  { id: 'exercise', name: 'Exercise', schedule: { kind: 'anyDays' }, color: 'habit5' },
   {
     id: 'wellbeing',
     name: 'Wellbeing',
-    goal: { kind: 'specificDays', days: EVERY_DAY },
+    schedule: { kind: 'specificDays', days: EVERY_DAY },
     color: 'habit6',
   },
 ];
@@ -70,59 +88,59 @@ export function leastUsedColor(habits: Habit[]): HabitColor {
 /** At most 15 habits (Glossary). */
 export const MAX_HABITS = 15;
 
-export const MIN_TIMES = 1;
-export const MAX_TIMES = 7;
-
-/** Keeps a goal valid: Specific days needs at least 1 day; Any days is 1 to 7 times. */
-export function cleanGoal(goal: WeeklyGoal): WeeklyGoal | null {
-  if (goal.kind === 'anyDays') {
-    const times = Math.round(goal.timesPerWeek);
-    return { kind: 'anyDays', timesPerWeek: Math.min(MAX_TIMES, Math.max(MIN_TIMES, times)) };
-  }
-  const days = [...new Set(goal.days)].filter((d) => d >= 0 && d <= 6).sort() as Weekday[];
+/** Keeps a schedule valid: Specific days needs at least 1 day. */
+export function cleanSchedule(schedule: Schedule): Schedule | null {
+  if (schedule.kind === 'anyDays') return { kind: 'anyDays' };
+  const days = [...new Set(schedule.days)].filter((d) => d >= 0 && d <= 6).sort() as Weekday[];
   return days.length === 0 ? null : { kind: 'specificDays', days };
 }
 
-/**
- * A fresh start. `addedOn` is the tracker's own date (Test uses its pretend date), so the starter
- * habits get a scaled first week (#52). Left out, they keep full goals.
- */
+/** A fresh start. `addedOn` is the tracker's own date (Test uses its pretend date). */
 export function createInitialState(addedOn?: DateKey): TrackerState {
   return {
-    version: 8,
+    version: 9,
     pet: { confidence: tuning.pet.startConfidence },
     removed: [],
     habits: addedOn ? DEFAULT_HABITS.map((h) => ({ ...h, addedOn })) : DEFAULT_HABITS,
     log: {},
+    targets: {},
     locked: {},
     lockedThrough: null,
   };
 }
 
 export type TrackerAction =
-  | { type: 'tapHabit'; date: DateKey; habitId: string }
-  | { type: 'setCheckIn'; date: DateKey; habitId: string; checkIn: CheckIn | undefined }
-  | { type: 'addHabit'; id: string; name: string; goal?: WeeklyGoal; date: DateKey }
+  /** One tap on a card: one more log, up to the habit's times per day. */
+  | { type: 'logHabit'; date: DateKey; habitId: string }
+  /** The Undo bar: takes the last log back. */
+  | { type: 'undoLog'; date: DateKey; habitId: string }
+  | { type: 'addHabit'; id: string; name: string; schedule?: Schedule; date: DateKey }
   | { type: 'renameHabit'; habitId: string; name: string }
-  | { type: 'setGoal'; habitId: string; goal: WeeklyGoal }
+  | { type: 'setSchedule'; habitId: string; schedule: Schedule }
+  /** Test tools for now (P2-08a): how many logs finish the habit today, 1 to the max. */
+  | { type: 'setTimesPerDay'; habitId: string; times: number }
   | { type: 'removeHabit'; habitId: string; date: DateKey }
   | { type: 'restoreHabit'; habit: Habit; index: number }
   | { type: 'lockDays'; today: DateKey; openDays?: number }
-  /** Test tools: checks in every habit that exists on the day. Locked days never change. */
+  /** Test tools: finishes every habit that exists on the day. Locked days never change. */
   | { type: 'fillDay'; date: DateKey }
   /** Test tools: sets the pet's Confidence (clamped to 0 to 100). */
   | { type: 'setConfidence'; value: number };
 
-function withCheckIn(
-  state: TrackerState,
-  date: DateKey,
-  habitId: string,
-  checkIn: CheckIn | undefined,
-): TrackerState {
+/**
+ * Saves the day's Activity Bar target the first time the day is seen, from the habits active at
+ * that moment. Later adds and removes that day leave it alone (PRD-14).
+ */
+export function withTarget(state: TrackerState, date: DateKey): TrackerState {
+  if (state.targets[date] !== undefined || isLocked(date, state.lockedThrough)) return state;
+  const target = dayTarget(allHabits(state), date);
+  return { ...state, targets: { ...state.targets, [date]: target } };
+}
+
+function withCount(state: TrackerState, date: DateKey, habitId: string, count: number) {
   const day = { ...state.log[date] };
-  if (checkIn === undefined)
-    delete day[habitId]; // back to To do
-  else day[habitId] = checkIn;
+  if (count <= 0) delete day[habitId];
+  else day[habitId] = count;
   return { ...state, log: { ...state.log, [date]: day } };
 }
 
@@ -135,34 +153,42 @@ function updateHabit(state: TrackerState, habitId: string, change: Partial<Habit
 
 export function trackerReducer(state: TrackerState, action: TrackerAction): TrackerState {
   switch (action.type) {
-    case 'tapHabit': {
+    case 'logHabit': {
       // A locked day never changes (T16). The screens turn taps off too; this is the backstop.
       if (isLocked(action.date, state.lockedThrough)) return state;
-      const current = state.log[action.date]?.[action.habitId];
-      return withCheckIn(state, action.date, action.habitId, nextCheckIn(current));
+      const habit = allHabits(state).find((h) => h.id === action.habitId);
+      if (!habit || !existsOn(habit, action.date)) return state;
+      const count = logCount(state.log, action.date, action.habitId);
+      // A finished habit takes no more logs.
+      if (count >= timesPerDay(habit)) return state;
+      return withCount(withTarget(state, action.date), action.date, action.habitId, count + 1);
     }
-    case 'setCheckIn':
+    case 'undoLog': {
       if (isLocked(action.date, state.lockedThrough)) return state;
-      return withCheckIn(state, action.date, action.habitId, action.checkIn);
+      const count = logCount(state.log, action.date, action.habitId);
+      if (count <= 0) return state;
+      return withCount(state, action.date, action.habitId, count - 1);
+    }
     case 'addHabit': {
       // Name rules (habitName.ts): never blank, never a duplicate, at most 20 characters.
       if (nameProblem(action.name, state.habits)) return state;
       if (state.habits.length >= MAX_HABITS) return state;
       if (state.habits.some((h) => h.id === action.id)) return state;
-      const goal = (action.goal && cleanGoal(action.goal)) ?? {
+      const schedule = (action.schedule && cleanSchedule(action.schedule)) ?? {
         kind: 'specificDays',
         days: EVERY_DAY,
       };
+      // Save today's target first, so a habit added today is a bonus (PRD-14).
+      const before = withTarget(state, action.date);
       return {
-        ...state,
+        ...before,
         habits: [
-          ...state.habits,
+          ...before.habits,
           {
             id: action.id,
             name: cleanName(action.name),
-            goal,
-            color: leastUsedColor(state.habits),
-            // Its first week is scaled to the days left from here (#52).
+            schedule,
+            color: leastUsedColor(before.habits),
             addedOn: action.date,
           },
         ],
@@ -173,9 +199,15 @@ export function trackerReducer(state: TrackerState, action: TrackerAction): Trac
       // its last valid name and the screen shows a hint.
       if (nameProblem(action.name, state.habits, action.habitId)) return state;
       return updateHabit(state, action.habitId, { name: cleanName(action.name) });
-    case 'setGoal': {
-      const goal = cleanGoal(action.goal);
-      return goal ? updateHabit(state, action.habitId, { goal }) : state;
+    case 'setSchedule': {
+      const schedule = cleanSchedule(action.schedule);
+      return schedule ? updateHabit(state, action.habitId, { schedule }) : state;
+    }
+    case 'setTimesPerDay': {
+      const habit = state.habits.find((h) => h.id === action.habitId);
+      const times = cleanTimesPerDay(action.times);
+      if (!habit || timesPerDay(habit) === times) return state;
+      return updateHabit(state, action.habitId, { timesPerDay: times });
     }
     case 'removeHabit': {
       // At least one habit always stays (Glossary).
@@ -183,15 +215,17 @@ export function trackerReducer(state: TrackerState, action: TrackerAction): Trac
       const habit = state.habits.find((h) => h.id === action.habitId);
       if (!habit) return state;
       const habits = state.habits.filter((h) => h.id !== action.habitId);
-      // It stops counting from the day it was removed (T21). Earlier days keep scoring it.
+      // It stops counting from the day it was removed (T21). Earlier days keep counting it, and
+      // today's target was saved before it went, so removing it never moves the finish line.
       // Removed the same day it was added: it was never active on a full day, so drop it.
+      const before = withTarget(state, action.date);
       const removedOn = action.date;
       const neverActive = habit.addedOn !== undefined && habit.addedOn >= removedOn;
-      const removed = neverActive ? state.removed : [...state.removed, { ...habit, removedOn }];
-      return { ...state, habits, removed };
+      const removed = neverActive ? before.removed : [...before.removed, { ...habit, removedOn }];
+      return { ...before, habits, removed };
     }
     case 'restoreHabit': {
-      // Undo after Remove. Check-ins were never deleted, so the habit comes back with its history.
+      // Undo after Remove. Logs were never deleted, so the habit comes back with its history.
       if (state.habits.some((h) => h.id === action.habit.id)) return state;
       if (state.habits.length >= MAX_HABITS) return state;
       const { removedOn: _removedOn, ...restored } = action.habit;
@@ -201,17 +235,19 @@ export function trackerReducer(state: TrackerState, action: TrackerAction): Trac
       return { ...state, habits, removed };
     }
     case 'lockDays':
-      return lockDays(state, action.today, action.openDays);
+      // Runs on every open and every minute, so it's also where today's target gets saved.
+      return withTarget(lockDays(state, action.today, action.openDays), action.today);
     case 'fillDay': {
       if (isLocked(action.date, state.lockedThrough)) return state;
-      const day = { ...state.log[action.date] };
+      const withDay = withTarget(state, action.date);
+      const day = { ...withDay.log[action.date] };
       let changed = false;
-      for (const habit of state.habits) {
-        if (!existsOn(habit, action.date) || day[habit.id] === 'NailedIt') continue;
-        day[habit.id] = 'NailedIt';
+      for (const habit of withDay.habits) {
+        if (!existsOn(habit, action.date) || (day[habit.id] ?? 0) >= timesPerDay(habit)) continue;
+        day[habit.id] = timesPerDay(habit);
         changed = true;
       }
-      return changed ? { ...state, log: { ...state.log, [action.date]: day } } : state;
+      return changed ? { ...withDay, log: { ...withDay.log, [action.date]: day } } : state;
     }
     case 'setConfidence': {
       const confidence = cleanConfidence(action.value);

@@ -1,29 +1,51 @@
 import { describe, expect, it } from '@jest/globals';
-import { backupKey, CURRENT_VERSION, loadSave } from './save';
-import { createInitialState, DEFAULT_HABITS } from './state';
+
 import { tuning } from '@/config/tuning';
+import { backupKey, CURRENT_VERSION, loadSave } from './save';
+import { createInitialState } from './state';
 
 const START_PET = { confidence: tuning.pet.startConfidence };
+const EVERY = [0, 1, 2, 3, 4, 5, 6];
 
-// A real-looking v3 save: a custom habit, a changed goal, and check-ins across two weeks.
+// Prototype 1 habits, as they were saved before v9: a weekly goal, no schedule.
+const OLD_HABITS = [
+  { id: 'sleep', name: 'Sleep', goal: { kind: 'specificDays', days: EVERY }, color: 'habit1' },
+  { id: 'exercise', name: 'Exercise', goal: { kind: 'anyDays', timesPerWeek: 3 }, color: 'habit5' },
+  { id: 'read', name: 'Reading', goal: { kind: 'specificDays', days: [0, 2, 4] }, color: 'habit2' },
+];
+
+// A real-looking v3 save: a custom habit and check-ins across two weeks.
 const v3 = {
   version: 3,
-  habits: [
-    ...DEFAULT_HABITS,
-    {
-      id: 'read',
-      name: 'Reading',
-      goal: { kind: 'specificDays', days: [0, 2, 4] },
-      color: 'habit2',
-    },
-  ],
+  habits: OLD_HABITS,
   log: {
     '2026-10-12': { sleep: 'NailedIt', read: 'NotToday' },
-    '2026-10-13': { diet: 'Started' },
+    '2026-10-13': { exercise: 'Started' },
     '2026-10-18': {},
     '2026-10-19': { exercise: 'OnTrack', read: 'NailedIt' },
   },
   dayOffset: 2,
+};
+
+// The last save before P2-08a. Oct 12 locked as an A rank with Sleep only; Oct 13 locked as a
+// Rest day with only Exercise; Oct 14 locked with one Skip and nothing else.
+const v8 = {
+  version: 8,
+  habits: OLD_HABITS,
+  removed: [],
+  pet: { confidence: 40 },
+  log: {
+    '2026-10-12': { sleep: 'NailedIt', read: 'NotToday' },
+    '2026-10-13': { exercise: 'Started' },
+    '2026-10-14': { sleep: 'NotToday' },
+    '2026-10-20': { sleep: 'Started' },
+  },
+  locked: {
+    '2026-10-12': { outcome: 'rank', rank: 'A', earnedStars: 3, possibleStars: 3 },
+    '2026-10-13': { outcome: 'rest', earnedStars: 1, possibleStars: 3 },
+    '2026-10-14': { outcome: 'rest', earnedStars: 0, possibleStars: 0 },
+  },
+  lockedThrough: '2026-10-14',
 };
 
 describe('loadSave', () => {
@@ -31,37 +53,64 @@ describe('loadSave', () => {
     expect(loadSave(null)).toEqual({ kind: 'empty' });
   });
 
-  it('upgrades v3 through v4 to v5 keeping every habit and check-in exactly as it was', () => {
+  describe('v8 to v9 (P2-08a)', () => {
+    const result = loadSave(JSON.stringify(v8));
+    const state = result.kind === 'loaded' ? result.state : null;
+
+    it('loads, upgraded from v8', () => {
+      expect(result.kind).toBe('loaded');
+      expect(result.kind === 'loaded' && result.upgradedFrom).toBe(8);
+      expect(state?.version).toBe(CURRENT_VERSION);
+    });
+
+    it('old stars become 1 log, and Skip is dropped', () => {
+      expect(state?.log).toEqual({
+        '2026-10-12': { sleep: 1 },
+        '2026-10-13': { exercise: 1 },
+        '2026-10-20': { sleep: 1 },
+      });
+    });
+
+    it('weekly goals become schedules, and every habit is once a day', () => {
+      expect(state?.habits.map((h) => h.schedule)).toEqual([
+        { kind: 'specificDays', days: EVERY },
+        { kind: 'anyDays' },
+        { kind: 'specificDays', days: [0, 2, 4] },
+      ]);
+      expect(state?.habits.every((h) => !('goal' in h) && h.timesPerDay === undefined)).toBe(true);
+    });
+
+    it('locked days are worked out again with the Activity Bar rules', () => {
+      // Oct 12 (Mon): Sleep and Reading due, 2 possible, needs 2. Only Sleep logged: no check-in.
+      expect(state?.locked['2026-10-12']).toEqual({ outcome: 'none', logs: 1, target: 2 });
+      // Oct 13 (Tue): only Sleep due, needs 1. Exercise is a bonus log, so it fills.
+      expect(state?.locked['2026-10-13']).toEqual({ outcome: 'checkIn', logs: 1, target: 1 });
+      // Oct 14 had only a Skip: no logs left, so no locked result.
+      expect(state?.locked['2026-10-14']).toBeUndefined();
+      expect(state?.lockedThrough).toBe('2026-10-14');
+    });
+
+    it('keeps the pet and starts with no saved targets', () => {
+      expect(state?.pet).toEqual({ confidence: 40 });
+      expect(state?.targets).toEqual({});
+    });
+  });
+
+  it('upgrades a v3 save all the way to the current shape', () => {
     const result = loadSave(JSON.stringify(v3));
     expect(result.kind).toBe('loaded');
     if (result.kind !== 'loaded') return;
     expect(result.upgradedFrom).toBe(3);
     expect(result.state.version).toBe(CURRENT_VERSION);
-    expect(result.state.habits).toEqual(v3.habits);
-    expect(result.state.log).toEqual(v3.log);
+    expect(result.state.log).toEqual({
+      '2026-10-12': { sleep: 1 },
+      '2026-10-13': { exercise: 1 },
+      '2026-10-19': { exercise: 1, read: 1 },
+    });
     // The pretend date leaves the save in v5 (T17).
     expect('dayOffset' in result.state).toBe(false);
-    expect(result.state.locked).toEqual({});
-    expect(result.state.lockedThrough).toBeNull();
-  });
-
-  it('upgrades v5 to v8 keeping everything, with no added date on existing habits (#52)', () => {
-    const v5 = {
-      version: 5,
-      habits: DEFAULT_HABITS,
-      log: { '2026-10-19': { sleep: 'NailedIt' } },
-      locked: {},
-      lockedThrough: '2026-10-16',
-    };
-    const result = loadSave(JSON.stringify(v5));
-    expect(result).toEqual({
-      kind: 'loaded',
-      state: { ...v5, version: 8, removed: [], pet: START_PET },
-      upgradedFrom: 5,
-    });
-    if (result.kind === 'loaded') {
-      expect(result.state.habits.every((h) => h.addedOn === undefined)).toBe(true);
-    }
+    expect(result.state.pet).toEqual(START_PET);
+    expect(result.state.removed).toEqual([]);
   });
 
   it('loads a current save as is', () => {
@@ -75,9 +124,10 @@ describe('loadSave', () => {
     ['no version', JSON.stringify({ habits: [] })],
     ['a version with no upgrade step', JSON.stringify({ ...v3, version: 1 })],
     ['a v3 save missing its habits', JSON.stringify({ ...v3, habits: undefined })],
+    ['a v8 save missing its pet', JSON.stringify({ ...v8, pet: undefined })],
     [
-      'a current save missing locked days',
-      JSON.stringify({ ...createInitialState(), locked: undefined }),
+      'a current save missing its targets',
+      JSON.stringify({ ...createInitialState(), targets: undefined }),
     ],
   ])('an unreadable save (%s) is returned whole for the backup slot', (_, raw) => {
     expect(loadSave(raw)).toEqual({ kind: 'unreadable', raw });
@@ -89,7 +139,6 @@ describe('loadSave', () => {
   });
 
   it('upgrading is the only path: no save is ever dropped without a backup', () => {
-    // Every non-empty input ends as loaded, newer, or unreadable (backed up). Never silently empty.
     const inputs = ['', '{}', 'null', JSON.stringify(v3), JSON.stringify({ version: 99 })];
     for (const raw of inputs) expect(loadSave(raw).kind).not.toBe('empty');
   });

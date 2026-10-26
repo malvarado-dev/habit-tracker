@@ -1,5 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
-import { EVERY_DAY } from '@/rules/scoring';
+import { tuning } from '@/config/tuning';
+import { EVERY_DAY } from '@/rules/habits';
 import { createInitialState, leastUsedColor, trackerReducer, type TrackerState } from './state';
 
 const MON = '2026-10-12';
@@ -9,37 +10,73 @@ function apply(state: TrackerState, ...actions: Parameters<typeof trackerReducer
 }
 
 describe('trackerReducer', () => {
-  it('starts with the four prototype habits and their weekly goals', () => {
+  it('starts with the four prototype habits and their schedules', () => {
     const state = createInitialState();
-    expect(state.habits.map((h) => [h.name, h.goal])).toEqual([
+    expect(state.habits.map((h) => [h.name, h.schedule])).toEqual([
       ['Sleep', { kind: 'specificDays', days: EVERY_DAY }],
       ['Diet', { kind: 'specificDays', days: EVERY_DAY }],
-      ['Exercise', { kind: 'anyDays', timesPerWeek: 3 }],
+      ['Exercise', { kind: 'anyDays' }],
       ['Wellbeing', { kind: 'specificDays', days: EVERY_DAY }],
     ]);
   });
 
-  it('the first tap checks in Started', () => {
-    const state = apply(createInitialState(), { type: 'tapHabit', date: MON, habitId: 'sleep' });
-    expect(state.log[MON]?.sleep).toBe('Started');
+  it('a tap logs one time', () => {
+    const state = apply(createInitialState(), { type: 'logHabit', date: MON, habitId: 'sleep' });
+    expect(state.log[MON]?.sleep).toBe(1);
   });
 
-  it('five taps go all the way around, back to To do', () => {
-    const tap = { type: 'tapHabit', date: MON, habitId: 'sleep' } as const;
-    const four = apply(createInitialState(), tap, tap, tap, tap);
-    expect(four.log[MON]?.sleep).toBe('NotToday');
-    const five = apply(four, tap);
-    expect(five.log[MON]).toEqual({});
+  it('a finished habit takes no more logs', () => {
+    const log = { type: 'logHabit', date: MON, habitId: 'sleep' } as const;
+    const state = apply(createInitialState(), log, log, log);
+    expect(state.log[MON]?.sleep).toBe(1);
   });
 
-  it('swipes set a check-in directly', () => {
-    const state = apply(createInitialState(), {
-      type: 'setCheckIn',
-      date: MON,
-      habitId: 'diet',
-      checkIn: 'NailedIt',
-    });
-    expect(state.log[MON]?.diet).toBe('NailedIt');
+  it('a frequency habit logs up to its times per day', () => {
+    const log = { type: 'logHabit', date: MON, habitId: 'diet' } as const;
+    const state = apply(
+      createInitialState(),
+      { type: 'setTimesPerDay', habitId: 'diet', times: 3 },
+      log,
+      log,
+      log,
+      log,
+    );
+    expect(state.log[MON]?.diet).toBe(3);
+  });
+
+  it('times per day stays between 1 and the max in tuning.ts', () => {
+    const set = (times: number) =>
+      apply(createInitialState(), { type: 'setTimesPerDay', habitId: 'diet', times }).habits[1]
+        ?.timesPerDay;
+    expect(set(0)).toBeUndefined(); // already 1, so nothing changes
+    expect(set(99)).toBe(tuning.activityBar.timesPerDayMax);
+    expect(set(4)).toBe(4);
+  });
+
+  it('Undo takes the last log back, never below zero', () => {
+    const log = { type: 'logHabit', date: MON, habitId: 'sleep' } as const;
+    const undo = { type: 'undoLog', date: MON, habitId: 'sleep' } as const;
+    const once = apply(createInitialState(), log, undo);
+    expect(once.log[MON]).toEqual({});
+    expect(apply(once, undo)).toBe(once);
+  });
+
+  it("the first log of a day saves that day's Activity Bar target", () => {
+    const state = apply(createInitialState(), { type: 'logHabit', date: MON, habitId: 'sleep' });
+    // Sleep, Diet, Wellbeing due (3 possible), so 2 fill the bar. Exercise is Any days.
+    expect(state.targets[MON]).toBe(2);
+  });
+
+  it('adding or removing a habit later that day never moves the target', () => {
+    const opened = apply(createInitialState(), { type: 'lockDays', today: MON });
+    expect(opened.targets[MON]).toBe(2);
+    const changed = apply(
+      opened,
+      { type: 'addHabit', date: MON, id: 'read', name: 'Read' },
+      { type: 'addHabit', date: MON, id: 'walk', name: 'Walk' },
+      { type: 'removeHabit', date: MON, habitId: 'diet' },
+    );
+    expect(changed.targets[MON]).toBe(2);
   });
 
   it('adds a trimmed habit and ignores a blank one', () => {
@@ -52,7 +89,7 @@ describe('trackerReducer', () => {
     expect(added.habits.at(-1)).toEqual({
       id: 'read',
       name: 'Reading',
-      goal: { kind: 'specificDays', days: EVERY_DAY },
+      schedule: { kind: 'specificDays', days: EVERY_DAY },
       color: 'habit2',
       addedOn: '2026-10-19',
     });
@@ -65,39 +102,28 @@ describe('trackerReducer', () => {
     expect(blank.habits).toHaveLength(4);
   });
 
-  it('keeps Any days goals between 1 and 7 times a week', () => {
-    const set = (timesPerWeek: number) =>
-      apply(createInitialState(), {
-        type: 'setGoal',
-        habitId: 'exercise',
-        goal: { kind: 'anyDays', timesPerWeek },
-      }).habits[2]?.goal;
-    expect(set(0)).toEqual({ kind: 'anyDays', timesPerWeek: 1 });
-    expect(set(9)).toEqual({ kind: 'anyDays', timesPerWeek: 7 });
-  });
-
   it('Specific days needs at least one day, and stores days in order without repeats', () => {
     const none = apply(createInitialState(), {
-      type: 'setGoal',
+      type: 'setSchedule',
       habitId: 'sleep',
-      goal: { kind: 'specificDays', days: [] },
+      schedule: { kind: 'specificDays', days: [] },
     });
-    expect(none.habits[0]?.goal).toEqual({ kind: 'specificDays', days: EVERY_DAY });
+    expect(none.habits[0]?.schedule).toEqual({ kind: 'specificDays', days: EVERY_DAY });
     const messy = apply(createInitialState(), {
-      type: 'setGoal',
+      type: 'setSchedule',
       habitId: 'sleep',
-      goal: { kind: 'specificDays', days: [4, 0, 4, 2] },
+      schedule: { kind: 'specificDays', days: [4, 0, 4, 2] },
     });
-    expect(messy.habits[0]?.goal).toEqual({ kind: 'specificDays', days: [0, 2, 4] });
+    expect(messy.habits[0]?.schedule).toEqual({ kind: 'specificDays', days: [0, 2, 4] });
   });
 
   it('switching a habit between Specific days and Any days works any time', () => {
     const state = apply(createInitialState(), {
-      type: 'setGoal',
+      type: 'setSchedule',
       habitId: 'sleep',
-      goal: { kind: 'anyDays', timesPerWeek: 4 },
+      schedule: { kind: 'anyDays' },
     });
-    expect(state.habits[0]?.goal).toEqual({ kind: 'anyDays', timesPerWeek: 4 });
+    expect(state.habits[0]?.schedule).toEqual({ kind: 'anyDays' });
   });
 
   it('never removes the last habit', () => {
@@ -144,7 +170,7 @@ describe('habit colors', () => {
 describe('acceptance: Habits and Edit habit (T12)', () => {
   const day = '2026-10-19';
   const scored = () =>
-    trackerReducer(createInitialState(), { type: 'tapHabit', date: day, habitId: 'diet' });
+    trackerReducer(createInitialState(), { type: 'logHabit', date: day, habitId: 'diet' });
 
   it('the last habit cannot be removed', () => {
     let state = createInitialState();
@@ -170,7 +196,7 @@ describe('acceptance: Habits and Edit habit (T12)', () => {
     });
     const restored = trackerReducer(removed, { type: 'restoreHabit', habit, index: 1 });
     expect(restored.habits).toEqual(before.habits);
-    expect(restored.log[day]?.diet).toBe('Started');
+    expect(restored.log[day]?.diet).toBe(1);
   });
 
   it('Undo twice does not add the habit twice', () => {
@@ -187,17 +213,17 @@ describe('acceptance: Habits and Edit habit (T12)', () => {
     expect(trackerReducer(once, { type: 'restoreHabit', habit, index: 1 }).habits).toHaveLength(4);
   });
 
-  it("switching Specific days and Any days keeps today's scores", () => {
+  it("switching Specific days and Any days keeps today's logs", () => {
     const before = scored();
     const toAny = trackerReducer(before, {
-      type: 'setGoal',
+      type: 'setSchedule',
       habitId: 'diet',
-      goal: { kind: 'anyDays', timesPerWeek: 7 },
+      schedule: { kind: 'anyDays' },
     });
     const back = trackerReducer(toAny, {
-      type: 'setGoal',
+      type: 'setSchedule',
       habitId: 'diet',
-      goal: { kind: 'specificDays', days: [0, 1, 2, 3, 4, 5, 6] },
+      schedule: { kind: 'specificDays', days: [0, 1, 2, 3, 4, 5, 6] },
     });
     expect(toAny.log).toEqual(before.log);
     expect(back.log).toEqual(before.log);
@@ -205,16 +231,16 @@ describe('acceptance: Habits and Edit habit (T12)', () => {
 });
 
 describe('acceptance: Add habit (T13)', () => {
-  it('a new habit gets the least-used habit color and its picked goal', () => {
-    const goal = { kind: 'anyDays', timesPerWeek: 3 } as const;
+  it('a new habit gets the least-used habit color and its picked schedule', () => {
+    const schedule = { kind: 'anyDays' } as const;
     const s = trackerReducer(createInitialState(), {
       type: 'addHabit',
       date: '2026-10-19',
       id: 'running',
       name: 'Running',
-      goal,
+      schedule,
     });
-    expect(s.habits.at(-1)).toMatchObject({ name: 'Running', color: 'habit2', goal });
+    expect(s.habits.at(-1)).toMatchObject({ name: 'Running', color: 'habit2', schedule });
   });
 
   it('blank and duplicate names are never added', () => {
