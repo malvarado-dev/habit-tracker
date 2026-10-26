@@ -32,6 +32,74 @@ export const tuning = {
     startConfidence: 20,
     /** Test tools Confidence stepper: how much each tap moves it. */
     confidenceStep: 10,
+
+    /** Idle motion on the pet PNGs (P2-11, #82): breathe, blink, small bounce. Whole body only. */
+    motion: {
+      /** Personality as data. 1 is the default cat. blinkSpeed above 1 blinks quicker; bounceSize
+       * scales the hop and squash; idleTiming above 1 waits longer between blinks and idle bounces. */
+      personality: { blinkSpeed: 1, bounceSize: 1, idleTiming: 1 },
+
+      /** Breathing grows from the feet: taller and a touch narrower, never even all-over scaling.
+       * Each breath picks its own length and depth, then holds a moment before the next. */
+      breath: {
+        /** How much taller the body gets at the top of a breath (0.012 = 1.2%). */
+        rise: 0.012,
+        /** Each breath's depth varies by up to this share of `rise`, up or down. */
+        riseVariation: 0.35,
+        /** Width given back while rising, as a share of the rise (keeps the volume steady). */
+        narrow: 0.4,
+        inMinMs: 1400,
+        inMaxMs: 2000,
+        outMinMs: 1700,
+        outMaxMs: 2500,
+        /** Rest at the bottom of a breath, so it never reads as a steady bob. */
+        holdMinMs: 200,
+        holdMaxMs: 900,
+        /** Asleep breaths are this many times slower and this much deeper. */
+        sleepSlowdown: 1.6,
+        sleepDepth: 1.4,
+        /** Reduced motion breathes at this strength. */
+        reducedMotionStrength: 0.5,
+      },
+
+      /** Blink: random gap, then the eyes-closed PNG for `closedMs`. Sometimes a double blink. */
+      blink: {
+        gapMinMs: 2500,
+        gapMaxMs: 6500,
+        closedMs: 130,
+        doubleChance: 0.2,
+        /** Eyes-open gap inside a double blink. */
+        doubleGapMs: 140,
+      },
+
+      /** Small bounce: squash down, hop up with a stretch, land in a squash, spring back. */
+      bounce: {
+        /** Random wait between idle bounces while awake. */
+        idleGapMinMs: 20000,
+        idleGapMaxMs: 40000,
+        /** Anticipation: how far the body squashes (0.07 = 7% shorter) and how long it takes. */
+        anticipationSquash: 0.07,
+        anticipationMs: 150,
+        /** The hop: height in points, rise and fall times, and the stretch on the way up. */
+        height: 10,
+        riseMs: 170,
+        fallMs: 150,
+        stretch: 0.05,
+        /** A short hold at the top of the hop, so it reads instead of floating. */
+        apexHoldMs: 40,
+        /** Width given back when squashed or stretched, as a share of the height change. */
+        squashWidth: 0.6,
+        /** Landing: squash on contact, then a spring that overshoots and settles. */
+        landSquash: 0.08,
+        landMs: 70,
+        settleDamping: 8,
+        settleStiffness: 260,
+        /** The contact shadow shrinks by this share at the top of the hop. */
+        shadowShrink: 0.18,
+        /** Test tools "Bounce the pet": wait this long after Today shows before bouncing. */
+        testDelayMs: 450,
+      },
+    },
   },
 
   card: {

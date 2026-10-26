@@ -9,12 +9,15 @@ export class HomePage {
   readonly undoButton: Locator;
   /** The Coin bar's balance (P2-08c). It counts up as coins land, so assert with toHaveText. */
   readonly coinBalance: Locator;
+  /** The moving pet's body (P2-11). */
+  readonly petBody: Locator;
 
   constructor(readonly page: Page) {
     this.activityBar = page.getByTestId('activity-bar');
     this.undoBar = page.getByTestId('undo-bar');
     this.undoButton = page.getByTestId('undo-button');
     this.coinBalance = page.getByTestId('coin-balance');
+    this.petBody = page.getByTestId('pet-body');
   }
 
   /** The app has loaded its save and drawn the habit sheet. */
@@ -78,5 +81,32 @@ export class HomePage {
   /** The Activity Bar's screen reader label, like "Activity Bar, 1 of 3 logs today". */
   async expectBar(label: string): Promise<void> {
     await expect(this.activityBar).toHaveAttribute('aria-label', label);
+  }
+
+  /** How far the pet is off the floor right now, in points (0 when not hopping). */
+  async petHop(): Promise<number> {
+    return this.petBody.evaluate((el) => {
+      const m = new DOMMatrixReadOnly(getComputedStyle(el).transform);
+      return -m.m42;
+    });
+  }
+
+  /** Starts counting blinks. A blink is too quick to catch by polling, so the page counts each
+   * time the pet's eyes close. */
+  async watchBlinks(): Promise<void> {
+    await this.page.evaluate(() => {
+      const w = window as unknown as { petBlinks: number };
+      w.petBlinks = 0;
+      new MutationObserver((changes) => {
+        for (const c of changes) {
+          if ((c.target as Element).id === 'pet-eyes-closed') w.petBlinks++;
+        }
+      }).observe(document.body, { attributes: true, attributeFilter: ['id'], subtree: true });
+    });
+  }
+
+  /** Blinks counted since watchBlinks(). */
+  async blinkCount(): Promise<number> {
+    return this.page.evaluate(() => (window as unknown as { petBlinks: number }).petBlinks);
   }
 }

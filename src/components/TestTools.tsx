@@ -1,5 +1,5 @@
 // Test tools (SPEC-00, T14, moved to its own screen in T17): prototype only. A Real / Test switch,
-// the date, and in Test only, Next day, Back to today, Reset (tap twice), Fill today, and the
+// the date, Bounce the pet (P2-11), and in Test only, Next day, Back to today, Reset (tap twice), Fill today, and the
 // pet's Confidence (P2-05). Times per day for each habit (P2-08a) works in Real and Test, since
 // there's no Edit habit setting for it yet. The bad habit Design 1 / Design 2 switch is a setting, not data (P2-10). Real is your real
 // data on the real date; Test is a separate save, so History can be tried in full without
@@ -26,6 +26,7 @@ import { tuning } from '@/config/tuning';
 import { BAD_HABIT_DESIGNS, BAD_HABIT_DESIGN_LABELS } from '@/features/settings/settings';
 import { useSettings } from '@/features/settings/SettingsProvider';
 import { useTracker } from '@/features/tracker/TrackerProvider';
+import { requestPetBounce } from '@/scene/petBounce';
 import { MAX_CONFIDENCE, MIN_CONFIDENCE } from '@/features/tracker/state';
 import { timesPerDay } from '@/rules/habits';
 import type { Mode } from '@/features/tracker/modes';
@@ -184,6 +185,26 @@ export function TestTools() {
           </View>
         </View>
       ) : null}
+
+      <View style={styles.section}>
+        <Text style={styles.heading} accessibilityRole="header">
+          Pet motion
+        </Text>
+        <Text style={styles.help}>Goes back to Today and plays one bounce, for review.</Text>
+        <Pressable
+          onPress={() => {
+            requestPetBounce();
+            if (router.canGoBack()) router.back();
+            else router.replace('/');
+          }}
+          style={styles.button}
+          testID="pet-bounce-button"
+          accessibilityRole="button"
+          accessibilityLabel="Bounce the pet, goes back to Today"
+        >
+          <Text style={styles.buttonText}>Bounce the pet</Text>
+        </Pressable>
+      </View>
 
       <View style={styles.section} testID="times-per-day">
         <Text style={styles.heading} accessibilityRole="header">
