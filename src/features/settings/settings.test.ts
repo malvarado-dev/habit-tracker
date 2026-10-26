@@ -1,5 +1,12 @@
 import { describe, expect, it } from '@jest/globals';
-import { BAD_HABIT_DESIGN_STORAGE_KEY, loadBadHabitDesign, saveBadHabitDesign } from './settings';
+import {
+  BAD_HABIT_DESIGN_STORAGE_KEY,
+  loadBadHabitDesign,
+  loadPetLook,
+  PET_LOOK_STORAGE_KEY,
+  saveBadHabitDesign,
+  savePetLook,
+} from './settings';
 
 const fakeStorage = (initial: Record<string, string> = {}) => {
   const data = { ...initial };
@@ -41,5 +48,20 @@ describe('Bad habits layout setting (P2-05)', () => {
     };
     expect(await loadBadHabitDesign(broken)).toBe('design1');
     await expect(saveBadHabitDesign(broken, 'design2')).resolves.toBeUndefined();
+  });
+});
+
+describe('Pet look setting (P2-15a)', () => {
+  it('starts as Tabby-Orange, and a saved look loads back', async () => {
+    expect(await loadPetLook(fakeStorage())).toBe('tabbyOrange');
+    const storage = fakeStorage();
+    await savePetLook(storage, 'tabbyGrayReal');
+    expect(await loadPetLook(storage)).toBe('tabbyGrayReal');
+  });
+
+  it('an unknown saved look falls back to Tabby-Orange', async () => {
+    expect(await loadPetLook(fakeStorage({ [PET_LOOK_STORAGE_KEY]: 'calico' }))).toBe(
+      'tabbyOrange',
+    );
   });
 });

@@ -86,15 +86,28 @@ export function roomGeometry(
   return { scale, room, bed, bedShadow, sheetTop };
 }
 
+/** The parts of a pet look (petLooks.ts) that size and place it. */
+export interface LookSizes {
+  scale: number;
+  poses: Record<
+    PetPose,
+    {
+      size: readonly number[];
+      shadow: { centerX: number; centerY: number; width: number; height: number };
+    }
+  >;
+}
+
 /** The pet's image and contact shadow at one of its spots. Its shadow centre sits on the spot. */
 export function petGeometry(
   spot: PetSpot,
-  { scale, shift }: { scale: number; shift: number },
+  { scale, shift, look }: { scale: number; shift: number; look?: LookSizes },
   scene: Scene = tuning.scene,
 ): PetGeometry {
   const { pose, centerX, bottomY } = scene.pet.spots[spot];
-  const p = scene.pet.poses[pose as PetPose];
-  const k = scene.pet.scale * scale;
+  // A look (P2-15a) brings its own image size and shadow per pose; Tabby-Orange's are the scene's.
+  const p = look ? look.poses[pose as PetPose] : scene.pet.poses[pose as PetPose];
+  const k = scene.pet.scale * (look?.scale ?? 1) * scale;
   const anchorX = centerX * scale;
   const anchorY = bottomY * scale - shift;
   const image = {

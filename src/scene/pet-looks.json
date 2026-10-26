@@ -1,0 +1,273 @@
+{
+  "tabbyOrange": {
+    "name": "Tabby-Orange",
+    "scale": 1,
+    "poses": {
+      "sit": {
+        "size": [958, 1283],
+        "shadow": {
+          "centerX": 570,
+          "centerY": 1167,
+          "width": 470,
+          "height": 56
+        },
+        "tail": {
+          "x": 377,
+          "y": 1198,
+          "w": 87,
+          "angle": 0
+        },
+        "leg": {
+          "x": 691,
+          "y": 1030,
+          "w": 100,
+          "angle": 0
+        }
+      },
+      "walk": {
+        "size": [1384, 917],
+        "shadow": {
+          "centerX": 620,
+          "centerY": 887,
+          "width": 1081,
+          "height": 135
+        },
+        "tail": {
+          "x": 196,
+          "y": 207,
+          "w": 62,
+          "angle": 70
+        },
+        "leg": {
+          "x": 994,
+          "y": 760,
+          "w": 92,
+          "angle": -40
+        }
+      },
+      "sleep": {
+        "size": [1198, 845],
+        "shadow": {
+          "centerX": 605,
+          "centerY": 815,
+          "width": 1133,
+          "height": 141
+        },
+        "tail": {
+          "x": 656,
+          "y": 733,
+          "w": 91,
+          "angle": 0
+        },
+        "leg": {
+          "x": 849,
+          "y": 613,
+          "w": 88,
+          "angle": 90
+        }
+      }
+    }
+  },
+  "tabbyGray": {
+    "name": "Tabby-Gray",
+    "scale": 1,
+    "lid": {
+      "fur": "#98826D",
+      "line": "#3A2A20"
+    },
+    "poses": {
+      "sit": {
+        "size": [965, 1292],
+        "shadow": {
+          "centerX": 520,
+          "centerY": 1205,
+          "width": 620,
+          "height": 60
+        },
+        "tail": {
+          "x": 330,
+          "y": 1212,
+          "w": 95,
+          "angle": -5
+        },
+        "leg": {
+          "x": 705,
+          "y": 1030,
+          "w": 100,
+          "angle": 0
+        },
+        "eyes": [
+          {
+            "x": 538,
+            "y": 296,
+            "rx": 69,
+            "ry": 72
+          },
+          {
+            "x": 746,
+            "y": 286,
+            "rx": 67,
+            "ry": 69
+          }
+        ]
+      },
+      "walk": {
+        "size": [1405, 963],
+        "shadow": {
+          "centerX": 680,
+          "centerY": 915,
+          "width": 1150,
+          "height": 130
+        },
+        "tail": {
+          "x": 230,
+          "y": 245,
+          "w": 95,
+          "angle": 80
+        },
+        "leg": {
+          "x": 1140,
+          "y": 800,
+          "w": 105,
+          "angle": -40
+        },
+        "eyes": [
+          {
+            "x": 1056,
+            "y": 305,
+            "rx": 65,
+            "ry": 67
+          },
+          {
+            "x": 1238,
+            "y": 297,
+            "rx": 60,
+            "ry": 65
+          }
+        ]
+      },
+      "sleep": {
+        "size": [1437, 921],
+        "shadow": {
+          "centerX": 690,
+          "centerY": 880,
+          "width": 1300,
+          "height": 140
+        },
+        "tail": {
+          "x": 690,
+          "y": 810,
+          "w": 95,
+          "angle": 0
+        },
+        "leg": {
+          "x": 880,
+          "y": 690,
+          "w": 90,
+          "angle": 90
+        }
+      }
+    }
+  },
+  "tabbyGrayReal": {
+    "name": "Tabby-GrayReal",
+    "scale": 0.88,
+    "lid": {
+      "fur": "#CCA47D",
+      "line": "#2E241C"
+    },
+    "poses": {
+      "sit": {
+        "size": [989, 1462],
+        "shadow": {
+          "centerX": 520,
+          "centerY": 1390,
+          "width": 750,
+          "height": 70
+        },
+        "tail": {
+          "x": 300,
+          "y": 1365,
+          "w": 110,
+          "angle": -8
+        },
+        "leg": {
+          "x": 765,
+          "y": 1185,
+          "w": 115,
+          "angle": 0
+        },
+        "eyes": [
+          {
+            "x": 545,
+            "y": 333,
+            "rx": 54,
+            "ry": 47
+          },
+          {
+            "x": 730,
+            "y": 311,
+            "rx": 52,
+            "ry": 45
+          }
+        ]
+      },
+      "walk": {
+        "size": [1509, 1001],
+        "shadow": {
+          "centerX": 760,
+          "centerY": 945,
+          "width": 1250,
+          "height": 130
+        },
+        "tail": {
+          "x": 250,
+          "y": 195,
+          "w": 95,
+          "angle": 80
+        },
+        "leg": {
+          "x": 1290,
+          "y": 820,
+          "w": 105,
+          "angle": -40
+        },
+        "eyes": [
+          {
+            "x": 1190,
+            "y": 338,
+            "rx": 38,
+            "ry": 36
+          },
+          {
+            "x": 1320,
+            "y": 311,
+            "rx": 34,
+            "ry": 36
+          }
+        ]
+      },
+      "sleep": {
+        "size": [1475, 729],
+        "shadow": {
+          "centerX": 730,
+          "centerY": 685,
+          "width": 1380,
+          "height": 110
+        },
+        "tail": {
+          "x": 640,
+          "y": 625,
+          "w": 95,
+          "angle": 0
+        },
+        "leg": {
+          "x": 1100,
+          "y": 588,
+          "w": 75,
+          "angle": 90
+        }
+      }
+    }
+  }
+}

@@ -5,7 +5,7 @@
 // pulling new art.
 
 import { copyFileSync, existsSync, mkdirSync } from 'node:fs';
-import { basename, dirname, join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -24,6 +24,15 @@ const FILES = [
   ['pet/pet-cat-sleep-eyes-open.png', 'pet.png'],
   ['pet/pet-cat-walk.png', 'pet.png'],
   ['pet/pet-cat-walk-eyes-closed.png', 'pet.png'],
+  // Pet looks (P2-15a): saved flat as tabby-gray-sit.png and so on.
+  ['pet/tabby-gray/sit.png', 'pet.png'],
+  ['pet/tabby-gray/walk.png', 'pet.png'],
+  ['pet/tabby-gray/sleep.png', 'pet.png'],
+  ['pet/tabby-grayreal/sit.png', 'pet.png'],
+  ['pet/tabby-grayreal/walk.png', 'pet.png'],
+  ['pet/tabby-grayreal/sleep.png', 'pet.png'],
+  ['pet/accessories/bandage-tail.png', 'clear.png'],
+  ['pet/accessories/bandage-leg.png', 'clear.png'],
   ['icons/icon-food-bowl@1x.png', 'clear.png'],
   ['icons/icon-food-bowl@2x.png', 'clear.png'],
   ['icons/icon-food-bowl@3x.png', 'clear.png'],
@@ -39,7 +48,9 @@ mkdirSync(outDir, { recursive: true });
 let real = 0;
 for (const [file, placeholder] of FILES) {
   const from = join(artDir, file);
-  const to = join(outDir, basename(file));
+  // Folder names become part of the file name, so tabby-gray/sit.png and tabby-grayreal/sit.png
+  // don't collide. Top folders (pet/, room/, icons/) are dropped, as before.
+  const to = join(outDir, file.split('/').slice(1).join('-'));
   if (existsSync(from)) {
     copyFileSync(from, to);
     real++;
