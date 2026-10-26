@@ -1,4 +1,5 @@
 /// <reference types="node" />
+// House rule (TESTING.md, rule 3): reads the code on purpose, like a lint rule.
 import { describe, expect, it } from '@jest/globals';
 import { readdirSync, readFileSync, statSync } from 'fs';
 import { join } from 'path';

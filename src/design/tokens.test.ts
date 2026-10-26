@@ -1,4 +1,5 @@
 /// <reference types="node" />
+// Design doc check: the tokens in code must match the design docs, so the docs stay true.
 import { describe, expect, it } from '@jest/globals';
 import { readFileSync } from 'fs';
 import { join } from 'path';

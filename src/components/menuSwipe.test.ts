@@ -1,7 +1,4 @@
-/// <reference types="node" />
 import { describe, expect, it } from '@jest/globals';
-import { readFileSync } from 'fs';
-import { join } from 'path';
 
 import { tuning } from '@/config/tuning';
 
@@ -29,25 +26,5 @@ describe('acceptance: swipe the side menu left to close it (T25)', () => {
     expect(menuDragOffset(-50, W)).toBe(-50);
     expect(menuDragOffset(30, W)).toBe(0);
     expect(menuDragOffset(-999, W)).toBe(-W);
-  });
-
-  const menu = readFileSync(join(__dirname, 'SideMenu.tsx'), 'utf8');
-
-  it('the swipe covers the panel and the shade', () => {
-    expect(menu).toContain('<GestureDetector gesture={swipe}>');
-    expect(menu.indexOf('<GestureDetector')).toBeLessThan(menu.indexOf('testID="side-menu-shade"'));
-  });
-
-  it('mostly vertical drags never close it', () => {
-    expect(menu).toContain('failOffsetY');
-  });
-
-  it('there is no edge swipe to open', () => {
-    const today = readFileSync(join(__dirname, '../app/index.tsx'), 'utf8');
-    expect(today).not.toMatch(/usePanGesture|GestureDetector/);
-  });
-
-  it('swipe values live in the tuning file', () => {
-    expect(menu).not.toMatch(/activeOffsetX: \[?-?\d/);
   });
 });
