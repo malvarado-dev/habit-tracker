@@ -10,28 +10,29 @@ import { HabitSheet } from '@/components/HabitSheet';
 import { MenuButton } from '@/components/MenuButton';
 import { SceneLayout } from '@/components/SceneLayout';
 import { SideMenu } from '@/components/SideMenu';
-import { useCritterAndMoment } from '@/components/useCritterAndMoment';
+import { useCritterWake } from '@/components/useCritterWake';
 import { useTracker } from '@/features/tracker/TrackerProvider';
-import { getDailyResult } from '@/rules/scoring';
+import { getActivityBar } from '@/rules/activityBar';
+import { allHabits } from '@/rules/locking';
 import { getSkyLevel, getSkyTime } from '@/rules/sky';
 
 export default function HomeScreen() {
   const { state, today } = useTracker();
-  // Today stays loaded under the Day screen; it only wakes and celebrates while it's on screen.
+  // Today stays loaded under the Day screen; the critter only wakes while it's on screen.
   const focused = useIsFocused();
 
-  const result = getDailyResult(state.habits, state.log, today);
-  const skyLevel = getSkyLevel(result);
+  const bar = getActivityBar(allHabits(state), state.log, today, state.targets[today]);
+  const skyLevel = getSkyLevel(bar);
   const skyTime = getSkyTime(new Date().getHours());
-  const reactKey = JSON.stringify(state.log[today] ?? {});
-  const { woken, wake, moment } = useCritterAndMoment(result, today, reactKey, focused);
+  const logKey = JSON.stringify(state.log[today] ?? {});
+  const { woken, wake } = useCritterWake(today, logKey, focused);
 
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <SceneLayout
       testID="today-screen"
-      critter={{ level: skyLevel, woken, onWake: wake, time: skyTime, reactKey, moment }}
+      critter={{ level: skyLevel, woken, onWake: wake, time: skyTime }}
       corner={(onPage) => (
         <MenuButton time={skyTime} onPage={onPage} onPress={() => setMenuOpen(true)} />
       )}

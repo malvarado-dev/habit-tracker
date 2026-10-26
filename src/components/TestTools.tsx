@@ -1,8 +1,9 @@
 // Test tools (SPEC-00, T14, moved to its own screen in T17): prototype only. A Real / Test switch,
 // the date, and in Test only, Next day, Back to today, Reset (tap twice), Fill today, and the
-// pet's Confidence (P2-05). The bad habit Design 1 / Design 2 switch is a setting, not data (P2-10). Real is your real
+// pet's Confidence (P2-05). Times per day for each habit (P2-08a) works in Real and Test, since
+// there's no Edit habit setting for it yet. The bad habit Design 1 / Design 2 switch is a setting, not data (P2-10). Real is your real
 // data on the real date; Test is a separate save, so History can be tried in full without
-// touching real tracking. Ring/Dots and Theme live in Profile, where the playtest records them; a Profile settings link
+// touching real tracking. Theme lives in Profile, where the playtest records them; a Profile settings link
 // opens it (T19).
 //
 // To remove after Stage 3:
@@ -26,6 +27,7 @@ import { BAD_HABIT_DESIGNS, BAD_HABIT_DESIGN_LABELS } from '@/features/settings/
 import { useSettings } from '@/features/settings/SettingsProvider';
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import { MAX_CONFIDENCE, MIN_CONFIDENCE } from '@/features/tracker/state';
+import { timesPerDay } from '@/rules/habits';
 import type { Mode } from '@/features/tracker/modes';
 import { MIN_TAP_SIZE, radius, space } from '@/theme';
 
@@ -38,7 +40,8 @@ const MODES: { key: Mode; label: string }[] = [
 
 export function TestTools() {
   const styles = useStyles();
-  const { mode, setMode, today, testTools } = useTracker();
+  const { mode, setMode, today, testTools, state, dispatch } = useTracker();
+  const maxTimes = tuning.activityBar.timesPerDayMax;
   const [confirmReset, setConfirmReset] = useState(false);
   const { badHabitDesign, setBadHabitDesign } = useSettings();
   const ahead = testTools.dayOffset > 0;
@@ -84,7 +87,7 @@ export function TestTools() {
         style={styles.button}
         testID="test-tools-profile-link"
         accessibilityRole="link"
-        accessibilityLabel="Profile settings, theme and weekly goal style"
+        accessibilityLabel="Profile settings and theme"
       >
         <Text style={styles.buttonText}>Profile settings ›</Text>
       </Pressable>
@@ -106,7 +109,7 @@ export function TestTools() {
             style={[styles.button, !ahead && styles.off]}
             testID="back-to-today-button"
             accessibilityRole="button"
-            accessibilityLabel="Back to today, keeps your test check-ins"
+            accessibilityLabel="Back to today, keeps your test logs"
             accessibilityState={{ disabled: !ahead }}
           >
             <Text style={styles.buttonText}>Back to today</Text>
@@ -133,7 +136,7 @@ export function TestTools() {
             style={styles.button}
             testID="fill-today-button"
             accessibilityRole="button"
-            accessibilityLabel="Fill today, checks in every habit on the pretend day"
+            accessibilityLabel="Fill today, finishes every habit on the pretend day"
           >
             <Text style={styles.buttonText}>Fill today</Text>
           </Pressable>
@@ -181,6 +184,59 @@ export function TestTools() {
           </View>
         </View>
       ) : null}
+
+      <View style={styles.section} testID="times-per-day">
+        <Text style={styles.heading} accessibilityRole="header">
+          Times per day
+        </Text>
+        <Text style={styles.help}>
+          How many logs finish each habit. Above 1, the card shows a ring.
+        </Text>
+        {state.habits.map((habit) => {
+          const times = timesPerDay(habit);
+          const set = (next: number) =>
+            dispatch({ type: 'setTimesPerDay', habitId: habit.id, times: next });
+          const name = habit.name || 'Habit';
+          return (
+            <View
+              key={habit.id}
+              style={styles.stepRow}
+              accessibilityRole="adjustable"
+              accessibilityLabel={`${name}, times per day`}
+              accessibilityValue={{ min: 1, max: maxTimes, now: times }}
+              accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+              onAccessibilityAction={(e) =>
+                set(times + (e.nativeEvent.actionName === 'increment' ? 1 : -1))
+              }
+            >
+              <Text style={[styles.date, styles.stepName]} numberOfLines={1}>
+                {name}
+              </Text>
+              <Pressable
+                onPress={() => set(times - 1)}
+                disabled={times <= 1}
+                style={[styles.button, times <= 1 && styles.off]}
+                testID={`times-per-day-down-${habit.id}`}
+                accessibilityLabel={`Fewer times a day for ${name}`}
+              >
+                <Text style={styles.buttonText}>−</Text>
+              </Pressable>
+              <Text style={styles.date} testID={`times-per-day-value-${habit.id}`}>
+                {times}
+              </Text>
+              <Pressable
+                onPress={() => set(times + 1)}
+                disabled={times >= maxTimes}
+                style={[styles.button, times >= maxTimes && styles.off]}
+                testID={`times-per-day-up-${habit.id}`}
+                accessibilityLabel={`More times a day for ${name}`}
+              >
+                <Text style={styles.buttonText}>+</Text>
+              </Pressable>
+            </View>
+          );
+        })}
+      </View>
 
       <View style={styles.section}>
         <Text style={styles.heading} accessibilityRole="header">
@@ -262,6 +318,8 @@ const makeStyles = (c: ThemeColors) =>
     },
     buttonText: { ...textStyle('label'), color: c.onSurface },
     off: { opacity: 0.4 },
+    stepRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+    stepName: { flex: 1 },
     confirm: { borderColor: c.danger },
     confirmText: { color: c.danger },
   });

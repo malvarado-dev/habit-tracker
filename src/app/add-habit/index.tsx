@@ -15,7 +15,7 @@ import { useTheme } from '@/design/theme/ThemeProvider';
 import { tints, type ThemeColors } from '@/design/tokens';
 import { isAdded, PREMADE_GROUPS, PREMADE_HABITS } from '@/features/habits/premadeHabits';
 import { useTracker } from '@/features/tracker/TrackerProvider';
-import { HABIT_COLORS } from '@/rules/scoring';
+import { HABIT_COLORS } from '@/rules/habits';
 import { MIN_TAP_SIZE, radius, space } from '@/theme';
 
 export default function PickHabitScreen() {

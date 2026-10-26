@@ -1,4 +1,4 @@
-// The name field and weekly goal picker shared by Edit habit and Add habit (SPEC-00, T12, T13).
+// The name field and schedule picker shared by Edit habit and Add habit (SPEC-00, T12, T13).
 // The screen owns the values; this only draws them and reports changes.
 // Test IDs start with the screen's prefix, like "edit-habit-name" or "add-habit-name".
 
@@ -14,14 +14,11 @@ import {
   matchingPreset,
   PRESETS,
   resultLine,
-  switchGoal,
+  switchSchedule,
   toggleDay,
-} from '@/features/habits/weeklyGoal';
-import { MAX_TIMES, MIN_TIMES } from '@/features/tracker/state';
-import type { WeeklyGoal, Weekday } from '@/rules/scoring';
+} from '@/features/habits/schedule';
+import type { Schedule, Weekday } from '@/rules/habits';
 import { MIN_TAP_SIZE, radius, space } from '@/theme';
-
-const TIMES = Array.from({ length: MAX_TIMES - MIN_TIMES + 1 }, (_, i) => MIN_TIMES + i);
 
 export function HabitForm(props: {
   /** "edit" or "add": the start of every test ID. */
@@ -30,22 +27,22 @@ export function HabitForm(props: {
   onNameChange: (name: string) => void;
   /** Why the name can't be saved, or "" when it's fine. */
   nameHint: string;
-  goal: WeeklyGoal;
-  onGoalChange: (goal: WeeklyGoal) => void;
+  schedule: Schedule;
+  onScheduleChange: (schedule: Schedule) => void;
 }) {
-  const { idPrefix: p, name, goal } = props;
+  const { idPrefix: p, name, schedule } = props;
   const styles = useStyles();
   const { colors: c } = useTheme();
   // The days picked before switching to Any days, so switching back brings them back.
   const lastDays = useRef<Weekday[] | undefined>(
-    goal.kind === 'specificDays' ? goal.days : undefined,
+    schedule.kind === 'specificDays' ? schedule.days : undefined,
   );
 
-  const setGoal = (next: WeeklyGoal) => {
+  const setSchedule = (next: Schedule) => {
     if (next.kind === 'specificDays') lastDays.current = next.days;
-    props.onGoalChange(next);
+    props.onScheduleChange(next);
   };
-  const preset = goal.kind === 'specificDays' ? matchingPreset(goal.days) : null;
+  const preset = schedule.kind === 'specificDays' ? matchingPreset(schedule.days) : null;
   const counter = nameCounter(name);
 
   return (
@@ -88,11 +85,11 @@ export function HabitForm(props: {
             ['anyDays', 'Any days'],
           ] as const
         ).map(([kind, label]) => {
-          const on = goal.kind === kind;
+          const on = schedule.kind === kind;
           return (
             <Pressable
               key={kind}
-              onPress={() => setGoal(switchGoal(goal, kind, lastDays.current))}
+              onPress={() => setSchedule(switchSchedule(schedule, kind, lastDays.current))}
               style={[styles.segmentItem, on && styles.selected]}
               testID={`${p}-goal-${kind}`}
               accessibilityRole="radio"
@@ -105,7 +102,7 @@ export function HabitForm(props: {
         })}
       </View>
 
-      {goal.kind === 'specificDays' ? (
+      {schedule.kind === 'specificDays' ? (
         <>
           <View style={styles.wrapRow}>
             {PRESETS.map((pr) => {
@@ -113,7 +110,7 @@ export function HabitForm(props: {
               return (
                 <Pressable
                   key={pr.key}
-                  onPress={() => setGoal({ kind: 'specificDays', days: pr.days })}
+                  onPress={() => setSchedule({ kind: 'specificDays', days: pr.days })}
                   style={[styles.pill, on && styles.selected]}
                   testID={`${p}-preset-${pr.key}`}
                   accessibilityRole="radio"
@@ -127,12 +124,14 @@ export function HabitForm(props: {
           </View>
           <View style={styles.circleRow}>
             {DAY_LABELS.map(({ day, short, name: dayName }) => {
-              const on = goal.days.includes(day);
-              const onlyDay = on && goal.days.length === 1;
+              const on = schedule.days.includes(day);
+              const onlyDay = on && schedule.days.length === 1;
               return (
                 <Pressable
                   key={day}
-                  onPress={() => setGoal({ kind: 'specificDays', days: toggleDay(goal.days, day) })}
+                  onPress={() =>
+                    setSchedule({ kind: 'specificDays', days: toggleDay(schedule.days, day) })
+                  }
                   disabled={onlyDay}
                   style={[styles.circle, on && styles.selected]}
                   testID={`${p}-day-${day}`}
@@ -148,31 +147,11 @@ export function HabitForm(props: {
           </View>
         </>
       ) : (
-        <>
-          <Text style={styles.body}>How many times a week?</Text>
-          <View style={styles.circleRow}>
-            {TIMES.map((n) => {
-              const on = goal.timesPerWeek === n;
-              return (
-                <Pressable
-                  key={n}
-                  onPress={() => setGoal({ kind: 'anyDays', timesPerWeek: n })}
-                  style={[styles.circle, on && styles.selected]}
-                  testID={`${p}-times-${n}`}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected: on }}
-                  accessibilityLabel={`${n} ${n === 1 ? 'time' : 'times'} a week`}
-                >
-                  <Text style={[styles.chipText, on && styles.selectedText]}>{n}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </>
+        <Text style={styles.body}>Not due on any day. Log it whenever you do it.</Text>
       )}
 
       <Text style={styles.result} testID={`${p}-goal-result`} accessibilityLiveRegion="polite">
-        {resultLine(goal)}
+        {resultLine(schedule)}
       </Text>
     </>
   );

@@ -1,4 +1,4 @@
-// The one tunable settings file (SPEC-00). Every timing, effect value, and rank cutoff lives here,
+// The one tunable settings file (SPEC-00). Every timing, effect value, and Activity Bar rule lives here,
 // so playtest tuning never means hunting through screens. Change a number, reload, feel the difference.
 // Times are milliseconds. Distances are points.
 //
@@ -34,83 +34,21 @@ export const tuning = {
     confidenceStep: 10,
   },
 
-  /** Rank moment plays this long after the last habit is scored (T15, in the Background). */
-  celebrationDelayMs: 2000,
-
-  /**
-   * End-of-day rank moment (T15). Bigger at each rank; C still celebrates showing up.
-   * flash: how bright the sky gets (0 to 1, behind the critter). pulse: sun or moon scale.
-   * hops and hopHeight: critter hops (points). sparkles: how many (B twinkle, A burst, S shower).
-   */
-  moment: {
-    flash: { C: 0, B: 0, A: 0.25, S: 0.35 },
-    reducedMotionFlash: { C: 0.12, B: 0.2, A: 0.3, S: 0.42 },
-    pulse: { C: 1.12, B: 1.15, A: 1.2, S: 1.25 },
-    hops: { C: 1, B: 1, A: 2, S: 1 },
-    hopHeight: { C: 14, B: 18, A: 20, S: 40 },
-    sparkles: { C: 0, B: 6, A: 10, S: 18 },
-    /** How long each part plays. */
-    flashMs: 900,
-    reducedMotionFlashMs: 1400,
-    pulseMs: 900,
-    hopMs: 210,
-    twinkleMs: 900,
-    twinkleStaggerMs: 90,
-    burstMs: 1000,
-    showerMs: 1400,
-    showerSpreadMs: 500,
-    rayFlareMs: 1500,
-    /** Distances in points: twinkle ring around the sun, burst reach, shower fall. */
-    twinkleRadius: 44,
-    burstDistance: 80,
-    showerFall: 220,
-    sparkleSize: 12,
-  },
-
-  rank: {
-    /** Lowest daily score (0 to 1) for each rank. Anything lower is C. One set for everyone. */
-    cutoffs: { S: 0.9, A: 0.75, B: 0.5 },
-  },
-
   card: {
-    /** How far a swipe travels before it scores. */
-    swipeThreshold: 110,
-    /** Sideways movement before a card starts following the finger. Higher lets vertical scrolls win more often (T6). */
-    swipeStartOffset: 16,
-    /** In-card score effects (T9). Distances and sizes are points; [min, max] ranges are random per particle. */
-    effects: {
-      /** How long one particle lives, from start to faded out. */
-      particleMs: 650,
-      /** Where the burst starts: this far in from the card's right edge, and this far down. */
-      originFromRight: 44,
-      originFromTop: 24,
-      /** Started: small sparkle. */
-      sparkleCount: 4,
-      sparkleDistance: [14, 24] as const,
-      sparkleSize: [8, 12] as const,
-      sparkleStaggerMs: 40,
-      /** On track: applause pop. A ring bursts out, then dots rise. */
-      popRingSize: 44,
-      popRingMs: 420,
-      popDotCount: 6,
-      popDotDistance: [18, 30] as const,
-      popDotSize: [4, 6] as const,
-      popDotDelayMs: 60,
-      /** Nailed it: fireworks in two waves with trails. */
-      fireworkFirstWave: 8,
-      fireworkSecondWave: 6,
-      fireworkWaveGapMs: 140,
-      fireworkDistance: [30, 52] as const,
-      fireworkSize: [3, 5] as const,
-      /** Card motion: the On track pulse (scale) and how long each half takes. */
-      pulseScale: 1.03,
-      pulseMs: 160,
-      /** Skip: the card eases to gray. */
-      dimMs: 250,
-      /** Reduced motion: the stars flash instead of particles. */
-      flashMs: 200,
-      flashOpacity: 0.35,
-    },
+    /** Press feedback on a log: the card shrinks a little, then springs back. */
+    pressScale: 0.96,
+    pressMs: 90,
+  },
+
+  /** The segmented ring around a frequency habit's icon (PRD-15). */
+  ring: {
+    /** Good log fill and the empty track. Fixed colors from the ticket, same in both themes. */
+    gold: '#D97706',
+    track: '#E6E2D9',
+    /** Degrees of empty space between segments. */
+    gapDegrees: 10,
+    /** Ring line thickness, in points. */
+    stroke: 4,
   },
 
   sky: {
@@ -118,12 +56,12 @@ export const tuning = {
     dayStartHour: 6,
     duskStartHour: 17,
     nightStartHour: 20,
-    /** One full turn of the S-rank sun rays. */
+    /** One full turn of the sun rays once the bar is full (wide layout). */
     raySpinMs: 12000,
-    /** S-rank moon bounce, each way. */
+    /** Moon bounce once the bar is full, each way. */
     moonBounceMs: 900,
     moonBounceHeight: 6,
-    /** C-rank and asleep inviting pulse, each way. */
+    /** Asleep inviting pulse, each way. */
     pulseMs: 1600,
     pulseScale: 1.06,
     /** Crescent moon: inner curve width as a share of the moon's radius (smaller = fatter crescent). */
@@ -131,7 +69,20 @@ export const tuning = {
   },
 
   activityBar: {
-    /** Food, toy, and pet icons on the Activity Bar notches (P2-07), in points. */
+    /** PRD-14 Activity Bar table. Change these and the PRD together, after playtesting. */
+    /** Share of today's possible logs needed to fill the bar, rounded up. */
+    fullShare: 0.6,
+    /** Most logs one habit adds to the possible total and to the fill. */
+    capPerHabit: 3,
+    /** The bar never fills from fewer logs than this, unless fewer are possible. */
+    minToFill: 2,
+    /** Full never takes more logs than this. */
+    maxToFill: 12,
+    /** Highest times per day a habit can be set to. */
+    timesPerDayMax: 12,
+    /** Where the 3 notches sit on the bar (0 to 1), lowest first. */
+    notches: [1 / 3, 2 / 3, 1] as const,
+    /** Food, toy, and pet icons on the notches (P2-07), in points. */
     iconSize: 30,
     /** Points from the track's bottom edge to the icons' bottoms. */
     iconBottomInset: 2,
@@ -139,7 +90,7 @@ export const tuning = {
   energy: {
     /** Energy bar fill glides to its new width this fast. Reduced motion jumps instead. */
     fillMs: 450,
-    /** Celebrations when the fill crosses the top tick (S) and when it reaches 100%. They start once the fill arrives. */
+    /** The full-bar celebration. It starts once the fill arrives. */
     celebrate: {
       /** A light band sweeps once across the fill. Width in points. */
       shimmerMs: 650,
@@ -153,17 +104,10 @@ export const tuning = {
       sparkleSize: [6, 9] as const,
       sparkleMs: 600,
     },
-    /** "Weekly goal met · Habit" under the bar (T18): how long it stays, its fade in and out, and the bar's soft glow. */
-    goalMet: {
-      showMs: 1900,
-      fadeMs: 280,
-      glowMs: 900,
-      glowOpacity: 0.55,
-    },
   },
 
   habits: {
-    /** How long the Undo bar stays after a habit is removed. */
+    /** How long the Undo bar stays after a log or a remove. */
     undoMs: 5000,
   },
 
@@ -212,12 +156,10 @@ export const tuning = {
     glanceDistance: 5,
     glanceMoveMs: 220,
     glanceHoldMs: 1100,
-    /** Wake-up on the first check-in: hop height (points), stretch, and spring bounciness. */
+    /** Wake-up on the first log: hop height (points), how long the rise takes, stretch, and spring bounciness. */
     wakeHop: 16,
+    wakeHopMs: 140,
     wakeStretch: 0.08,
     wakeDamping: 7,
-    /** Small hop each time a habit is scored. */
-    scoreHop: 7,
-    scoreHopMs: 140,
   },
 } as const;

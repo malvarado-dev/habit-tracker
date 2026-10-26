@@ -1,5 +1,5 @@
 // Add habit details (SPEC-00, T13; Figma "Add habit · Details"). Titled "Add habit" on screen.
-// A premade habit opens pre-filled (name, suggested weekly goal); Create your own opens empty
+// A premade habit opens pre-filled (name, suggested schedule); Create your own opens empty
 // on Specific days, Every day. Nothing saves until Add habit, which stays gray until the name
 // is valid. The new habit gets the least-used habit color. Icon and color pickers come in MVP.
 
@@ -16,7 +16,7 @@ import { nameHint, nameProblem } from '@/features/habits/habitName';
 import { findPremade } from '@/features/habits/premadeHabits';
 import { MAX_HABITS } from '@/features/tracker/state';
 import { useTracker } from '@/features/tracker/TrackerProvider';
-import { EVERY_DAY, type WeeklyGoal } from '@/rules/scoring';
+import { EVERY_DAY, type Schedule } from '@/rules/habits';
 import { MIN_TAP_SIZE, radius, space } from '@/theme';
 
 export default function AddHabitDetailsScreen() {
@@ -25,8 +25,8 @@ export default function AddHabitDetailsScreen() {
   const params = useLocalSearchParams<{ premade?: string }>();
   const premade = findPremade(params.premade);
   const [name, setName] = useState(premade?.name ?? '');
-  const [goal, setGoal] = useState<WeeklyGoal>(
-    premade?.goal ?? { kind: 'specificDays', days: EVERY_DAY },
+  const [schedule, setSchedule] = useState<Schedule>(
+    premade?.schedule ?? { kind: 'specificDays', days: EVERY_DAY },
   );
 
   const full = state.habits.length >= MAX_HABITS;
@@ -38,7 +38,7 @@ export default function AddHabitDetailsScreen() {
   const add = () => {
     if (!canAdd) return;
     const id = `${premade?.key ?? 'habit'}-${Date.now()}`;
-    dispatch({ type: 'addHabit', id, name, goal, date: today });
+    dispatch({ type: 'addHabit', id, name, schedule, date: today });
     // Back past Pick a habit to Habits, where the new habit is last on the list.
     if (router.canDismiss()) router.dismiss(2);
     else router.replace('/habits');
@@ -57,8 +57,8 @@ export default function AddHabitDetailsScreen() {
           name={name}
           onNameChange={setName}
           nameHint={hint}
-          goal={goal}
-          onGoalChange={setGoal}
+          schedule={schedule}
+          onScheduleChange={setSchedule}
         />
 
         <View style={styles.spacer} />

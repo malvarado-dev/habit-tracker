@@ -1,39 +1,31 @@
-// Day screen (SPEC-00, T16; canvas board 5), opened from History. Since T23 it looks like Today:
-// the Background and critter with the live sky, and the habit sheet holding a short lock line
-// ("Habits lock in 38hrs"), the Energy bar labeled with the date (T24), and the same habit cards; tap and swipe work the same. The sky and critter
-// show that day's rank (the saved one once locked); a day with no check-in shows the critter
-// asleep. Scoring plays the same rank celebration as Today: never on open, and a replay only if the
-// rank goes up. Today and the 2 days before can change; older days are locked: cards dimmed,
-// taps and swipes off. Future days can't be opened. On wide, History sits under the Background
-// card as on Today, and tapping a day there switches to it.
+// Day screen (SPEC-00, T16; canvas board 5), opened from History and the History link. It looks
+// like Today: the scene, and the habit sheet holding a short lock line ("Habits lock in 38hrs"),
+// the Activity Bar labeled with the date (T24), and every habit active that day, finished or not,
+// with the same cards; a tap logs one time. Today and the 2 days before can change; older days are
+// locked: cards dimmed, taps off. Future days can't be opened. P2-18 (#89) rebuilds this screen
+// as History's Day view with minus and plus. On wide, History sits under the scene, and tapping a
+// day there switches to it.
 
 import { router, useIsFocused, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { EnergyBar } from '@/components/EnergyBar';
+import { ActivityBar } from '@/components/ActivityBar';
 import { HabitCard } from '@/components/HabitCard';
 import { SceneLayout } from '@/components/SceneLayout';
-import { useCritterAndMoment } from '@/components/useCritterAndMoment';
+import { useCritterWake } from '@/components/useCritterWake';
 import { tuning } from '@/config/tuning';
 import { textStyle } from '@/design/fonts';
 import { withAlpha } from '@/design/theme/theme';
 import { useTheme } from '@/design/theme/ThemeProvider';
 import { background as sky, todayLayout, type ThemeColors } from '@/design/tokens';
 import { canOpenDay, dayBarLabel, dayStatusText } from '@/features/history/historyModel';
-import { useSettings } from '@/features/settings/SettingsProvider';
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import type { DateKey } from '@/rules/dates';
+import { getActivityBar } from '@/rules/activityBar';
+import { existsOn, logCount } from '@/rules/habits';
 import { allHabits, historyDay } from '@/rules/locking';
-import { cardNeed, getEnergyBar } from '@/rules/energy';
-import {
-  existsOn,
-  getDailyResult,
-  getWeekProgress,
-  nextCheckIn,
-  type CheckIn,
-} from '@/rules/scoring';
 import { getSkyTime, sceneLevel, type SkyTime } from '@/rules/sky';
 import { MIN_TAP_SIZE, space } from '@/theme';
 
@@ -74,35 +66,26 @@ export default function DayScreen() {
 function DayScene({ date, back }: { date: DateKey; back: Back }) {
   const styles = useStyles();
   const { state, dispatch, today, openDays } = useTracker();
-  const { goalStyle } = useSettings();
   const focused = useIsFocused();
 
   const now = useMinuteClock();
   const status = dayStatusText(date, today, state.lockedThrough, openDays, now);
-  const dayLog = state.log[date] ?? {};
-  // Same bar math as Today (T18). The bar is live; the sky uses the saved rank once locked.
-  const bar = getEnergyBar(allHabits(state), state.log, date);
-
-  // Same sky, critter, and celebration rules as Today, for this day (T23).
+  // Same bar math as Today. The bar is live; the sky uses the saved result once locked.
+  const bar = getActivityBar(allHabits(state), state.log, date, state.targets[date]);
   const skyLevel = sceneLevel(historyDay(state, date));
   const skyTime = getSkyTime(new Date().getHours());
-  const reactKey = JSON.stringify(dayLog);
-  const live = getDailyResult(allHabits(state), state.log, date);
-  const { woken, wake, moment } = useCritterAndMoment(live, date, reactKey, focused);
+  const logKey = JSON.stringify(state.log[date] ?? {});
+  const { woken, wake } = useCritterWake(date, logKey, focused);
 
-  const checkIn = (habitId: string, value: CheckIn | undefined, viaTap: boolean) => {
+  const log = (habitId: string) => {
     if (status.locked) return;
-    dispatch(
-      viaTap
-        ? { type: 'tapHabit', date, habitId }
-        : { type: 'setCheckIn', date, habitId, checkIn: value },
-    );
+    dispatch({ type: 'logHabit', date, habitId });
   };
 
   return (
     <SceneLayout
       testID="day-screen"
-      critter={{ level: skyLevel, woken, onWake: wake, time: skyTime, reactKey, moment }}
+      critter={{ level: skyLevel, woken, onWake: wake, time: skyTime }}
       corner={(onPage) => <BackButton back={back} time={skyTime} onPage={onPage} />}
       // Wide History: pick another day in place, keeping where Back goes.
       onOpenDay={(next) => router.setParams({ date: next })}
@@ -114,7 +97,13 @@ function DayScene({ date, back }: { date: DateKey; back: Back }) {
           </Text>
 
           {/* The date lives on the bar now: "Today" or "Thu, Oct 15" (T24). */}
-          <EnergyBar fill={bar.fill} isRestDay={bar.isRestDay} label={dayBarLabel(date, today)} />
+          <ActivityBar
+            fill={bar.fill}
+            logs={bar.logs}
+            target={bar.target}
+            isRestDay={bar.isRestDay}
+            label={dayBarLabel(date, today)}
+          />
 
           <ScrollView
             style={styles.scroll}
@@ -124,22 +113,15 @@ function DayScene({ date, back }: { date: DateKey; back: Back }) {
             {/* Only habits active that day, including ones removed since (#52, T21). */}
             {allHabits(state)
               .filter((h) => existsOn(h, date))
-              .map((habit) => {
-                const current = dayLog[habit.id];
-                return (
-                  <HabitCard
-                    key={habit.id}
-                    habit={habit}
-                    checkIn={current}
-                    need={status.locked ? 'none' : cardNeed(habit, state.log, date)}
-                    progress={getWeekProgress(habit, state.log, date)}
-                    goalStyle={goalStyle}
-                    locked={status.locked}
-                    onTap={() => checkIn(habit.id, nextCheckIn(current), true)}
-                    onSwipe={(value) => checkIn(habit.id, value, false)}
-                  />
-                );
-              })}
+              .map((habit) => (
+                <HabitCard
+                  key={habit.id}
+                  habit={habit}
+                  count={logCount(state.log, date, habit.id)}
+                  locked={status.locked}
+                  onLog={() => log(habit.id)}
+                />
+              ))}
           </ScrollView>
         </>
       )}

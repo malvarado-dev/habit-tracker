@@ -1,5 +1,6 @@
 // What the History screen shows, as plain data (SPEC-00 History, T16). No screens here, so the
-// month grid, day labels, open/locked wording, and the week panel are all unit tested.
+// month grid, day labels, and open/locked wording are all unit tested. The week panel went with
+// weekly goals (P2-08a).
 
 import { calendar } from '@/config/calendar';
 import {
@@ -14,7 +15,7 @@ import {
   type DateKey,
 } from '@/rules/dates';
 import { historyDay, isLocked, type LockState, type LockedDay } from '@/rules/locking';
-import { existsOn, STARS, weekGoal, type CheckInLog, type Habit } from '@/rules/scoring';
+import type { LogCounts } from '@/rules/habits';
 
 const MONTHS = [
   'January',
@@ -51,8 +52,8 @@ export function weekdayLetters(): string[] {
   return Array.from({ length: 7 }, (_, i) => WEEKDAY_LETTER[(i + calendar.weekStartsOn) % 7]!);
 }
 
-/** The oldest month with any check-in, or this month if there are none yet. */
-export function firstMonth(log: CheckInLog, today: DateKey): string {
+/** The oldest month with any log, or this month if there are none yet. */
+export function firstMonth(log: LogCounts, today: DateKey): string {
   const dated = Object.keys(log).filter((d) => Object.keys(log[d] ?? {}).length > 0);
   const oldest = dated.sort()[0];
   return oldest && oldest < today ? monthOf(oldest) : monthOf(today);
@@ -62,14 +63,14 @@ export function firstMonth(log: CheckInLog, today: DateKey): string {
  * The oldest month the arrows reach. Real: the first month with data. Test (T22): exactly the
  * month of the oldest day that can be opened, data or not, so a whole window can be filled in.
  */
-export function earliestMonth(log: CheckInLog, today: DateKey, oldestDay: DateKey | null): string {
+export function earliestMonth(log: LogCounts, today: DateKey, oldestDay: DateKey | null): string {
   return oldestDay ? monthOf(oldestDay) : firstMonth(log, today);
 }
 
 /** Can't go before the earliest month or past this month. */
 export function monthLimits(
   month: string,
-  log: CheckInLog,
+  log: LogCounts,
   today: DateKey,
   oldestDay: DateKey | null = null,
 ) {
@@ -82,7 +83,7 @@ export function monthLimits(
 export function stepMonth(
   month: string,
   by: 1 | -1,
-  log: CheckInLog,
+  log: LogCounts,
   today: DateKey,
   oldestDay: DateKey | null = null,
 ): string {
@@ -103,7 +104,7 @@ export interface DayCell {
    */
   kind: CellKind;
   isToday: boolean;
-  /** Rank, Rest, or none. Undefined for outside and future cells. */
+  /** Check-in, Rest, or none. Undefined for outside and future cells. */
   result?: LockedDay;
 }
 
@@ -138,7 +139,7 @@ export function monthGrid(
   return Array.from({ length: total / 7 }, (_, w) => cells.slice(w * 7, w * 7 + 7));
 }
 
-/** What a screen reader hears for a day cell: "Tue, Oct 14, S rank", "…, Rest day", "…, No check-in". */
+/** What a screen reader hears for a day cell: "Tue, Oct 14, Check-in", "…, Rest day", "…, No check-in". */
 export function dayCellLabel(cell: DayCell): string {
   const date = shortDate(cell.date);
   if (cell.kind === 'future') return `${date}, not yet`;
@@ -146,7 +147,7 @@ export function dayCellLabel(cell: DayCell): string {
   const result = cell.result;
   if (!result || result.outcome === 'none') return `${date}, No check-in`;
   if (result.outcome === 'rest') return `${date}, Rest day`;
-  return `${date}, ${result.rank} rank`;
+  return `${date}, Check-in`;
 }
 
 const MINUTES_PER_DAY = 24 * 60;
@@ -211,51 +212,4 @@ export function canOpenDay(
   oldestDay: DateKey | null = null,
 ): boolean {
   return date <= today && (oldestDay === null || date >= oldestDay);
-}
-
-export interface WeekRow {
-  habitId: string;
-  name: string;
-  color: Habit['color'];
-  goal: number;
-  /** Days this week scored Started, On track, or Nailed it. Skip never counts. */
-  done: number;
-  /** "3 of 4", or "3 +1" past the goal. */
-  label: string;
-  /** "Sleep, 3 of 4 this week" */
-  a11yLabel: string;
-}
-
-/** One row per habit for the week a date falls in. Count only (best-N star quality is Later). */
-export function weekRows(habits: Habit[], log: CheckInLog, date: DateKey): WeekRow[] {
-  const days = daysOfWeek(date);
-  // A habit gets a row only if it was active some day that week (#52, T21).
-  return habits
-    .filter((habit) => days.some((d) => existsOn(habit, d)))
-    .map((habit) => {
-      const goal = weekGoal(habit, date);
-      const done = days.filter((d) => {
-        if (!existsOn(habit, d)) return false;
-        const checkIn = log[d]?.[habit.id];
-        return checkIn !== undefined && STARS[checkIn] > 0;
-      }).length;
-      const label = done > goal ? `${goal} +${done - goal}` : `${done} of ${goal}`;
-      const name = habit.name || 'Unnamed habit';
-      return {
-        habitId: habit.id,
-        name,
-        color: habit.color,
-        goal,
-        done,
-        label,
-        a11yLabel: `${name}, ${done > goal ? `goal met, ${done - goal} extra` : `${done} of ${goal}`} this week`,
-      };
-    });
-}
-
-/** "Week of Oct 11", the week's first day. */
-export function weekTitle(date: DateKey): string {
-  const first = daysOfWeek(date)[0]!;
-  const [, m, d] = first.split('-').map(Number);
-  return `Week of ${MONTHS[m! - 1]!.slice(0, 3)} ${d}`;
 }

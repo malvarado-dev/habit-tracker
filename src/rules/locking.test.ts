@@ -1,6 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
 import { createInitialState, trackerReducer, type TrackerState } from '@/features/tracker/state';
-import { getDailyResult } from './scoring';
 import { historyDay, isLocked, lastLockedDay, lockDays } from './locking';
 
 // Pretend dates. Monday 2026-10-19 is "today": the 19th, 18th, and 17th are open.
@@ -12,7 +11,9 @@ function withLog(log: TrackerState['log']): TrackerState {
   return { ...createInitialState(), log };
 }
 
-const allNailed = { sleep: 'NailedIt', diet: 'NailedIt', wellbeing: 'NailedIt' } as const;
+// Sleep, Diet, and Wellbeing are due every day: 3 possible, 2 fill the bar.
+const filled = { sleep: 1, diet: 1 };
+const short = { sleep: 1 };
 
 describe('which days are open', () => {
   it('today and the 2 days before are open; older days are locked', () => {
@@ -29,112 +30,77 @@ describe('which days are open', () => {
 });
 
 describe('lockDays', () => {
-  it('saves the rank and stars of a day when it locks', () => {
-    const state = lockDays(withLog({ [LOCKED]: allNailed }), TODAY);
+  it('saves a check-in with its logs and target when the day locks', () => {
+    const state = lockDays(withLog({ [LOCKED]: filled }), TODAY);
     expect(state.lockedThrough).toBe(LOCKED);
-    expect(state.locked[LOCKED]).toEqual({
-      outcome: 'rank',
-      rank: 'S',
-      earnedStars: 9,
-      possibleStars: 9,
-    });
+    expect(state.locked[LOCKED]).toEqual({ outcome: 'checkIn', logs: 2, target: 2 });
   });
 
-  it('saves a Rest day and gives a day with no check-in no entry', () => {
-    const rest = { sleep: 'NotToday', diet: 'NotToday', wellbeing: 'NotToday' } as const;
-    const state = lockDays(withLog({ [LOCKED]: rest, '2026-10-15': {} }), TODAY);
-    expect(state.locked[LOCKED]?.outcome).toBe('rest');
+  it('a day that fell short saves no check-in; a day with no logs has no entry', () => {
+    const state = lockDays(withLog({ [LOCKED]: short, '2026-10-15': {} }), TODAY);
+    expect(state.locked[LOCKED]).toEqual({ outcome: 'none', logs: 1, target: 2 });
     expect(state.locked['2026-10-15']).toBeUndefined();
     expect(historyDay(state, '2026-10-15').outcome).toBe('none');
-    expect(historyDay(state, '2026-10-14').outcome).toBe('none');
+  });
+
+  it("uses the day's saved target over the live habits", () => {
+    const state = lockDays({ ...withLog({ [LOCKED]: short }), targets: { [LOCKED]: 1 } }, TODAY);
+    expect(state.locked[LOCKED]?.outcome).toBe('checkIn');
   });
 
   it('never locks an open day', () => {
-    const state = lockDays(withLog({ [OPEN_OLDEST]: allNailed }), TODAY);
+    const state = lockDays(withLog({ [OPEN_OLDEST]: filled }), TODAY);
     expect(state.locked[OPEN_OLDEST]).toBeUndefined();
   });
 
   it('does nothing when already locked through today, and returns the same state', () => {
-    const once = lockDays(withLog({ [LOCKED]: allNailed }), TODAY);
+    const once = lockDays(withLog({ [LOCKED]: filled }), TODAY);
     expect(lockDays(once, TODAY)).toBe(once);
   });
 
   it('a locked result is never recomputed on a later lock', () => {
-    const once = lockDays(withLog({ [LOCKED]: allNailed }), TODAY);
+    const once = lockDays(withLog({ [LOCKED]: filled }), TODAY);
     const tampered = { ...once, log: { ...once.log, [LOCKED]: {} } };
-    expect(lockDays(tampered, '2026-10-25').locked[LOCKED]?.rank).toBe('S');
+    expect(lockDays(tampered, '2026-10-25').locked[LOCKED]?.outcome).toBe('checkIn');
   });
 
   it('when midnight passes, the day that falls out of the window locks', () => {
-    const before = lockDays(withLog({ [OPEN_OLDEST]: allNailed }), TODAY);
+    const before = lockDays(withLog({ [OPEN_OLDEST]: filled }), TODAY);
     expect(before.locked[OPEN_OLDEST]).toBeUndefined();
     const after = lockDays(before, '2026-10-20');
-    expect(after.locked[OPEN_OLDEST]?.rank).toBe('S');
+    expect(after.locked[OPEN_OLDEST]?.outcome).toBe('checkIn');
   });
 });
 
 describe('a locked day never changes', () => {
-  const locked = () => lockDays(withLog({ [LOCKED]: allNailed }), TODAY);
+  const locked = () => lockDays(withLog({ [LOCKED]: short }), TODAY);
 
-  it('taps and swipes on a locked day are ignored', () => {
+  it('logs and undos on a locked day are ignored', () => {
     const state = locked();
-    expect(trackerReducer(state, { type: 'tapHabit', date: LOCKED, habitId: 'diet' })).toBe(state);
-    expect(
-      trackerReducer(state, {
-        type: 'setCheckIn',
-        date: LOCKED,
-        habitId: 'diet',
-        checkIn: undefined,
-      }),
-    ).toBe(state);
+    expect(trackerReducer(state, { type: 'logHabit', date: LOCKED, habitId: 'diet' })).toBe(state);
+    expect(trackerReducer(state, { type: 'undoLog', date: LOCKED, habitId: 'sleep' })).toBe(state);
     // Even a day with no data can't be filled in once it's locked.
-    expect(trackerReducer(state, { type: 'tapHabit', date: '2026-10-01', habitId: 'diet' })).toBe(
+    expect(trackerReducer(state, { type: 'logHabit', date: '2026-10-01', habitId: 'diet' })).toBe(
       state,
     );
   });
 
-  it('editing a goal, renaming, or removing a habit leaves the locked day as it was', () => {
+  it('editing a schedule, renaming, or removing a habit leaves the locked day as it was', () => {
     let state = locked();
     state = trackerReducer(state, {
-      type: 'setGoal',
+      type: 'setSchedule',
       habitId: 'sleep',
-      goal: { kind: 'anyDays', timesPerWeek: 1 },
+      schedule: { kind: 'anyDays' },
     });
     state = trackerReducer(state, { type: 'renameHabit', habitId: 'diet', name: 'Food' });
     state = trackerReducer(state, { type: 'removeHabit', habitId: 'wellbeing', date: TODAY });
     expect(historyDay(state, LOCKED)).toEqual(locked().locked[LOCKED]);
   });
 
-  it('open days still change on edits', () => {
-    let state = lockDays(withLog({ [TODAY]: allNailed }), TODAY);
-    expect(historyDay(state, TODAY).rank).toBe('S');
-    state = trackerReducer(state, { type: 'tapHabit', date: TODAY, habitId: 'diet' });
-    expect(historyDay(state, TODAY).earnedStars).toBe(6);
-  });
-});
-
-describe('editing an open day updates later open days in the same week', () => {
-  // Sun 10-18 and Mon 10-19 are open and in the same week. A Run habit planned on 1 day
-  // (Monday) is due Monday until it's done earlier in the week.
-  const run = {
-    id: 'run',
-    name: 'Run',
-    goal: { kind: 'specificDays', days: [0] },
-    color: 'habit1',
-  };
-
-  it('scoring Run on Sunday means it is no longer due on Monday', () => {
-    const base: TrackerState = { ...createInitialState(), habits: [run] as TrackerState['habits'] };
-    expect(historyDay(base, TODAY).outcome).toBe('none');
-    const monday = trackerReducer(base, { type: 'tapHabit', date: TODAY, habitId: 'run' });
-    expect(getDailyResult(monday.habits, monday.log, TODAY).dueCount).toBe(1);
-    const sunday = trackerReducer(monday, {
-      type: 'setCheckIn',
-      date: '2026-10-18',
-      habitId: 'run',
-      checkIn: 'NailedIt',
-    });
-    // Monday is no longer due; Monday's Started now counts only as an optional bonus.
-    expect(getDailyResult(sunday.habits, sunday.log, TODAY).dueCount).toBe(0);
+  it('open days still change on logs', () => {
+    let state = lockDays(withLog({ [TODAY]: short }), TODAY);
+    expect(historyDay(state, TODAY).outcome).toBe('none');
+    state = trackerReducer(state, { type: 'logHabit', date: TODAY, habitId: 'diet' });
+    expect(historyDay(state, TODAY)).toEqual({ outcome: 'checkIn', logs: 2, target: 2 });
   });
 });

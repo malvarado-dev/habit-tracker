@@ -35,14 +35,10 @@ describe('acceptance: menu and Profile (T11)', () => {
     expect(menu).toContain('hardwareBackPress');
   });
 
-  it.each([
-    'profile-back',
-    'profile-habits',
-    'profile-goal-style',
-    'profile-theme',
-    'profile-week-',
-    'profile-critter-name',
-  ])('Profile has test ID %s', (id) => {
-    expect(profile).toContain(id);
-  });
+  it.each(['profile-back', 'profile-habits', 'profile-theme', 'profile-critter-name'])(
+    'Profile has test ID %s',
+    (id) => {
+      expect(profile).toContain(id);
+    },
+  );
 });

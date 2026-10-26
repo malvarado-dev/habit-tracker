@@ -1,31 +1,23 @@
-// Profile (SPEC-00, T11; Figma "Profile · Phone"): a thin shell. Critter name placeholder,
-// this week's progress per habit, and rows for Habits, Weekly goal style, and Theme.
-// The two settings open inline choices and are saved on the device.
+// Profile (SPEC-00, T11; Figma "Profile · Phone"): a thin shell. Critter name placeholder and
+// rows for Habits and Theme. Theme opens inline choices and is saved on the device. The weekly
+// progress list and Weekly goal style were removed with weekly goals (P2-08a).
 
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle } from 'react-native-svg';
 
-import { weekProgressText } from '@/components/habitCardText';
 import { textStyle } from '@/design/fonts';
 import { THEME_LABELS, THEME_PREFERENCES, withAlpha } from '@/design/theme/theme';
 import { useTheme } from '@/design/theme/ThemeProvider';
 import { critter, tints, type ThemeColors } from '@/design/tokens';
-import { GOAL_STYLE_LABELS, GOAL_STYLES } from '@/features/settings/settings';
-import { useSettings } from '@/features/settings/SettingsProvider';
-import { useTracker } from '@/features/tracker/TrackerProvider';
-import { getWeekProgress } from '@/rules/scoring';
 import { MIN_TAP_SIZE, radius, space } from '@/theme';
 
-type Open = 'goal' | 'theme' | null;
+type Open = 'theme' | null;
 
 export default function ProfileScreen() {
   const styles = useStyles();
-  const { colors: c, preference, setPreference } = useTheme();
-  const { goalStyle, setGoalStyle } = useSettings();
-  const { state, today } = useTracker();
+  const { preference, setPreference } = useTheme();
   const [open, setOpen] = useState<Open>(null);
   const params = useLocalSearchParams<{ from?: string }>();
   // Back names the screen Profile was opened from: Test tools (T19), else Today.
@@ -60,51 +52,11 @@ export default function ProfileScreen() {
           <Text style={styles.rowText}>Critter name (placeholder)</Text>
         </View>
 
-        <Text style={styles.section}>THIS WEEK</Text>
-        <View style={styles.week} testID="profile-week">
-          {state.habits.map((habit) => {
-            const p = getWeekProgress(habit, state.log, today);
-            return (
-              <View
-                key={habit.id}
-                style={styles.weekRow}
-                testID={`profile-week-${habit.id}`}
-                accessible
-                accessibilityLabel={`${habit.name}, ${weekProgressText(p.done, p.goal)}`}
-              >
-                <Text style={styles.weekName} numberOfLines={1}>
-                  {habit.name}
-                </Text>
-                <Text style={styles.weekCount}>
-                  {p.done} of {p.goal}
-                </Text>
-                <MiniRing color={c[habit.color]} track={c.onSurface} done={p.done} goal={p.goal} />
-              </View>
-            );
-          })}
-        </View>
-
         <Row
           label="Habits"
           onPress={() => router.push({ pathname: '/habits', params: { from: 'profile' } })}
           testID="profile-habits"
         />
-
-        <Row
-          label="Weekly goal style"
-          value={GOAL_STYLE_LABELS[goalStyle]}
-          expanded={open === 'goal'}
-          onPress={() => setOpen(open === 'goal' ? null : 'goal')}
-          testID="profile-goal-style"
-        />
-        {open === 'goal' ? (
-          <Choices
-            options={GOAL_STYLES.map((s) => ({ key: s, label: GOAL_STYLE_LABELS[s] }))}
-            selected={goalStyle}
-            onSelect={(s) => setGoalStyle(s as typeof goalStyle)}
-            testID="profile-goal-style"
-          />
-        ) : null}
 
         <Row
           label="Theme"
@@ -181,41 +133,6 @@ function Choices(props: {
   );
 }
 
-const RING = 28;
-const STROKE = 3;
-
-function MiniRing(props: { color: string; track: string; done: number; goal: number }) {
-  const center = RING / 2;
-  const r = center - STROKE / 2 - 1;
-  const circumference = 2 * Math.PI * r;
-  const fraction = props.goal > 0 ? Math.min(props.done / props.goal, 1) : 0;
-  return (
-    <Svg width={RING} height={RING}>
-      <Circle
-        cx={center}
-        cy={center}
-        r={r}
-        fill="none"
-        stroke={withAlpha(props.track, tints.ringTrack)}
-        strokeWidth={STROKE}
-      />
-      {fraction > 0 ? (
-        <Circle
-          cx={center}
-          cy={center}
-          r={r}
-          fill="none"
-          stroke={props.color}
-          strokeWidth={STROKE}
-          strokeLinecap="round"
-          strokeDasharray={`${circumference * fraction} ${circumference}`}
-          transform={`rotate(-90 ${center} ${center})`}
-        />
-      ) : null}
-    </Svg>
-  );
-}
-
 function useStyles() {
   const { colors } = useTheme();
   return useMemo(() => makeStyles(colors), [colors]);
@@ -278,11 +195,6 @@ const makeStyles = (c: ThemeColors) =>
       borderRadius: 2.5,
       backgroundColor: critter.ink,
     },
-    section: { ...textStyle('label'), color: c.onSurfaceMuted, marginTop: space.sm },
-    week: { gap: space.md, marginBottom: space.md },
-    weekRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
-    weekName: { ...textStyle('habitName'), color: c.onSurface, flex: 1 },
-    weekCount: { ...textStyle('label'), color: c.onSurfaceMuted },
     row: { justifyContent: 'space-between', paddingHorizontal: space.lg },
     rowText: { ...textStyle('habitName'), color: c.onSurface },
     rowRight: { flexDirection: 'row', alignItems: 'center', gap: space.sm },

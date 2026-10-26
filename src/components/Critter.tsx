@@ -1,9 +1,9 @@
 // The critter (critter.md): a flat sunny dome with eyes and a mouth, its body running behind the
 // habit sheet and well past its box, so a hop never shows an edge. Idle motion is subtle: slow
-// breathing, a blink every few seconds, and an occasional glance. The mouth follows the live rank:
-// flat at C, a closed smile at B, a big smile at A and S. At C (and before the first check-in)
-// it's asleep when the app opens, with Zs drifting up; a tap or any score wakes it with a hop.
-// It hops on each score, and hops bigger for the rank moment (T15). Tap an awake critter to wiggle.
+// breathing, a blink every few seconds, and an occasional glance. The mouth follows the Activity
+// Bar (critterMood). Before the first log it's asleep when the app opens, with Zs drifting up; a
+// tap or a log wakes it with a hop. No hop on later logs (P2-08a). Tap an awake critter to wiggle.
+// Wide layout only: the phone shows the living room and pet instead.
 // Reduced motion: breathing at half strength and blinking stay, the Zs hold still; glancing,
 // hops, and the wiggle are off.
 
@@ -24,7 +24,6 @@ import Svg, { Path, Text as SvgText } from 'react-native-svg';
 
 import { tuning } from '@/config/tuning';
 import { background as sky, critter } from '@/design/tokens';
-import type { Rank } from '@/rules/rank';
 import type { SkyLevel, SkyTime } from '@/rules/sky';
 
 import { critterLabel, critterMood, randomGap, type CritterMood } from './critterMood';
@@ -37,23 +36,17 @@ export const EYES_X = [150, 210];
 /** The dome. History's day faces (CritterFace) draw the same parts. */
 export const BODY_PATH = 'M0 260 L0 170 Q0 30 180 30 Q360 30 360 170 L360 260 Z';
 
-/** A rank moment to play once; `id` changes each time one starts. */
-export type Moment = { rank: Rank; id: number };
-
 type Props = {
   width: number;
   level: SkyLevel;
-  /** Woken this visit by a tap or a score (see critterMood). */
+  /** Woken this visit by a tap or a log (see critterMood). */
   woken: boolean;
   onWake: () => void;
   /** Sky time, so the Zs are dark on the day sky and light at dusk and night. */
   time: SkyTime;
-  /** Changes whenever a habit is scored, so the critter can hop. */
-  reactKey: string;
-  moment: Moment | null;
 };
 
-export function Critter({ width, level, woken, onWake, time, reactKey, moment }: Props) {
+export function Critter({ width, level, woken, onWake, time }: Props) {
   const reduceMotion = useReducedMotion();
   const mood = critterMood(level, woken);
   const asleep = mood === 'asleep';
@@ -128,40 +121,21 @@ export function Critter({ width, level, woken, onWake, time, reactKey, moment }:
     return () => clearTimeout(timer);
   }, [asleep, reduceMotion, glance, c]);
 
-  // Wake-up hop on the first check-in, and a small hop on every later score.
+  // Wake-up hop on the first log or tap.
   const prevMood = useRef<CritterMood>(mood);
-  const prevKey = useRef(reactKey);
   useEffect(() => {
     const woke = prevMood.current === 'asleep' && mood !== 'asleep';
-    const scored = prevKey.current !== reactKey;
     prevMood.current = mood;
-    prevKey.current = reactKey;
-    if (reduceMotion || asleep) return;
-    if (woke) {
-      hop.value = withSequence(
-        withTiming(-c.wakeHop, { duration: c.scoreHopMs }),
-        withSpring(0, { damping: c.wakeDamping }),
-      );
-      stretch.value = withSequence(
-        withTiming(c.wakeStretch, { duration: c.scoreHopMs }),
-        withSpring(0, { damping: c.wakeDamping }),
-      );
-    } else if (scored) {
-      hop.value = withSequence(
-        withTiming(-c.scoreHop, { duration: c.scoreHopMs }),
-        withTiming(0, { duration: c.scoreHopMs }),
-      );
-    }
-  }, [mood, reactKey, reduceMotion, asleep, hop, stretch, c]);
-
-  // Rank moment: hops sized by the rank (tuning.moment). Off with reduced motion.
-  useEffect(() => {
-    if (!moment || reduceMotion) return;
-    const m = tuning.moment;
-    const up = withTiming(-m.hopHeight[moment.rank], { duration: m.hopMs });
-    const down = withTiming(0, { duration: m.hopMs });
-    hop.set(m.hops[moment.rank] > 1 ? withSequence(up, down, up, down) : withSequence(up, down));
-  }, [moment, reduceMotion, hop]);
+    if (reduceMotion || !woke) return;
+    hop.value = withSequence(
+      withTiming(-c.wakeHop, { duration: c.wakeHopMs }),
+      withSpring(0, { damping: c.wakeDamping }),
+    );
+    stretch.value = withSequence(
+      withTiming(c.wakeStretch, { duration: c.wakeHopMs }),
+      withSpring(0, { damping: c.wakeDamping }),
+    );
+  }, [mood, reduceMotion, hop, stretch, c]);
 
   const breathStrength = reduceMotion ? c.reducedMotionBreathStrength : 1;
 

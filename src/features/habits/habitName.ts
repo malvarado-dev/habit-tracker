@@ -1,7 +1,7 @@
 // Habit name rules (SPEC-00, decided 2026-10-19): never blank, never a duplicate, at most
 // 20 characters. Shared by Add habit, Edit habit, and the reducer, so all three agree.
 
-import type { Habit } from '@/rules/scoring';
+import type { Habit } from '@/rules/habits';
 
 /** Fits one line of a phone habit card at normal text size. Bigger text sizes get "…". */
 export const MAX_NAME_LENGTH = 20;

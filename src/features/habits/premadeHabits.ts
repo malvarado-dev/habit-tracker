@@ -1,9 +1,9 @@
 // The premade habits on Pick a habit (SPEC-00, T13). Mirrors the "Premade habits" table in
 // Notion (PRD-02 Category Management). Change that table and this file together.
-// Daily-type habits start on Specific days, Every day; activity-type on Any days, 3 a week.
+// Daily-type habits start on Specific days, Every day; activity-type on Any days.
 // Icon is a letter placeholder until the icon sheet, and color is the least-used habit color.
 
-import { EVERY_DAY, type Habit, type WeeklyGoal } from '@/rules/scoring';
+import { EVERY_DAY, type Habit, type Schedule } from '@/rules/habits';
 
 import { nameKey } from './habitName';
 
@@ -14,38 +14,38 @@ export interface PremadeHabit {
   key: string;
   name: string;
   group: PremadeGroup;
-  goal: WeeklyGoal;
+  schedule: Schedule;
   /** One of the 4 habits a new user starts with. */
   starter: boolean;
 }
 
-const everyDay: WeeklyGoal = { kind: 'specificDays', days: EVERY_DAY };
-const threeAWeek: WeeklyGoal = { kind: 'anyDays', timesPerWeek: 3 };
+const everyDay: Schedule = { kind: 'specificDays', days: EVERY_DAY };
+const anyDays: Schedule = { kind: 'anyDays' };
 
 export const PREMADE_GROUPS: PremadeGroup[] = ['Health', 'Fitness', 'Mind', 'Fun and life'];
 
 export const PREMADE_HABITS: PremadeHabit[] = [
-  { key: 'sleep', name: 'Sleep', group: 'Health', goal: everyDay, starter: true },
-  { key: 'diet', name: 'Diet', group: 'Health', goal: everyDay, starter: true },
-  { key: 'wellbeing', name: 'Wellbeing', group: 'Health', goal: everyDay, starter: true },
-  { key: 'exercise', name: 'Exercise', group: 'Fitness', goal: threeAWeek, starter: true },
-  { key: 'walking', name: 'Walking', group: 'Fitness', goal: everyDay, starter: false },
-  { key: 'stretching', name: 'Stretching', group: 'Fitness', goal: everyDay, starter: false },
-  { key: 'running', name: 'Running', group: 'Fitness', goal: threeAWeek, starter: false },
-  { key: 'biking', name: 'Biking', group: 'Fitness', goal: threeAWeek, starter: false },
-  { key: 'meditation', name: 'Meditation', group: 'Mind', goal: everyDay, starter: false },
-  { key: 'reading', name: 'Reading', group: 'Mind', goal: everyDay, starter: false },
-  { key: 'study', name: 'Study', group: 'Mind', goal: threeAWeek, starter: false },
-  { key: 'pet-time', name: 'Pet Time', group: 'Fun and life', goal: everyDay, starter: false },
+  { key: 'sleep', name: 'Sleep', group: 'Health', schedule: everyDay, starter: true },
+  { key: 'diet', name: 'Diet', group: 'Health', schedule: everyDay, starter: true },
+  { key: 'wellbeing', name: 'Wellbeing', group: 'Health', schedule: everyDay, starter: true },
+  { key: 'exercise', name: 'Exercise', group: 'Fitness', schedule: anyDays, starter: true },
+  { key: 'walking', name: 'Walking', group: 'Fitness', schedule: everyDay, starter: false },
+  { key: 'stretching', name: 'Stretching', group: 'Fitness', schedule: everyDay, starter: false },
+  { key: 'running', name: 'Running', group: 'Fitness', schedule: anyDays, starter: false },
+  { key: 'biking', name: 'Biking', group: 'Fitness', schedule: anyDays, starter: false },
+  { key: 'meditation', name: 'Meditation', group: 'Mind', schedule: everyDay, starter: false },
+  { key: 'reading', name: 'Reading', group: 'Mind', schedule: everyDay, starter: false },
+  { key: 'study', name: 'Study', group: 'Mind', schedule: anyDays, starter: false },
+  { key: 'pet-time', name: 'Pet Time', group: 'Fun and life', schedule: everyDay, starter: false },
   {
     key: 'family-time',
     name: 'Family Time',
     group: 'Fun and life',
-    goal: threeAWeek,
+    schedule: anyDays,
     starter: false,
   },
-  { key: 'outdoors', name: 'Outdoors', group: 'Fun and life', goal: threeAWeek, starter: false },
-  { key: 'gaming', name: 'Gaming', group: 'Fun and life', goal: threeAWeek, starter: false },
+  { key: 'outdoors', name: 'Outdoors', group: 'Fun and life', schedule: anyDays, starter: false },
+  { key: 'gaming', name: 'Gaming', group: 'Fun and life', schedule: anyDays, starter: false },
 ];
 
 export function findPremade(key: string | undefined): PremadeHabit | undefined {

@@ -14,7 +14,7 @@ import {
   type KeyValueStore,
 } from './modes';
 import { createInitialState } from './state';
-import { existsOn } from '../../rules/scoring';
+import { existsOn } from '@/rules/habits';
 import { tuning } from '@/config/tuning';
 
 const START_PET = { confidence: tuning.pet.startConfidence };
@@ -24,7 +24,7 @@ const REAL = '2026-10-19';
 
 const tap = (habitId: string, date = REAL): AppAction => ({
   type: 'tracker',
-  action: { type: 'tapHabit', date, habitId },
+  action: { type: 'logHabit', date, habitId },
   realDate: REAL,
 });
 
@@ -78,7 +78,7 @@ describe('Real and Test never cross', () => {
       { type: 'setMode', mode: 'real' },
     ).app;
     expect(after.real).toBe(before);
-    expect(after.real.state.log[REAL]).toEqual({ sleep: 'Started', diet: 'OnTrack' });
+    expect(after.real.state.log[REAL]).toEqual({ sleep: 1, diet: 1 });
   });
 
   it('Reset in Test erases only the test save', () => {
@@ -91,7 +91,7 @@ describe('Real and Test never cross', () => {
     const { app, keys } = run(start.app, { type: 'resetTest', realDate: REAL });
     expect(keys).toEqual([TEST_KEY]);
     expect(app.test.state).toEqual(createInitialState());
-    expect(app.real.state.log[REAL]).toEqual({ sleep: 'Started' });
+    expect(app.real.state.log[REAL]).toEqual({ sleep: 1 });
   });
 
   it('Next day, Back to today, and Reset do nothing in Real', () => {
@@ -125,7 +125,7 @@ describe('the pretend date lives only in Test', () => {
     expect(modeToday(app, REAL)).toBe('2026-10-20');
     expect(modeToday(app, REAL, 'real')).toBe(REAL);
     expect(keys).toContain(TEST_OFFSET_KEY);
-    expect(app.test.state.log['2026-10-20']).toEqual({ sleep: 'Started' });
+    expect(app.test.state.log['2026-10-20']).toEqual({ sleep: 1 });
   });
 
   it('Test locks days by its pretend date, Real by the real date', () => {
@@ -155,24 +155,32 @@ describe('loading', () => {
     expect(app.testOffset).toBe(0);
   });
 
-  it('upgrades a v4 real save to v8 keeping all real data, and drops its pretend date', async () => {
+  it('upgrades a v4 real save to the current shape keeping its logs, and drops its pretend date', async () => {
+    const habits = createInitialState().habits;
+    // Habits as v4 saved them: a weekly goal in place of the schedule.
+    const oldHabits = habits.map(({ schedule, ...h }) => ({
+      ...h,
+      goal: schedule.kind === 'anyDays' ? { kind: 'anyDays', timesPerWeek: 3 } : schedule,
+    }));
     const v4 = {
       version: 4,
-      habits: createInitialState().habits,
+      habits: oldHabits,
       log: { [REAL]: { sleep: 'NailedIt' } },
       dayOffset: 3,
       locked: { '2026-10-10': { outcome: 'rank', rank: 'S', earnedStars: 9, possibleStars: 9 } },
+      // Oct 10 has no logs left, so v9 keeps no locked result for it.
       lockedThrough: '2026-10-16',
     };
     const store = fakeStore({ [REAL_KEY]: JSON.stringify(v4) });
     const app = await loadAppState(store, new Date());
     expect(app.real.state).toEqual({
-      version: 8,
+      version: 9,
       pet: START_PET,
-      habits: v4.habits,
+      habits,
       removed: [],
-      log: v4.log,
-      locked: v4.locked,
+      log: { [REAL]: { sleep: 1 } },
+      targets: {},
+      locked: {},
       lockedThrough: v4.lockedThrough,
     });
     expect('dayOffset' in app.real.state).toBe(false);

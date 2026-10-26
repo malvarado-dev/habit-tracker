@@ -1,11 +1,10 @@
-// Energy bar at the top of the habit sheet (SPEC-00, T18): "Today" and a percentage over a dark
-// pill with a lemon fill. Three plain ticks mark the B, A, and S cutoffs and darken once the fill
-// passes them. The fill is today's share of what counts (rules/energy.ts), so every counted star
-// moves it the same amount. Crossing the top tick sweeps a shimmer across the fill; reaching 100%
-// adds a brief brighten and sparkles off the end. A goal-met glow pulses around the track when
-// `glowKey` changes. Reduced motion: only the brighten, and the glow without motion.
+// The Activity Bar at the top of the habit sheet (PRD-14): a dark pill with a lemon fill and 3
+// notches that darken once the fill passes them. The fill is counted logs against today's target
+// (rules/activityBar.ts), so every log moves it the same amount. Reaching full plays the full-bar
+// celebration: a shimmer sweeps the fill, it brightens, and sparkles pop off the end. The Day
+// screen shows its date and a percent row above the bar. Reduced motion: only the brighten.
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Image, type LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
@@ -24,27 +23,21 @@ import { useTheme } from '@/design/theme/ThemeProvider';
 import { energyBar as bar } from '@/design/tokens';
 import { activityArt } from '@/scene/art';
 
-import { seeded } from './cardEffectLayout';
-import {
-  clampEnergy,
-  energyLabel,
-  energyMilestone,
-  percentText,
-  tickPositions,
-  type EnergyMilestone,
-} from './energyBarText';
+import { activityBarLabel, clampFill, justFilled, notchPositions, seeded } from './activityBarText';
+import { fillEasing, fillMs } from './motion';
 
 type Props = {
-  /** 0 to 1, from getEnergyBar. */
+  /** 0 to 1, from getActivityBar. */
   fill: number;
+  /** Counted logs and the target, for screen readers and the Day screen's count. */
+  logs: number;
+  target: number;
   isRestDay: boolean;
-  /** "Today" on Today. The Day screen leaves it out, since its title is the date. */
+  /** The Day screen's date label ("Thu, Oct 15"). Today leaves it out. */
   label?: string;
-  /** Changes each time Weekly goal met plays, to pulse the glow. */
-  glowKey?: number;
   /**
    * Activity Bar on the habit sheet (P2-07): food, toy, and pet icons sit on the notches, and the
-   * "Today · 64%" row is left out. The icons rise above the track without adding height.
+   * label row is left out. The icons rise above the track without adding height.
    */
   activityIcons?: boolean;
 };
@@ -56,69 +49,52 @@ const ACTIVITY_ICONS = [
   ['pet', activityArt.pet],
 ] as const;
 
-export function EnergyBar({ fill, isRestDay, label, glowKey = 0, activityIcons = false }: Props) {
+export function ActivityBar(props: Props) {
+  const { fill, logs, target, isRestDay, label, activityIcons = false } = props;
   const { colors } = useTheme();
   const reduceMotion = useReducedMotion();
-  const fraction = clampEnergy(fill);
+  const fraction = clampFill(fill);
   const [trackWidth, setTrackWidth] = useState(0);
   const innerWidth = Math.max(0, trackWidth - TRACK_PADDING * 2);
   const fillWidth = useSharedValue(0);
 
   useEffect(() => {
-    const target = fraction * innerWidth;
+    const width = fraction * innerWidth;
     fillWidth.value =
       reduceMotion || innerWidth === 0
-        ? target
-        : withTiming(target, { duration: tuning.energy.fillMs, easing: Easing.out(Easing.cubic) });
+        ? width
+        : withTiming(width, { duration: fillMs, easing: fillEasing });
   }, [fraction, innerWidth, reduceMotion, fillWidth]);
 
   const fillStyle = useAnimatedStyle(() => ({ width: fillWidth.value }));
 
-  // Celebrations: only on an upward crossing, starting once the fill arrives.
+  // Full-bar celebration: only on an upward move to full, starting once the fill arrives.
+  // `fills` counts each time the bar fills, worked out while rendering so the effect below only
+  // starts animations.
   const cel = tuning.energy.celebrate;
-  const previous = useRef(fraction);
-  const [burst, setBurst] = useState<{ id: number; kind: EnergyMilestone } | null>(null);
-  const glow = useSharedValue(0);
+  const [previous, setPrevious] = useState(fraction);
+  const [fills, setFills] = useState(0);
+  if (previous !== fraction) {
+    setPrevious(fraction);
+    if (justFilled(previous, fraction, isRestDay)) setFills((n) => n + 1);
+  }
   const shimmer = useSharedValue(0);
   const flash = useSharedValue(0);
 
   useEffect(() => {
-    const kind = energyMilestone(previous.current, fraction, isRestDay);
-    previous.current = fraction;
-    if (!kind) return;
+    if (fills === 0) return;
     const wait = reduceMotion ? 0 : tuning.energy.fillMs;
-    if (kind === 'full') {
-      flash.value = withDelay(
-        wait,
-        withSequence(
-          withTiming(cel.flashOpacity, { duration: cel.flashMs / 2 }),
-          withTiming(0, { duration: cel.flashMs / 2 }),
-        ),
-      );
-    }
+    flash.value = withDelay(
+      wait,
+      withSequence(
+        withTiming(cel.flashOpacity, { duration: cel.flashMs / 2 }),
+        withTiming(0, { duration: cel.flashMs / 2 }),
+      ),
+    );
     if (reduceMotion) return;
     shimmer.value = 0;
     shimmer.value = withDelay(wait, withTiming(1, { duration: cel.shimmerMs }));
-    setBurst((b) => ({ id: (b?.id ?? 0) + 1, kind }));
-  }, [fraction, isRestDay, reduceMotion, shimmer, flash, cel]);
-
-  // Weekly goal met: a soft glow around the track. Reduced motion holds it, then drops it, with no fade.
-  const gm = tuning.energy.goalMet;
-  useEffect(() => {
-    if (glowKey === 0) return;
-    if (reduceMotion) {
-      glow.value = gm.glowOpacity;
-      const timer = setTimeout(() => {
-        glow.value = 0;
-      }, gm.glowMs);
-      return () => clearTimeout(timer);
-    }
-    glow.value = withSequence(
-      withTiming(gm.glowOpacity, { duration: gm.glowMs * 0.3 }),
-      withTiming(0, { duration: gm.glowMs * 0.7 }),
-    );
-  }, [glowKey, reduceMotion, glow, gm]);
-  const glowStyle = useAnimatedStyle(() => ({ opacity: glow.value }));
+  }, [fills, reduceMotion, shimmer, flash, cel]);
 
   const shimmerStyle = useAnimatedStyle(() => ({
     opacity: shimmer.value > 0 && shimmer.value < 1 ? cel.shimmerOpacity : 0,
@@ -134,36 +110,32 @@ export function EnergyBar({ fill, isRestDay, label, glowKey = 0, activityIcons =
 
   return (
     <View
-      testID="energy-bar"
+      testID="activity-bar"
       accessible
       accessibilityRole="progressbar"
-      accessibilityLabel={energyLabel(
-        fraction,
+      accessibilityLabel={activityBarLabel(
+        logs,
+        target,
         isRestDay,
-        label && label !== 'Today' ? label : 'today',
+        label && label !== 'Today' ? `on ${label}` : 'today',
       )}
       accessibilityValue={isRestDay ? undefined : { min: 0, max: 100, now: percent }}
       style={styles.wrap}
     >
       {activityIcons ? null : (
         <View style={styles.labelRow} importantForAccessibility="no-hide-descendants">
-          <Text style={[styles.labelText, { color: colors.onSurface }]} testID="energy-label">
+          <Text style={[styles.labelText, { color: colors.onSurface }]} testID="activity-bar-label">
             {label ?? ''}
           </Text>
-          <Text style={[styles.labelText, { color: colors.onSurface }]} testID="energy-percent">
-            {percentText(fraction)}
+          <Text style={[styles.labelText, { color: colors.onSurface }]} testID="activity-bar-count">
+            {isRestDay ? 'Rest day' : `${Math.min(logs, target)}/${target}`}
           </Text>
         </View>
       )}
       <View>
-        <Animated.View
-          pointerEvents="none"
-          testID="energy-glow"
-          style={[styles.glow, { backgroundColor: colors.primary }, glowStyle]}
-        />
         <View onLayout={onTrackLayout} style={[styles.track, { backgroundColor: colors.track }]}>
           <Animated.View
-            testID="energy-fill"
+            testID="activity-bar-fill"
             style={[styles.fill, { backgroundColor: colors.primary }, fillStyle]}
           >
             <Animated.View
@@ -180,14 +152,14 @@ export function EnergyBar({ fill, isRestDay, label, glowKey = 0, activityIcons =
             />
           </Animated.View>
           {trackWidth > 0
-            ? tickPositions().map((at, i, all) => {
+            ? notchPositions().map((at, i, all) => {
                 const top = i === all.length - 1;
                 const passed = fraction >= at;
                 return (
                   <View
                     key={at}
                     pointerEvents="none"
-                    testID={`energy-tick-${Math.round(at * 100)}`}
+                    testID={`activity-bar-notch-${i + 1}`}
                     style={[
                       styles.tick,
                       {
@@ -203,7 +175,7 @@ export function EnergyBar({ fill, isRestDay, label, glowKey = 0, activityIcons =
               })
             : null}
           {activityIcons && trackWidth > 0
-            ? tickPositions().map((at, i) => {
+            ? notchPositions().map((at, i) => {
                 const [name, source] = ACTIVITY_ICONS[i] ?? ACTIVITY_ICONS[2];
                 const size = tuning.activityBar.iconSize;
                 return (
@@ -225,10 +197,10 @@ export function EnergyBar({ fill, isRestDay, label, glowKey = 0, activityIcons =
               })
             : null}
         </View>
-        {burst?.kind === 'full' && trackWidth > 0 ? (
+        {fills > 0 && !reduceMotion && trackWidth > 0 ? (
           <EndSparkles
-            key={burst.id}
-            seed={burst.id}
+            key={fills}
+            seed={fills}
             x={TRACK_PADDING + innerWidth}
             color={colors.primary}
             outline={colors.onSurface}
@@ -262,7 +234,7 @@ function EndSparkles(props: {
     };
   });
   return (
-    <View pointerEvents="none" style={styles.sparkles} testID="energy-sparkles">
+    <View pointerEvents="none" style={styles.sparkles} testID="activity-bar-sparkles">
       {sparks.map((sp, i) => (
         <Spark
           key={i}
@@ -319,7 +291,7 @@ function Spark(p: {
   );
 }
 
-// energy-bar component in design-system.md: 14 pt dark pill, 3 pt padding, 8 pt fill, ticks at the cutoffs.
+// energy-bar component in design-system.md: 14 pt dark pill, 3 pt padding, 8 pt fill, 3 notches.
 const TRACK_PADDING = bar.trackPadding;
 
 const styles = StyleSheet.create({
@@ -329,14 +301,6 @@ const styles = StyleSheet.create({
   track: { height: bar.trackHeight, padding: bar.trackPadding, borderRadius: 9999 },
   fill: { height: bar.fillHeight, borderRadius: 9999, overflow: 'hidden' },
   tick: { position: 'absolute', width: bar.tickWidth, borderRadius: 9999 },
-  glow: {
-    position: 'absolute',
-    top: -bar.glowSpread,
-    bottom: -bar.glowSpread,
-    left: -bar.glowSpread,
-    right: -bar.glowSpread,
-    borderRadius: 9999,
-  },
   shimmer: { position: 'absolute', top: 0, bottom: 0, left: 0, borderRadius: 9999 },
   flash: { ...StyleSheet.absoluteFill },
   sparkles: { ...StyleSheet.absoluteFill },

@@ -4,7 +4,7 @@ import { DEFAULT_HABITS } from '@/features/tracker/state';
 
 import { MAX_NAME_LENGTH } from './habitName';
 import { isAdded, PREMADE_GROUPS, PREMADE_HABITS } from './premadeHabits';
-import { resultLine } from './weeklyGoal';
+import { resultLine } from './schedule';
 
 // Mirror of the Notion "Premade habits" table (PRD-02). If this test fails after a change,
 // update the table and this file together.
@@ -12,23 +12,23 @@ const NOTION_TABLE: [string, string, string, boolean][] = [
   ['Sleep', 'Health', 'Every day', true],
   ['Diet', 'Health', 'Every day', true],
   ['Wellbeing', 'Health', 'Every day', true],
-  ['Exercise', 'Fitness', '3 times a week, any days', true],
+  ['Exercise', 'Fitness', 'Any days', true],
   ['Walking', 'Fitness', 'Every day', false],
   ['Stretching', 'Fitness', 'Every day', false],
-  ['Running', 'Fitness', '3 times a week, any days', false],
-  ['Biking', 'Fitness', '3 times a week, any days', false],
+  ['Running', 'Fitness', 'Any days', false],
+  ['Biking', 'Fitness', 'Any days', false],
   ['Meditation', 'Mind', 'Every day', false],
   ['Reading', 'Mind', 'Every day', false],
-  ['Study', 'Mind', '3 times a week, any days', false],
+  ['Study', 'Mind', 'Any days', false],
   ['Pet Time', 'Fun and life', 'Every day', false],
-  ['Family Time', 'Fun and life', '3 times a week, any days', false],
-  ['Outdoors', 'Fun and life', '3 times a week, any days', false],
-  ['Gaming', 'Fun and life', '3 times a week, any days', false],
+  ['Family Time', 'Fun and life', 'Any days', false],
+  ['Outdoors', 'Fun and life', 'Any days', false],
+  ['Gaming', 'Fun and life', 'Any days', false],
 ];
 
 describe('premade habits (T13)', () => {
   it('match the Notion table, row for row', () => {
-    expect(PREMADE_HABITS.map((p) => [p.name, p.group, resultLine(p.goal), p.starter])).toEqual(
+    expect(PREMADE_HABITS.map((p) => [p.name, p.group, resultLine(p.schedule), p.starter])).toEqual(
       NOTION_TABLE,
     );
   });
@@ -42,7 +42,7 @@ describe('premade habits (T13)', () => {
     const starters = PREMADE_HABITS.filter((p) => p.starter);
     expect(starters.map((p) => p.name).sort()).toEqual(DEFAULT_HABITS.map((h) => h.name).sort());
     for (const p of starters) {
-      expect(DEFAULT_HABITS.find((h) => h.name === p.name)?.goal).toEqual(p.goal);
+      expect(DEFAULT_HABITS.find((h) => h.name === p.name)?.schedule).toEqual(p.schedule);
     }
   });
 

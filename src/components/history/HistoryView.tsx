@@ -1,6 +1,7 @@
-// History (SPEC-00, T16; canvas "History options · Stage 3", boards 1 and 2): a month calendar of
-// past ranks, Sunday to Saturday, with the week panel under it. Used on the phone History screen
-// and in place of the old placeholder on wide. Tapping today or a past day opens the Day screen.
+// History (SPEC-00, T16): a month calendar, Sunday to Saturday. Check-in days (the Activity Bar
+// filled) are lemon with a smiling face, Rest days say Rest. Used on the phone History screen and
+// on wide. Tapping today or a past day opens the Day screen. The week panel went with weekly goals
+// (P2-08a); P2-18 (#89) rebuilds this screen with the streak band.
 
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -15,13 +16,10 @@ import {
   monthTitle,
   stepMonth,
   weekdayLetters,
-  weekRows,
-  weekTitle,
   type DayCell,
 } from '@/features/history/historyModel';
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import { monthOf, type DateKey } from '@/rules/dates';
-import { allHabits } from '@/rules/locking';
 import { MIN_TAP_SIZE, radius, space } from '@/theme';
 
 import { CritterFace } from './CritterFace';
@@ -34,16 +32,10 @@ export function HistoryView({ onOpenDay }: Props) {
   const styles = useStyles();
   const { state, today, oldestDay } = useTracker();
   const [month, setMonth] = useState(() => monthOf(today));
-  // The week panel shows the week of the last day opened, this week by default.
-  const [focusDay, setFocusDay] = useState(today);
 
   const weeks = monthGrid(month, state, today, oldestDay);
   const { canPrev, canNext } = monthLimits(month, state.log, today, oldestDay);
-
-  const open = (date: DateKey) => {
-    setFocusDay(date);
-    onOpenDay(date);
-  };
+  const open = onOpenDay;
 
   return (
     <View style={styles.wrap} testID="history-view">
@@ -83,8 +75,6 @@ export function HistoryView({ onOpenDay }: Props) {
           </View>
         ))}
       </View>
-
-      <WeekPanel date={focusDay} />
     </View>
   );
 }
@@ -115,19 +105,15 @@ function ArrowButton(props: {
 function DayCellView({ cell, onOpen }: { cell: DayCell; onOpen: (date: DateKey) => void }) {
   const styles = useStyles();
   const result = cell.result;
-  const isS = result?.outcome === 'rank' && result.rank === 'S';
+  const isS = result?.outcome === 'checkIn';
   const faint = cell.kind !== 'day';
 
   const content = (
     <>
       <Text style={[styles.dayNumber, isS && styles.onLemon]}>{cell.dayNumber}</Text>
       <View style={styles.faceSlot}>
-        {result?.outcome === 'rank' && result.rank ? (
-          <CritterFace
-            rank={result.rank}
-            width={size.faceWidth}
-            testID={`history-face-${cell.date}`}
-          />
+        {result?.outcome === 'checkIn' ? (
+          <CritterFace mood="big" width={size.faceWidth} testID={`history-face-${cell.date}`} />
         ) : result?.outcome === 'rest' ? (
           <Text style={styles.rest}>Rest</Text>
         ) : null}
@@ -165,50 +151,6 @@ function DayCellView({ cell, onOpen }: { cell: DayCell; onOpen: (date: DateKey) 
     >
       {content}
     </Pressable>
-  );
-}
-
-function WeekPanel({ date }: { date: DateKey }) {
-  const styles = useStyles();
-  const { colors: c } = useTheme();
-  const { state } = useTracker();
-  const rows = weekRows(allHabits(state), state.log, date);
-  return (
-    <View style={[styles.panel, styles.weekPanel]} testID="history-week">
-      <Text style={styles.weekTitle} accessibilityRole="header">
-        {weekTitle(date)}
-      </Text>
-      {rows.map((row) => {
-        const color = c[row.color];
-        return (
-          <View
-            key={row.habitId}
-            style={styles.weekRow}
-            accessible
-            accessibilityLabel={row.a11yLabel}
-            testID={`history-week-${row.habitId}`}
-          >
-            <Text style={styles.habitName} numberOfLines={1}>
-              {row.name}
-            </Text>
-            <View style={styles.dots}>
-              {Array.from({ length: row.goal }, (_, i) => (
-                <View
-                  key={i}
-                  style={[
-                    styles.dot,
-                    i < row.done
-                      ? { backgroundColor: color }
-                      : { borderWidth: size.dotStroke, borderColor: color },
-                  ]}
-                />
-              ))}
-            </View>
-            <Text style={styles.count}>{row.label}</Text>
-          </View>
-        );
-      })}
-    </View>
   );
 }
 
@@ -272,21 +214,4 @@ const makeStyles = (c: ThemeColors) =>
     onLemon: { color: c.onPrimary },
     faceSlot: { minHeight: size.faceWidth, alignItems: 'center', justifyContent: 'flex-end' },
     rest: { ...textStyle('caption', '700'), color: c.onSurfaceMuted },
-    weekPanel: { padding: space.lg, gap: space.md },
-    weekTitle: { ...textStyle('habitName'), color: c.onSurface },
-    weekRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: space.md,
-      minHeight: size.weekRowMinHeight,
-    },
-    habitName: { ...textStyle('body', '600'), color: c.onSurface, flex: 1 },
-    dots: { flexDirection: 'row', gap: size.dotGap, flexWrap: 'wrap' },
-    dot: { width: size.dot, height: size.dot, borderRadius: radius.pill },
-    count: {
-      ...textStyle('label'),
-      color: c.onSurfaceMuted,
-      minWidth: size.countMinWidth,
-      textAlign: 'right',
-    },
   });

@@ -1,19 +1,17 @@
 // Critter face, kept apart from the component so it can be tested without rendering.
-// critter.md (decided 2026-10-19): the mouth follows the live rank. C is a flat mouth,
-// B a closed smile, A and S a big open smile. At C (and before the first check-in) the
-// critter is asleep whenever the app opens; a tap or any score wakes it, and closing the
-// app while still at C puts it back to sleep. A Rest day is awake with a flat mouth.
-// These faces are also the day snapshots planned for History (PRD-05).
+// Wide layout's Prototype 1 critter. Ranks are gone (P2-08a), so the mouth follows the Activity
+// Bar: asleep before the first log (a tap or a log wakes it), a closed smile while logging, and
+// a big smile once the bar is full. A Rest day is awake with a flat mouth.
 
 import type { SkyLevel } from '@/rules/sky';
 
 export type CritterMood = 'asleep' | 'flat' | 'smile' | 'big';
 
-/** `woken` is true once the user taps the critter or scores a habit this visit. */
+/** `woken` is true once the user taps the critter or logs a habit this visit. */
 export function critterMood(level: SkyLevel, woken: boolean): CritterMood {
-  if (level === 'asleep' || level === 'C') return woken ? 'flat' : 'asleep';
+  if (level === 'asleep') return woken ? 'flat' : 'asleep';
   if (level === 'rest') return 'flat';
-  if (level === 'B') return 'smile';
+  if (level === 'awake') return 'smile';
   return 'big';
 }
 

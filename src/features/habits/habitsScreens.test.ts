@@ -41,7 +41,7 @@ describe('acceptance: Habits and Edit habit screens (T12)', () => {
     },
   );
 
-  it.each(['-habit-name`', '-goal-${kind}', '-preset-', '-day-', '-times-', '-goal-result'])(
+  it.each(['-habit-name`', '-goal-${kind}', '-preset-', '-day-', '-goal-result'])(
     'the shared form gives every control a test ID (%s)',
     (id) => {
       expect(form).toContain(id);

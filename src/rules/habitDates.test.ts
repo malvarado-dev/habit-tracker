@@ -1,16 +1,13 @@
-// T21: a day's score counts only habits active that day. A habit is active from the day it was
+// T21: a day's Activity Bar counts only habits active that day. A habit is active from the day it was
 // added up to, but not including, the day it was removed (SPEC-00, History).
 import { describe, expect, it } from '@jest/globals';
 
-import { weekRows } from '@/features/history/historyModel';
 import { loadSave } from '@/features/tracker/save';
 import { createInitialState, trackerReducer, type TrackerState } from '@/features/tracker/state';
 
 import { allHabits, historyDay, lockDays } from './locking';
-import { existsOn, getDailyResult, type Habit } from './scoring';
-import { tuning } from '@/config/tuning';
-
-const START_PET = { confidence: tuning.pet.startConfidence };
+import { possibleLogs } from './activityBar';
+import { existsOn, type Habit } from './habits';
 
 // Weeks run Sunday to Saturday. Three extra habits live for one week: Sun Oct 4 to Sat Oct 10.
 const ADDED = '2026-10-04';
@@ -32,8 +29,7 @@ function withExtraWeek(): TrackerState {
   return state;
 }
 
-const possible = (state: TrackerState, date: string) =>
-  getDailyResult(allHabits(state), state.log, date).possibleStars;
+const possible = (state: TrackerState, date: string) => possibleLogs(allHabits(state), date);
 
 describe('habit active dates (T21)', () => {
   it('a habit is active from the day it was added until the day it was removed', () => {
@@ -41,7 +37,7 @@ describe('habit active dates (T21)', () => {
       id: 'x',
       name: 'X',
       color: 'habit1',
-      goal: { kind: 'anyDays', timesPerWeek: 3 },
+      schedule: { kind: 'anyDays' },
       addedOn: ADDED,
       removedOn: REMOVED,
     };
@@ -60,39 +56,28 @@ describe('habit active dates (T21)', () => {
 
   it('adding 3 habits for one week changes only that week; earlier and later days use their own habits', () => {
     const state = withExtraWeek();
-    // Starters due every day: Sleep, Diet, Wellbeing (3 x 3 stars). The extras add 3 x 3 more.
-    expect(possible(state, BEFORE)).toBe(9);
-    expect(possible(state, ADDED)).toBe(18);
-    expect(possible(state, DURING)).toBe(18);
-    expect(possible(state, LAST_ACTIVE)).toBe(18);
-    expect(possible(state, REMOVED)).toBe(9);
-    expect(possible(state, AFTER)).toBe(9);
+    // Starters due every day: Sleep, Diet, Wellbeing (3 logs). The extras add 3 more.
+    expect(possible(state, BEFORE)).toBe(3);
+    expect(possible(state, ADDED)).toBe(6);
+    expect(possible(state, DURING)).toBe(6);
+    expect(possible(state, LAST_ACTIVE)).toBe(6);
+    expect(possible(state, REMOVED)).toBe(3);
+    expect(possible(state, AFTER)).toBe(3);
   });
 
-  it('scoring a removed habit on a day it was active counts for that day', () => {
+  it('logging a removed habit on a day it was active counts for that day', () => {
     let state = withExtraWeek();
     for (const id of ['sleep', 'diet', 'wellbeing', ...EXTRA]) {
-      state = trackerReducer(state, {
-        type: 'setCheckIn',
-        date: DURING,
-        habitId: id,
-        checkIn: 'NailedIt',
-      });
+      state = trackerReducer(state, { type: 'logHabit', date: DURING, habitId: id });
     }
-    expect(historyDay(state, DURING)).toMatchObject({ outcome: 'rank', rank: 'S' });
-    expect(historyDay(state, DURING).earnedStars).toBe(18);
+    expect(historyDay(state, DURING)).toEqual({ outcome: 'checkIn', logs: 6, target: 4 });
   });
 
   it('a day that locks after the removal still counts the removed habits', () => {
     let state = withExtraWeek();
-    state = trackerReducer(state, {
-      type: 'setCheckIn',
-      date: DURING,
-      habitId: 'sleep',
-      checkIn: 'NailedIt',
-    });
+    state = trackerReducer(state, { type: 'logHabit', date: DURING, habitId: 'sleep' });
     state = lockDays(state, '2026-10-19');
-    expect(state.locked[DURING]).toMatchObject({ earnedStars: 3, possibleStars: 18, rank: 'C' });
+    expect(state.locked[DURING]).toEqual({ outcome: 'none', logs: 1, target: 4 });
   });
 
   it('removing a habit the same day it was added leaves no trace', () => {
@@ -100,7 +85,7 @@ describe('habit active dates (T21)', () => {
     state = trackerReducer(state, { type: 'addHabit', id: 'read', name: 'Read', date: ADDED });
     state = trackerReducer(state, { type: 'removeHabit', habitId: 'read', date: ADDED });
     expect(state.removed).toEqual([]);
-    expect(possible(state, ADDED)).toBe(9);
+    expect(possible(state, ADDED)).toBe(3);
   });
 
   it('Undo brings the habit back active with no removed date', () => {
@@ -121,35 +106,15 @@ describe('habit active dates (T21)', () => {
     expect(undone.habits[4]).toEqual(habit);
     expect(undone.habits[4]!.removedOn).toBeUndefined();
   });
-
-  it('the History week panel shows a removed habit only for weeks it was active', () => {
-    const state = withExtraWeek();
-    const ids = (date: string) => weekRows(allHabits(state), state.log, date).map((r) => r.habitId);
-    expect(ids(DURING)).toEqual(expect.arrayContaining(EXTRA));
-    expect(ids(AFTER)).not.toEqual(expect.arrayContaining(['read']));
-    expect(ids(BEFORE)).not.toContain('read');
-  });
 });
 
-describe('save version 7 (T21)', () => {
-  it('upgrades v6 by adding an empty removed list and copying the rest exactly', () => {
-    const v6 = { ...createInitialState(), version: 6, removed: undefined };
-    delete (v6 as Record<string, unknown>).removed;
-    v6.log = { [DURING]: { sleep: 'NailedIt' } };
-    const result = loadSave(JSON.stringify(v6));
-    expect(result).toEqual({
-      kind: 'loaded',
-      state: { ...v6, version: 8, removed: [], pet: START_PET },
-      upgradedFrom: 6,
-    });
-  });
-
-  it('loads a v7 save with removed habits as is', () => {
+describe('saving removed habits (T21)', () => {
+  it('loads a current save with removed habits as is', () => {
     const state = withExtraWeek();
     expect(loadSave(JSON.stringify(state))).toEqual({ kind: 'loaded', state, upgradedFrom: null });
   });
 
-  it('a v7 save missing its removed list is kept as unreadable, never dropped', () => {
+  it('a current save missing its removed list is kept as unreadable, never dropped', () => {
     const broken = { ...createInitialState() } as Record<string, unknown>;
     delete broken.removed;
     const raw = JSON.stringify(broken);

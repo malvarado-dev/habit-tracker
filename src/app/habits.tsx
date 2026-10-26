@@ -15,7 +15,7 @@ import { withAlpha } from '@/design/theme/theme';
 import { useTheme } from '@/design/theme/ThemeProvider';
 import { tints, type ThemeColors } from '@/design/tokens';
 import { setRemoved, useRemovedHabit } from '@/features/habits/undoRemove';
-import { listLine } from '@/features/habits/weeklyGoal';
+import { listLine } from '@/features/habits/schedule';
 import { MAX_HABITS } from '@/features/tracker/state';
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import { MIN_TAP_SIZE, radius, space } from '@/theme';
@@ -74,7 +74,7 @@ export default function HabitsScreen() {
         <View style={styles.list}>
           {state.habits.map((habit) => {
             const color = c[habit.color];
-            const line = listLine(habit.goal);
+            const line = listLine(habit.schedule);
             const name = habit.name || 'Unnamed habit';
             return (
               <Pressable

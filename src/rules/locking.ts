@@ -1,21 +1,23 @@
 // Locking days (SPEC-00, T16). Today and the 2 days before can be changed. A day older than that
-// locks, and its result is saved for good: rank, Rest day, or no check-in, plus stars. Editing,
-// renaming, or removing a habit later never changes a locked day. Plain TypeScript, no screens.
+// locks, and its result is saved for good: Check-in (the Activity Bar filled), Rest day, or no
+// check-in, plus its logs and target. Editing, renaming, or removing a habit later never changes a
+// locked day. Plain TypeScript, no screens.
 
 import { calendar } from '@/config/calendar';
+import { getActivityBar } from './activityBar';
 import { addDays, type DateKey } from './dates';
-import { getRank, type Rank } from './rank';
-import { getDailyResult, type CheckInLog, type Habit } from './scoring';
+import type { Habit, LogCounts } from './habits';
 
-export type DayOutcome = 'rank' | 'rest' | 'none';
+/** checkIn: the Activity Bar filled. rest: nothing to log. none: logged too little, or nothing. */
+export type DayOutcome = 'checkIn' | 'rest' | 'none';
 
 /** A day's result, frozen when it locks. */
 export interface LockedDay {
   outcome: DayOutcome;
-  /** Set only when outcome is 'rank'. */
-  rank?: Rank;
-  earnedStars: number;
-  possibleStars: number;
+  /** Counted logs that day. */
+  logs: number;
+  /** Logs that filled the bar. 0 on a Rest day. */
+  target: number;
 }
 
 /** The newest day that is locked when it's `today`. Every day up to and including it is locked. */
@@ -37,26 +39,32 @@ export function isLocked(date: DateKey, lockedThrough: DateKey | null): boolean 
 }
 
 /** A day's result from the live rules. Used for open days and when a day locks. */
-export function dayResult(habits: Habit[], log: CheckInLog, date: DateKey): LockedDay {
-  const result = getDailyResult(habits, log, date);
-  const base = { earnedStars: result.earnedStars, possibleStars: result.possibleStars };
-  if (!result.hasCheckIn) return { outcome: 'none', ...base };
-  if (result.score === null) return { outcome: 'rest', ...base };
-  return { outcome: 'rank', rank: getRank(result.score), ...base };
+export function dayResult(
+  habits: Habit[],
+  log: LogCounts,
+  date: DateKey,
+  savedTarget?: number,
+): LockedDay {
+  const bar = getActivityBar(habits, log, date, savedTarget);
+  const base = { logs: bar.logs, target: bar.target };
+  if (bar.isRestDay) return { outcome: 'rest', ...base };
+  return { outcome: bar.isFull ? 'checkIn' : 'none', ...base };
 }
 
 export interface LockState {
   habits: Habit[];
-  /** Removed habits, kept so the days they were active still score them (T21). */
+  /** Removed habits, kept so the days they were active still count them (T21). */
   removed: Habit[];
-  log: CheckInLog;
+  log: LogCounts;
+  /** Each day's Activity Bar target, saved on the first open of that day. */
+  targets: Record<DateKey, number>;
   locked: Record<DateKey, LockedDay>;
   lockedThrough: DateKey | null;
 }
 
 /**
- * Locks every day older than the open window. Each day with check-ins gets its result saved;
- * a day with none stays blank. Runs oldest first, and never touches a day that's already locked.
+ * Locks every day older than the open window. Each day with logs gets its result saved, and so
+ * does a day opened as a Rest day (a saved target of 0). Any other day stays blank. Runs oldest first, and never touches a day that's already locked.
  * Returns the same object when nothing changes.
  */
 export function lockDays<S extends LockState>(
@@ -67,15 +75,16 @@ export function lockDays<S extends LockState>(
   const through = lastLockedDay(today, openDays);
   if (state.lockedThrough !== null && state.lockedThrough >= through) return state;
 
-  const newlyLocked = Object.keys(state.log)
+  const newlyLocked = [...new Set([...Object.keys(state.log), ...Object.keys(state.targets)])]
     .filter((date) => date <= through && !isLocked(date, state.lockedThrough))
     .sort();
 
   const locked = { ...state.locked };
   for (const date of newlyLocked) {
     if (locked[date]) continue;
-    const result = dayResult(allHabits(state), state.log, date);
-    if (result.outcome !== 'none') locked[date] = result;
+    const hasLogs = Object.values(state.log[date] ?? {}).some((n) => n > 0);
+    if (!hasLogs && state.targets[date] !== 0) continue;
+    locked[date] = dayResult(allHabits(state), state.log, date, state.targets[date]);
   }
   return { ...state, locked, lockedThrough: through };
 }
@@ -83,7 +92,7 @@ export function lockDays<S extends LockState>(
 /** A day's result for History: the saved one if locked, else live from today's rules. */
 export function historyDay(state: LockState, date: DateKey): LockedDay {
   if (isLocked(date, state.lockedThrough)) {
-    return state.locked[date] ?? { outcome: 'none', earnedStars: 0, possibleStars: 0 };
+    return state.locked[date] ?? { outcome: 'none', logs: 0, target: 0 };
   }
-  return dayResult(allHabits(state), state.log, date);
+  return dayResult(allHabits(state), state.log, date, state.targets[date]);
 }

@@ -1,16 +1,13 @@
 import { describe, expect, it } from '@jest/globals';
 import { critterLabel, critterMood, randomGap } from './critterMood';
 
-describe('acceptance: critter faces by rank (T15, critter.md)', () => {
+describe('critter faces follow the Activity Bar (P2-08a)', () => {
   it.each([
     ['asleep', false, 'asleep'],
     ['asleep', true, 'flat'],
-    ['C', false, 'asleep'],
-    ['C', true, 'flat'],
     ['rest', false, 'flat'],
-    ['B', false, 'smile'],
-    ['A', false, 'big'],
-    ['S', false, 'big'],
+    ['awake', false, 'smile'],
+    ['full', false, 'big'],
   ] as const)('%s sky, woken %s, gives a %s face', (level, woken, mood) => {
     expect(critterMood(level, woken)).toBe(mood);
   });

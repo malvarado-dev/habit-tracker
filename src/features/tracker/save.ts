@@ -4,16 +4,26 @@
 // A save that can't be read or upgraded is kept in a backup slot. A save from a newer app
 // is left alone. No screens here, so every path is unit tested.
 
-import type { CheckInLog, Habit } from '@/rules/scoring';
 import { tuning } from '@/config/tuning';
+import type { DateKey } from '@/rules/dates';
+import type { Habit, LogCounts, Weekday } from '@/rules/habits';
+import { dayResult, allHabits, type LockedDay } from '@/rules/locking';
 import type { TrackerState } from './state';
 
-export const CURRENT_VERSION = 8;
+export const CURRENT_VERSION = 9;
+
+/** Before v9 (Prototype 1 and P2-07): a check-in was a star level per habit per day. */
+type OldCheckIn = 'NotToday' | 'Started' | 'OnTrack' | 'NailedIt';
+type CheckInLog = Record<string, Record<string, OldCheckIn>>;
+/** Before v9, habits had a weekly goal instead of a schedule. */
+type OldGoal =
+  { kind: 'specificDays'; days: Weekday[] } | { kind: 'anyDays'; timesPerWeek: number };
+type OldHabit = Omit<Habit, 'schedule' | 'timesPerDay'> & { goal: OldGoal };
 
 /** v3 (before T16): habits, check-ins, and the test-tools day offset. */
 interface SaveV3 {
   version: 3;
-  habits: Habit[];
+  habits: OldHabit[];
   log: CheckInLog;
   dayOffset: number;
 }
@@ -44,7 +54,7 @@ function isV4(v: Record<string, unknown>): v is SaveV4 & Record<string, unknown>
   );
 }
 
-function isV5Shape(v: Record<string, unknown>, version: 5 | 6 | 7 | 8): boolean {
+function isV5Shape(v: Record<string, unknown>, version: 5 | 6 | 7 | 8 | 9): boolean {
   return (
     v.version === version &&
     Array.isArray(v.habits) &&
@@ -57,11 +67,38 @@ function isV5Shape(v: Record<string, unknown>, version: 5 | 6 | 7 | 8): boolean 
 const isV5 = (v: Record<string, unknown>) => isV5Shape(v, 5);
 const isV6 = (v: Record<string, unknown>) => isV5Shape(v, 6);
 const isV7 = (v: Record<string, unknown>) => isV5Shape(v, 7) && Array.isArray(v.removed);
-const isV8 = (v: Record<string, unknown>): v is TrackerState & Record<string, unknown> =>
+const isV8 = (v: Record<string, unknown>) =>
   isV5Shape(v, 8) &&
   Array.isArray(v.removed) &&
   isObject(v.pet) &&
   typeof v.pet.confidence === 'number';
+const isV9 = (v: Record<string, unknown>): v is TrackerState & Record<string, unknown> =>
+  isV5Shape(v, 9) &&
+  Array.isArray(v.removed) &&
+  isObject(v.pet) &&
+  typeof v.pet.confidence === 'number' &&
+  isObject(v.targets);
+
+/** v9: a weekly goal becomes a schedule (when it's due), and every habit starts at 1 time a day. */
+function upgradeHabit(old: OldHabit): Habit {
+  const { goal, ...rest } = old;
+  const schedule: Habit['schedule'] =
+    goal?.kind === 'specificDays' ? { kind: 'specificDays', days: goal.days } : { kind: 'anyDays' };
+  return { ...rest, schedule };
+}
+
+/** v9: any star level becomes 1 log. Skip is dropped. */
+function upgradeLog(old: CheckInLog): LogCounts {
+  const log: LogCounts = {};
+  for (const [date, day] of Object.entries(old)) {
+    const counts: Record<string, number> = {};
+    for (const [id, checkIn] of Object.entries(day ?? {})) {
+      if (checkIn === 'Started' || checkIn === 'OnTrack' || checkIn === 'NailedIt') counts[id] = 1;
+    }
+    if (Object.keys(counts).length > 0) log[date] = counts;
+  }
+  return log;
+}
 
 /** One step per version: takes a valid save of that version, returns the next version. */
 const UPGRADES: Record<number, (save: Record<string, unknown>) => Record<string, unknown>> = {
@@ -109,6 +146,23 @@ const UPGRADES: Record<number, (save: Record<string, unknown>) => Record<string,
     if (!isV7(save)) throw new Error('Not a valid v7 save');
     return { ...save, version: 8, pet: { confidence: tuning.pet.startConfidence } };
   },
+  // v8 to v9 (P2-08a): stars, ranks and weekly goals are gone. Each star level becomes 1 log and
+  // Skip is dropped. Weekly goals become schedules. Locked days are worked out again from their
+  // converted logs with the Activity Bar rules (decided 2026-10-25), since a rank can't say
+  // whether the new bar would have filled. Locked days stay locked.
+  8: (save) => {
+    if (!isV8(save)) throw new Error('Not a valid v8 save');
+    const habits = (save.habits as OldHabit[]).map(upgradeHabit);
+    const removed = (save.removed as OldHabit[]).map(upgradeHabit);
+    const log = upgradeLog(save.log as CheckInLog);
+    const all = allHabits({ habits, removed });
+    const locked: Record<DateKey, LockedDay> = {};
+    for (const date of Object.keys(save.locked as Record<string, unknown>)) {
+      if (!log[date]) continue;
+      locked[date] = dayResult(all, log, date);
+    }
+    return { ...save, version: 9, habits, removed, log, targets: {}, locked };
+  },
 };
 
 export type LoadResult =
@@ -146,7 +200,7 @@ export function loadSave(raw: string | null): LoadResult {
     return { kind: 'unreadable', raw };
   }
 
-  if (!isV8(save)) return { kind: 'unreadable', raw };
+  if (!isV9(save)) return { kind: 'unreadable', raw };
   return { kind: 'loaded', state: save, upgradedFrom: from === CURRENT_VERSION ? null : from };
 }
 

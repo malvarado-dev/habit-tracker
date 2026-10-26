@@ -1,27 +1,24 @@
-// How bright the sky is. It mirrors the live rank without ever showing a letter (SPEC-00).
+// How bright the sky is on the wide layout's Prototype 1 scene. Ranks are gone (P2-08a), so it
+// follows the Activity Bar instead: asleep before the first log, awake once logging starts, full
+// once the bar fills, and calm on a Rest day.
 
+import type { ActivityBarResult } from './activityBar';
 import type { LockedDay } from './locking';
-import { getRank, type Rank } from './rank';
-import type { DailyResult } from './scoring';
 import { tuning } from '@/config/tuning';
 
-/** 'asleep' before the first check-in of the day; 'rest' on a Rest day; otherwise the live rank. */
-export type SkyLevel = 'asleep' | 'rest' | Rank;
+export type SkyLevel = 'asleep' | 'rest' | 'awake' | 'full';
 
-export function getSkyLevel(result: DailyResult): SkyLevel {
-  if (result.isRestDay) return 'rest';
-  if (!result.hasCheckIn || result.score === null) return 'asleep';
-  return getRank(result.score);
+export function getSkyLevel(bar: ActivityBarResult): SkyLevel {
+  if (bar.isRestDay) return 'rest';
+  if (bar.isFull) return 'full';
+  return bar.logs > 0 ? 'awake' : 'asleep';
 }
 
-/**
- * The Day screen's sky and critter (T23), from the same result History shows: the saved one on a
- * locked day, the live one on an open day. No check-in is a quiet sky with the critter asleep.
- */
+/** The Day screen's sky, from the same result History shows (the saved one once locked). */
 export function sceneLevel(day: LockedDay): SkyLevel {
   if (day.outcome === 'rest') return 'rest';
-  if (day.outcome === 'rank' && day.rank) return day.rank;
-  return 'asleep';
+  if (day.outcome === 'checkIn') return 'full';
+  return day.logs > 0 ? 'awake' : 'asleep';
 }
 
 /** Which sky the Background shows (background.md). Time of day only, never the theme. */

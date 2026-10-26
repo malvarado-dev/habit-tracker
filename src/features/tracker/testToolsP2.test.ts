@@ -43,12 +43,12 @@ const confidence = (value: number): AppAction => ({
 });
 
 describe('Fill today (Test only)', () => {
-  it('checks in every habit on the pretend day and writes only the Test save', () => {
+  it('finishes every habit on the pretend day and writes only the Test save', () => {
     const start = inTest();
     const { app, keys } = run(start, { type: 'nextDay', realDate: REAL }, fill);
     const day = app.test.state.log['2026-10-20'] ?? {};
     expect(Object.keys(day).sort()).toEqual(app.test.state.habits.map((h) => h.id).sort());
-    expect(Object.values(day).every((c) => c === 'NailedIt')).toBe(true);
+    expect(Object.values(day).every((c) => c === 1)).toBe(true);
     expect(app.real).toBe(start.real);
     expect(keys).not.toContain(REAL_KEY);
     expect(keys).toContain(TEST_KEY);
@@ -99,53 +99,50 @@ describe('Pet confidence (Test only)', () => {
   });
 });
 
-describe('Prototype 1 saves carry into Prototype 2 (v7 to v8)', () => {
-  it('keeps habits, check-ins and locked days exactly, and adds the pet', () => {
-    const { pet: _pet, ...v7 } = {
-      ...createInitialState(),
+describe('Prototype 1 saves carry into Prototype 2', () => {
+  it('a v7 save gains the pet, and its stars become logs', () => {
+    const { pet: _pet, targets: _targets, habits, ...rest } = createInitialState();
+    const v7 = {
+      ...rest,
       version: 7 as const,
-      log: { [REAL]: { sleep: 'NailedIt' as const } },
+      // Habits as v7 saved them: a weekly goal in place of the schedule.
+      habits: habits.map(({ schedule, ...h }) => ({
+        ...h,
+        goal: schedule.kind === 'anyDays' ? { kind: 'anyDays', timesPerWeek: 3 } : schedule,
+      })),
+      log: { [REAL]: { sleep: 'NailedIt' } },
       lockedThrough: '2026-10-17',
     };
     const result = loadSave(JSON.stringify(v7));
     if (result.kind !== 'loaded') throw new Error(result.kind);
     expect(result.upgradedFrom).toBe(7);
     expect(result.state).toEqual({
-      ...v7,
-      version: 8,
-      pet: { confidence: tuning.pet.startConfidence },
+      ...createInitialState(),
+      log: { [REAL]: { sleep: 1 } },
+      lockedThrough: '2026-10-17',
     });
   });
 });
 
-describe('Editing a habit frequency still works on a Prototype 2 save', () => {
-  it('changes a habit to 4 times a week in Real', () => {
-    const start = createAppState();
-    const app = appReducer(start, {
+describe('Editing a habit schedule and times per day', () => {
+  it('changes a habit to Any days in Real', () => {
+    const app = appReducer(createAppState(), {
       type: 'tracker',
-      action: { type: 'setGoal', habitId: 'exercise', goal: { kind: 'anyDays', timesPerWeek: 4 } },
+      action: { type: 'setSchedule', habitId: 'sleep', schedule: { kind: 'anyDays' } },
       realDate: REAL,
     });
-    expect(app.real.state.habits.find((h) => h.id === 'exercise')?.goal).toEqual({
+    expect(app.real.state.habits.find((h) => h.id === 'sleep')?.schedule).toEqual({
       kind: 'anyDays',
-      timesPerWeek: 4,
     });
   });
 
-  it('changes a habit to specific days', () => {
+  it('changes times per day in Real, as Test tools do', () => {
     const app = appReducer(createAppState(), {
       type: 'tracker',
-      action: {
-        type: 'setGoal',
-        habitId: 'sleep',
-        goal: { kind: 'specificDays', days: [0, 2, 4] },
-      },
+      action: { type: 'setTimesPerDay', habitId: 'diet', times: 3 },
       realDate: REAL,
     });
-    expect(app.real.state.habits.find((h) => h.id === 'sleep')?.goal).toEqual({
-      kind: 'specificDays',
-      days: [0, 2, 4],
-    });
+    expect(app.real.state.habits.find((h) => h.id === 'diet')?.timesPerDay).toBe(3);
   });
 });
 
