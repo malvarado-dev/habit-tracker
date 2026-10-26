@@ -12,6 +12,14 @@ import { textStyle } from '@/design/fonts';
 import { useTheme } from '@/design/theme/ThemeProvider';
 import { todayLayout, type ThemeColors } from '@/design/tokens';
 import { MIN_TAP_SIZE, space } from '@/theme';
+import type { Metadata } from 'expo-router/server';
+
+import { pageTitle } from '@/components/pageTitle';
+
+/** The page title on the web build (#113). */
+export function generateMetadata(): Metadata {
+  return { title: pageTitle('test-tools') };
+}
 
 export default function TestToolsScreen() {
   const styles = useStyles();

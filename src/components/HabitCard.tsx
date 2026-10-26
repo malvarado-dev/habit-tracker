@@ -329,6 +329,8 @@ function LetterIcon({ id, name, color }: { id: string; name: string; color: stri
     <View
       style={[styles.icon, { backgroundColor: withAlpha(color, tints.icon) }]}
       testID={`habit-icon-${id}`}
+      // Decoration: the card's spoken name already says the habit (#113).
+      aria-hidden
     >
       <Text style={[styles.iconLetter, { color }]}>{iconLetter(name)}</Text>
     </View>

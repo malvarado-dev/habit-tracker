@@ -93,7 +93,7 @@ export function HabitForm(props: {
               style={[styles.segmentItem, on && styles.selected]}
               testID={`${p}-goal-${kind}`}
               accessibilityRole="radio"
-              accessibilityState={{ selected: on }}
+              aria-checked={on}
               accessibilityLabel={label}
             >
               <Text style={[styles.chipText, on && styles.selectedText]}>{label}</Text>
@@ -114,7 +114,7 @@ export function HabitForm(props: {
                   style={[styles.pill, on && styles.selected]}
                   testID={`${p}-preset-${pr.key}`}
                   accessibilityRole="radio"
-                  accessibilityState={{ selected: on }}
+                  aria-checked={on}
                   accessibilityLabel={pr.label}
                 >
                   <Text style={[styles.chipText, on && styles.selectedText]}>{pr.label}</Text>

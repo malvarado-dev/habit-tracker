@@ -17,6 +17,14 @@ import { getActivityBar } from '@/rules/activityBar';
 import { hasHabitLog, petPlace } from '@/rules/petPlace';
 import { allHabits, barLog } from '@/rules/locking';
 import { getSkyLevel, getSkyTime } from '@/rules/sky';
+import type { Metadata } from 'expo-router/server';
+
+import { pageTitle } from '@/components/pageTitle';
+
+/** The page title on the web build (#113). */
+export function generateMetadata(): Metadata {
+  return { title: pageTitle('index') };
+}
 
 export default function HomeScreen() {
   const { state, today } = useTracker();
