@@ -26,7 +26,7 @@ import { tuning } from '@/config/tuning';
 import { BAD_HABIT_DESIGNS, BAD_HABIT_DESIGN_LABELS } from '@/features/settings/settings';
 import { useSettings } from '@/features/settings/SettingsProvider';
 import { useTracker } from '@/features/tracker/TrackerProvider';
-import { requestPetBounce } from '@/scene/petBounce';
+import { requestPetReaction } from '@/scene/petReaction';
 import { MAX_CONFIDENCE, MIN_CONFIDENCE } from '@/features/tracker/state';
 import { timesPerDay } from '@/rules/habits';
 import type { Mode } from '@/features/tracker/modes';
@@ -190,10 +190,10 @@ export function TestTools() {
         <Text style={styles.heading} accessibilityRole="header">
           Pet motion
         </Text>
-        <Text style={styles.help}>Goes back to Today and plays one bounce, for review.</Text>
+        <Text style={styles.help}>Goes back to Today and plays the pet reaction, for review.</Text>
         <Pressable
           onPress={() => {
-            requestPetBounce();
+            requestPetReaction();
             if (router.canGoBack()) router.back();
             else router.replace('/');
           }}

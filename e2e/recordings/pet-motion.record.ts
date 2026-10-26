@@ -1,5 +1,5 @@
 // Review recordings for P2-11 (#82). Not a test: `npm run e2e:record` saves phone-size videos of
-// the pet's idle, a bounce, and reduced motion to test-results/. Attach them to the PR for review.
+// the pet's idle, a reaction, and reduced motion to test-results/. Attach them to the PR for review.
 import { toDateKey } from '../../src/rules/dates';
 import { tuning } from '../../src/config/tuning';
 import { dailyHabit, FIXED_NOW, openWithSave, saveWith, test } from '../web/fixtures';
@@ -38,16 +38,16 @@ async function idleThenBounce(page: import('@playwright/test').Page) {
   await tools.waitUntilReady();
   await tools.bouncePet.click();
   await new HomePage(page).waitUntilReady();
-  await page.waitForTimeout(tuning.pet.motion.bounce.testDelayMs + 3000);
+  await page.waitForTimeout(tuning.pet.motion.reaction.startDelayMs + 4000);
 }
 
-test('idle, then a bounce', async ({ page }) => {
+test('idle (no bounce), then a reaction', async ({ page }) => {
   await idleThenBounce(page);
 });
 
 test.describe('reduced motion', () => {
   test.use({ contextOptions: { reducedMotion: 'reduce' } });
-  test('idle, then a bounce request (no bounce expected)', async ({ page }) => {
+  test('idle, then a reaction request (none expected)', async ({ page }) => {
     await idleThenBounce(page);
   });
 });

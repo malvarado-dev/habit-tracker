@@ -1,8 +1,9 @@
 // P2-11 end-to-end tests: the pet's idle motion (#82). The art fills its spot, and Test tools
-// can bounce it. Blink and breath timing are unit tested (petMotion.test.ts) and judged in
+// can play its reaction (P2-11b, #106). Blink and breath timing are unit tested (petMotion.test.ts) and judged in
 // recordings, not waited on here (TESTING.md, rule 4).
 import { toDateKey } from '../../src/rules/dates';
 import { tuning } from '../../src/config/tuning';
+import { reactionBeats } from '../../src/scene/petMotion';
 import { dailyHabit, expect, FIXED_NOW, openWithSave, saveWith, test } from './fixtures';
 import { HomePage } from './pages/HomePage';
 import { TestToolsPage } from './pages/TestToolsPage';
@@ -10,8 +11,8 @@ import { TestToolsPage } from './pages/TestToolsPage';
 const m = tuning.pet.motion;
 /** Longest wait before a blink, plus room for the page to settle. */
 const BLINK_WAIT = m.blink.gapMaxMs * m.personality.idleTiming + 3000;
-/** Long enough for the delay and the whole hop. */
-const BOUNCE_WAIT = m.bounce.testDelayMs + m.bounce.anticipationMs + m.bounce.riseMs + 2000;
+/** Long enough for the delay and the whole reaction. */
+const BOUNCE_WAIT = m.reaction.startDelayMs + reactionBeats().settle + 2000;
 
 /** A save with one log today, so the pet is awake (it sleeps until the first log, P2-12). */
 function awakeSave() {
@@ -50,7 +51,7 @@ test.describe('Pet idle motion (P2-11)', () => {
     expect(Math.abs(art!.height - body!.height)).toBeLessThan(2);
   });
 
-  test('Bounce the pet in Test tools makes the pet hop', async ({ page }) => {
+  test('Bounce the pet in Test tools plays the reaction hop', async ({ page }) => {
     const home = await bounceFromTestTools(page);
     // The hop is short, so sample often.
     await expect
