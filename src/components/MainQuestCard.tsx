@@ -6,6 +6,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { textStyle } from '@/design/fonts';
 import { useTheme } from '@/design/theme/ThemeProvider';
+import { cardEdge } from '@/design/tokens';
 import { space } from '@/theme';
 
 import { questProgressText, type QuestUnit } from './mainQuestText';
@@ -13,7 +14,7 @@ import { questProgressText, type QuestUnit } from './mainQuestText';
 type Props = { name: string; done: number; total: number; unit: QuestUnit };
 
 export function MainQuestCard({ name, done, total, unit }: Props) {
-  const { colors: c } = useTheme();
+  const { colors: c, scheme } = useTheme();
   const share = total > 0 ? Math.min(1, Math.max(0, done / total)) : 0;
   const progress = questProgressText(done, total, unit);
   return (
@@ -21,7 +22,7 @@ export function MainQuestCard({ name, done, total, unit }: Props) {
       testID="main-quest-card"
       accessible
       accessibilityLabel={`${name}, ${progress}`}
-      style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}
+      style={[styles.card, { backgroundColor: c.surface }, cardEdge(scheme, c.border)]}
     >
       <View style={styles.words}>
         <Text
@@ -53,7 +54,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: space.lg,
     borderRadius: 24,
-    borderWidth: StyleSheet.hairlineWidth,
     paddingVertical: space.md,
     paddingHorizontal: space.xl,
   },

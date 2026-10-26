@@ -1,3 +1,5 @@
+import { StyleSheet } from 'react-native';
+
 // Design tokens. Generated from docs/design/*.md, which are the source of truth (Technical Design).
 // Figma variables mirror these files. Change a token in the .md file, Figma, and here in the same step.
 // tokens.test.ts fails if this file and the .md files drift apart.
@@ -152,6 +154,18 @@ export const tints = { icon: 0.13, ringTrack: 0.12 } as const;
 export const shadows = {
   card: '0px 4px 14px rgba(120, 100, 60, 0.08), 0px 1px 2px rgba(120, 100, 60, 0.06)',
 } as const;
+
+/**
+ * The edge every pill card uses (Habit Card, Main Quest card, History panel). Light: a hairline
+ * and a soft warm shadow. Dark: a solid 1 pt border-dark edge and no shadow; a hairline renders
+ * faint and uneven on Android, and a shadow reads as a muddy halo on the dark sheet. One shared
+ * style so the dark edge can't regress on a single card again.
+ */
+export function cardEdge(scheme: 'light' | 'dark', border: string) {
+  return scheme === 'dark'
+    ? { borderWidth: 1, borderColor: border }
+    : { borderWidth: StyleSheet.hairlineWidth, borderColor: border, boxShadow: shadows.card };
+}
 
 /** Today phone layout (SPEC-00): the habit sheet starts this far down the screen. */
 export const todayLayout = {

@@ -35,7 +35,7 @@ import {
   badHabitColors as bad,
   habitCardSizes as size,
   history,
-  shadows,
+  cardEdge,
   tints,
 } from '@/design/tokens';
 import type { ThemeColors } from '@/design/tokens';
@@ -416,10 +416,7 @@ const makeStyles = (c: ThemeColors, scheme: 'light' | 'dark') =>
     card: {
       minHeight: MIN_TAP_SIZE + space.lg,
       borderRadius: radius.pill,
-      // A hairline reads on the light sheet; dark needs a full point to hold the edge.
-      borderWidth: scheme === 'dark' ? 1 : StyleSheet.hairlineWidth,
-      borderColor: c.border,
-      boxShadow: shadows.card,
+      ...cardEdge(scheme, c.border),
       paddingVertical: space.sm,
       paddingLeft: space.sm,
       paddingRight: space.lg + 2,

@@ -252,7 +252,7 @@ Urbanist: geometric and friendly, with wide, airy letters. Thin weight (300) onl
 4-point spacing. Pill cards are 12 px apart with 12 px padding. The habit sheet has 16 px padding. Top to bottom on the sheet: Activity Bar, Main Quest card, Today section, Anytime section, Bad habits tray (only if the user added one), History link.
 
 ## Elevation & Depth
-Depth comes from light, not dark: cards use a soft, warm, low shadow (0 4px 14px at 8% plus 0 1px 2px at 6%) and a hairline border. The habit sheet is solid; a see-through sheet muddies the cards. No heavy dark shadows.
+Depth comes from light, not dark: in Light theme, cards use a soft, warm, low shadow (0 4px 14px at 8% plus 0 1px 2px at 6%) and a hairline border. In Dark theme, cards use a solid 1 px border-dark edge and no shadow. Every pill card shares this one edge style. The habit sheet is solid; a see-through sheet muddies the cards. No heavy dark shadows.
 
 ## Shapes
 Fully rounded everything: pill cards, chips, buttons, the Activity Bar, the popover stepper, and the Undo bar. The habit sheet uses 28 px top corners.
