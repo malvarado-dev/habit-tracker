@@ -15,6 +15,7 @@ import { Critter } from '@/components/Critter';
 import { RoomScene } from '@/components/RoomScene';
 import { roomGeometry } from '@/scene/roomGeometry';
 import type { PetPlace } from '@/rules/petPlace';
+import { HistoryEditScope } from '@/components/history/HistoryEditScope';
 import { HistoryView } from '@/components/history/HistoryView';
 import { layoutMode, wideSizes } from '@/components/todayLayoutMode';
 import { useTheme } from '@/design/theme/ThemeProvider';
@@ -66,13 +67,15 @@ export function SceneLayout({ testID, critter, pet, corner, sheet, overlay }: Pr
                 <Critter width={critterWidth} {...critter} />
               </View>
             </View>
-            <ScrollView
-              style={styles.history}
-              contentContainerStyle={styles.historyContent}
-              testID="wide-history"
-            >
-              <HistoryView />
-            </ScrollView>
+            <HistoryEditScope>
+              <ScrollView
+                style={styles.history}
+                contentContainerStyle={styles.historyContent}
+                testID="wide-history"
+              >
+                <HistoryView />
+              </ScrollView>
+            </HistoryEditScope>
           </View>
         </View>
         {overlay}

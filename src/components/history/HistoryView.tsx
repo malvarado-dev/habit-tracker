@@ -1,10 +1,11 @@
 // History (P2-18a, #89; boards "History, today selected" and "History, locked day selected").
 // A month calendar, Sunday to Saturday, with streak days joined in a lemon band that wraps across
 // weeks, the current and best streak, and under it the selected day: its title, whether it can
-// still change, and only the habits logged and slips counted that day. Read only until P2-18b.
+// still change, and only the habits logged and slips counted that day. Editable days have − / +,
+// Done with Undo, the slip stepper, and "+ Log a habit I missed" (P2-18b).
 // Used on the phone History screen and in the wide layout.
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { BadHabitsTray } from '@/components/BadHabitsTray';
@@ -28,12 +29,17 @@ import {
   type BandPart,
   type DayCell,
 } from '@/features/history/historyModel';
+import { noteQuietCoins } from '@/features/coins/coinOrigin';
 import { useTracker } from '@/features/tracker/TrackerProvider';
+import type { BadHabit } from '@/rules/badHabits';
+import { existsOn, isDue, isOptional, timesPerDay, type Habit } from '@/rules/habits';
 import { slipCount } from '@/rules/badHabits';
 import { monthOf, type DateKey } from '@/rules/dates';
 import { linkedBadHabit, dayLogs } from '@/rules/linked';
 import { allHabits } from '@/rules/locking';
-import { radius, space } from '@/theme';
+import { MIN_TAP_SIZE, radius, space } from '@/theme';
+
+import { useShowUndo } from './HistoryEditScope';
 
 export function HistoryView() {
   const styles = useStyles();
@@ -112,14 +118,68 @@ function DayDetails({
   openDays: number;
 }) {
   const styles = useStyles();
-  const { state } = useTracker();
+  const { state, dispatch } = useTracker();
+  const showUndo = useShowUndo();
   const status = dayHeaderText(date, today, state.lockedThrough, openDays);
+  const editable = !status.locked;
+  const [missedOpen, setMissedOpen] = useState(false);
+  // A slip counted down to 0 keeps its chip until the stepper closes (#108).
+  const [keep, setKeep] = useState<string[]>([]);
 
-  const logged = allHabits(state)
-    .map((habit) => ({ habit, ...dayLogs(habit, state.log, state.slips, state.badHabits, date) }))
-    .filter((h) => h.total > 0);
-  const slipped = state.badHabits.filter((b) => slipCount(state.slips, date, b.id) > 0);
+  const rows = allHabits(state).map((habit) => ({
+    habit,
+    ...dayLogs(habit, state.log, state.slips, state.badHabits, date),
+  }));
+  const logged = rows.filter((h) => h.total > 0);
+  const missed = rows.filter(
+    (h) =>
+      h.total === 0 &&
+      existsOn(h.habit, date) &&
+      (isDue(h.habit, date) || isOptional(h.habit, date)),
+  );
+  const slipped = state.badHabits.filter(
+    (b) => slipCount(state.slips, date, b.id) > 0 || keep.includes(b.id),
+  );
   const nothing = logged.length === 0 && slipped.length === 0;
+
+  // Every History edit earns Coins quietly and shows the Undo bar.
+  const log = (habit: Habit) => {
+    noteQuietCoins();
+    dispatch({ type: 'logHabit', date, habitId: habit.id });
+    showUndo({
+      text: `${habit.name} logged`,
+      run: () => {
+        noteQuietCoins();
+        dispatch({ type: 'undoLog', date, habitId: habit.id });
+      },
+    });
+  };
+  const unlog = (habit: Habit) => {
+    noteQuietCoins();
+    dispatch({ type: 'undoLog', date, habitId: habit.id });
+    showUndo({
+      text: `${habit.name} log removed`,
+      run: () => {
+        noteQuietCoins();
+        dispatch({ type: 'logHabit', date, habitId: habit.id });
+      },
+    });
+  };
+  const setSlips = (bad: BadHabit, count: number) => {
+    const before = slipCount(state.slips, date, bad.id);
+    const next = Math.max(0, count);
+    if (next === before) return;
+    setKeep((k) => (k.includes(bad.id) ? k : [...k, bad.id]));
+    noteQuietCoins();
+    dispatch({ type: 'setSlips', date, badHabitId: bad.id, count: next });
+    showUndo({
+      text: `${bad.name}: ${next}`,
+      run: () => {
+        noteQuietCoins();
+        dispatch({ type: 'setSlips', date, badHabitId: bad.id, count: before });
+      },
+    });
+  };
 
   return (
     <View style={styles.day} testID="history-day-details">
@@ -140,6 +200,41 @@ function DayDetails({
 
       {logged.map(({ habit, gold, slate }) => {
         const linked = linkedBadHabit(habit, state.badHabits);
+        const once = timesPerDay(habit) <= 1;
+        const name = habit.name.trim() || 'Untitled habit';
+        let trailing: ReactNode = null;
+        if (editable && once) {
+          trailing = (
+            <RoundButton
+              glyph="↶"
+              label={`Undo ${name}`}
+              testID={`history-undo-${habit.id}`}
+              onPress={() =>
+                gold > 0 ? unlog(habit) : linked ? setSlips(linked, slate - 1) : undefined
+              }
+            />
+          );
+        } else if (editable) {
+          trailing = (
+            <View style={styles.stepper}>
+              <RoundButton
+                glyph="−"
+                label={`One less ${name}`}
+                testID={`history-minus-${habit.id}`}
+                disabled={gold === 0}
+                onPress={() => unlog(habit)}
+              />
+              <RoundButton
+                glyph="+"
+                label={`One more ${name}`}
+                testID={`history-plus-${habit.id}`}
+                dark
+                disabled={gold + slate >= timesPerDay(habit)}
+                onPress={() => log(habit)}
+              />
+            </View>
+          );
+        }
         return (
           <HabitCard
             key={habit.id}
@@ -150,6 +245,7 @@ function DayDetails({
             onLog={() => {}}
             locked={status.locked}
             readOnly
+            trailing={trailing}
           />
         );
       })}
@@ -160,12 +256,63 @@ function DayDetails({
             badHabits={slipped}
             countOf={(id) => slipCount(state.slips, date, id)}
             onSlip={() => {}}
-            onSetCount={() => {}}
-            readOnly
+            onSetCount={(bad, n) => setSlips(bad, n)}
+            readOnly={!editable}
+            tapOpensStepper
+            onStepperClose={() => setKeep([])}
           />
         </View>
       ) : null}
+
+      {editable && missed.length > 0 ? (
+        <>
+          <Pressable
+            onPress={() => setMissedOpen((o) => !o)}
+            style={styles.missedLink}
+            testID="history-missed-toggle"
+            accessibilityRole="button"
+            accessibilityState={{ expanded: missedOpen }}
+          >
+            <Text style={styles.missedText}>
+              {missedOpen ? '− Hide missed habits' : '+ Log a habit I missed'}
+            </Text>
+          </Pressable>
+          {missedOpen ? (
+            <View style={styles.missedBox} testID="history-missed-list">
+              <Text style={styles.empty}>Not logged this day. Tap one to log it.</Text>
+              {missed.map(({ habit }) => (
+                <HabitCard key={habit.id} habit={habit} count={0} onLog={() => log(habit)} />
+              ))}
+            </View>
+          ) : null}
+        </>
+      ) : null}
     </View>
+  );
+}
+
+/** A round 44 pt button on a History card: − / + steppers and Undo. */
+function RoundButton(props: {
+  glyph: string;
+  label: string;
+  testID: string;
+  onPress: () => void;
+  dark?: boolean;
+  disabled?: boolean;
+}) {
+  const styles = useStyles();
+  return (
+    <Pressable
+      onPress={props.onPress}
+      disabled={props.disabled}
+      style={[styles.round, props.dark && styles.roundDark, props.disabled && styles.faint]}
+      testID={props.testID}
+      accessibilityRole="button"
+      accessibilityLabel={props.label}
+      accessibilityState={{ disabled: !!props.disabled }}
+    >
+      <Text style={[styles.roundText, props.dark && styles.roundTextDark]}>{props.glyph}</Text>
+    </Pressable>
   );
 }
 
@@ -335,4 +482,31 @@ const makeStyles = (c: ThemeColors, scheme: 'light' | 'dark') =>
     dayStatus: { ...textStyle('caption'), color: c.onSurfaceMuted },
     empty: { ...textStyle('caption'), color: c.onSurfaceMuted },
     dimmed: { opacity: size.lockedCardOpacity },
+    stepper: { flexDirection: 'row', gap: space.sm, marginLeft: space.sm },
+    round: {
+      width: MIN_TAP_SIZE,
+      height: MIN_TAP_SIZE,
+      borderRadius: radius.pill,
+      backgroundColor: c.surfaceDim,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginLeft: space.sm,
+    },
+    roundDark: { backgroundColor: c.onSurface },
+    roundText: { ...textStyle('title'), color: c.onSurface },
+    roundTextDark: { color: c.primary },
+    missedLink: { alignSelf: 'center', minHeight: MIN_TAP_SIZE, justifyContent: 'center' },
+    missedText: {
+      ...textStyle('habitName', '700'),
+      color: c.onSurface,
+      textDecorationLine: 'underline',
+    },
+    missedBox: {
+      gap: space.sm,
+      padding: space.md,
+      borderRadius: size.panelRadius,
+      borderWidth: 1,
+      borderStyle: 'dashed',
+      borderColor: c.border,
+    },
   });

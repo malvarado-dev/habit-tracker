@@ -14,3 +14,18 @@ export function takeCoinOrigin(): { x: number; y: number } | null {
   origin = null;
   return o;
 }
+
+// History edits earn Coins quietly (P2-18b): no Coin bar, the balance just updates.
+let quiet = false;
+
+/** Called right before a History edit, so the Coin bar skips its show for that change. */
+export function noteQuietCoins(): void {
+  quiet = true;
+}
+
+/** True once after a History edit; clears it. */
+export function takeQuietCoins(): boolean {
+  const q = quiet;
+  quiet = false;
+  return q;
+}

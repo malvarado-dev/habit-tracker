@@ -71,8 +71,10 @@ interface HabitCardProps {
   onEdit?: () => void;
   /** A locked day in History (T16): dimmed, and taps are off. */
   locked?: boolean;
-  /** History before day edits (P2-18a): taps are off, not dimmed. */
+  /** History (P2-18a): taps on the card are off, not dimmed. */
   readOnly?: boolean;
+  /** History edits (P2-18b): controls drawn at the right end of the card. */
+  trailing?: ReactNode;
 }
 
 export function HabitCard(props: HabitCardProps) {
@@ -146,10 +148,12 @@ export function HabitCard(props: HabitCardProps) {
         onPress={log}
         onLongPress={canSlide ? () => setMenu(true) : undefined}
         delayLongPress={tuning.card.longPressMs}
-        disabled={off}
+        // A read-only History card still holds its own − / + and Undo buttons, so only a locked
+        // day turns the whole card off; log() ignores taps on a read-only card.
+        disabled={locked}
         accessibilityState={{ disabled: off }}
         testID={`habit-card-${id}`}
-        accessibilityRole="button"
+        accessibilityRole={readOnly ? undefined : 'button'}
         accessibilityLabel={cardAccessibilityLabel(name, count + slate, times)}
         accessibilityHint={
           locked
@@ -198,6 +202,7 @@ export function HabitCard(props: HabitCardProps) {
               {ring.label}
             </Text>
           ) : null}
+          {props.trailing}
         </View>
       </Pressable>
     </Animated.View>

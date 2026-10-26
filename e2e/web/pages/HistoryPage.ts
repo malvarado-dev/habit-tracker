@@ -1,4 +1,4 @@
-// Page object for History (P2-18a). Tests say history.selectDay(date); only this file knows the IDs.
+// Page object for History (P2-18a, P2-18b day edits). Tests say history.selectDay(date); only this file knows the IDs.
 import { expect, type Locator, type Page } from '@playwright/test';
 
 export class HistoryPage {
@@ -42,5 +42,45 @@ export class HistoryPage {
 
   async selectDay(date: string): Promise<void> {
     await this.day(date).click();
+  }
+
+  count(habitId: string): Locator {
+    return this.page.getByTestId(`habit-count-${habitId}`).first();
+  }
+
+  plus(habitId: string): Locator {
+    return this.page.getByTestId(`history-plus-${habitId}`);
+  }
+
+  minus(habitId: string): Locator {
+    return this.page.getByTestId(`history-minus-${habitId}`);
+  }
+
+  undoDone(habitId: string): Locator {
+    return this.page.getByTestId(`history-undo-${habitId}`);
+  }
+
+  get missedToggle(): Locator {
+    return this.page.getByTestId('history-missed-toggle');
+  }
+
+  get missedList(): Locator {
+    return this.page.getByTestId('history-missed-list');
+  }
+
+  /** A habit in the day's logged list (not the missed list). */
+  loggedCard(habitId: string): Locator {
+    return this.page
+      .getByTestId('history-day-details')
+      .getByTestId(`habit-card-${habitId}`)
+      .first();
+  }
+
+  get undoBar(): Locator {
+    return this.page.getByTestId('undo-bar');
+  }
+
+  async undo(): Promise<void> {
+    await this.page.getByTestId('undo-button').click();
   }
 }

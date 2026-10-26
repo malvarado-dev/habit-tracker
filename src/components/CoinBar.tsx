@@ -19,7 +19,7 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { tuning } from '@/config/tuning';
-import { takeCoinOrigin } from '@/features/coins/coinOrigin';
+import { takeCoinOrigin, takeQuietCoins } from '@/features/coins/coinOrigin';
 import { playCoinSound } from '@/features/coins/coinSound';
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import { totalCoins } from '@/rules/coins';
@@ -64,7 +64,8 @@ export function CoinBar() {
     const before = last.current;
     last.current = { balance, mode };
     // Switching Real and Test shows another tracker's balance: nothing was earned.
-    if (before.mode !== mode) {
+    // History edits change the balance quietly (P2-18b).
+    if (before.mode !== mode || takeQuietCoins()) {
       setShown(balance);
       return;
     }
