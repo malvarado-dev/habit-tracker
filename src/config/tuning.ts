@@ -1,8 +1,28 @@
 // The one tunable settings file (SPEC-00). Every timing, effect value, and rank cutoff lives here,
 // so playtest tuning never means hunting through screens. Change a number, reload, feel the difference.
 // Times are milliseconds. Distances are points.
+//
+// Scene positions measured from the art (bed, pet spots, room offset) live in
+// src/scene/room-layout.json and are read in here, so `tuning.scene` is still the one place to look.
+
+import roomLayout from '@/scene/room-layout.json';
 
 export const tuning = {
+  /** Living room scene (Prototype 2). Art-measured numbers come from room-layout.json. */
+  scene: {
+    ...roomLayout,
+    /** Where the habit sheet starts, as a share of the screen height. */
+    sheetTopRatio: 0.4,
+  },
+
+  /** The pet's starting values (Prototype 2). */
+  pet: {
+    /** Confidence (0 to 100) for a new save and for saves upgraded from Prototype 1. */
+    startConfidence: 20,
+    /** Test tools Confidence stepper: how much each tap moves it. */
+    confidenceStep: 10,
+  },
+
   /** Rank moment plays this long after the last habit is scored (T15, in the Background). */
   celebrationDelayMs: 2000,
 

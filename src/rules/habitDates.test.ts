@@ -8,6 +8,9 @@ import { createInitialState, trackerReducer, type TrackerState } from '@/feature
 
 import { allHabits, historyDay, lockDays } from './locking';
 import { existsOn, getDailyResult, type Habit } from './scoring';
+import { tuning } from '@/config/tuning';
+
+const START_PET = { confidence: tuning.pet.startConfidence };
 
 // Weeks run Sunday to Saturday. Three extra habits live for one week: Sun Oct 4 to Sat Oct 10.
 const ADDED = '2026-10-04';
@@ -136,7 +139,7 @@ describe('save version 7 (T21)', () => {
     const result = loadSave(JSON.stringify(v6));
     expect(result).toEqual({
       kind: 'loaded',
-      state: { ...v6, version: 7, removed: [] },
+      state: { ...v6, version: 8, removed: [], pet: START_PET },
       upgradedFrom: 6,
     });
   });

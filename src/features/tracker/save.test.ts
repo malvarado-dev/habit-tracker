@@ -1,6 +1,9 @@
 import { describe, expect, it } from '@jest/globals';
 import { backupKey, CURRENT_VERSION, loadSave } from './save';
 import { createInitialState, DEFAULT_HABITS } from './state';
+import { tuning } from '@/config/tuning';
+
+const START_PET = { confidence: tuning.pet.startConfidence };
 
 // A real-looking v3 save: a custom habit, a changed goal, and check-ins across two weeks.
 const v3 = {
@@ -42,7 +45,7 @@ describe('loadSave', () => {
     expect(result.state.lockedThrough).toBeNull();
   });
 
-  it('upgrades v5 to v7 keeping everything, with no added date on existing habits (#52)', () => {
+  it('upgrades v5 to v8 keeping everything, with no added date on existing habits (#52)', () => {
     const v5 = {
       version: 5,
       habits: DEFAULT_HABITS,
@@ -53,7 +56,7 @@ describe('loadSave', () => {
     const result = loadSave(JSON.stringify(v5));
     expect(result).toEqual({
       kind: 'loaded',
-      state: { ...v5, version: 7, removed: [] },
+      state: { ...v5, version: 8, removed: [], pet: START_PET },
       upgradedFrom: 5,
     });
     if (result.kind === 'loaded') {

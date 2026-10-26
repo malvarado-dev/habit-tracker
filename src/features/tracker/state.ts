@@ -6,6 +6,7 @@ import type { DateKey } from '@/rules/dates';
 import { isLocked, lockDays, type LockedDay } from '@/rules/locking';
 import {
   EVERY_DAY,
+  existsOn,
   nextCheckIn,
   type CheckIn,
   HABIT_COLORS,
@@ -15,11 +16,14 @@ import {
   type WeeklyGoal,
   type Weekday,
 } from '@/rules/scoring';
+import { tuning } from '@/config/tuning';
 import { cleanName, nameProblem } from '@/features/habits/habitName';
 
 export interface TrackerState {
   /** Bumped when the saved shape changes. Older saves are upgraded step by step (save.ts). */
-  version: 7;
+  version: 8;
+  /** The pet's own values (Prototype 2). Confidence picks its spot in the room (P2-12). */
+  pet: PetState;
   /** Active habits, in card order. */
   habits: Habit[];
   /** Removed habits, each with the day it was removed, so their active days still score (T21). */
@@ -29,6 +33,20 @@ export interface TrackerState {
   locked: Record<DateKey, LockedDay>;
   /** Every day up to and including this one is locked. Null until the first lock. */
   lockedThrough: DateKey | null;
+}
+
+export interface PetState {
+  /** 0 to 100. */
+  confidence: number;
+}
+
+export const MIN_CONFIDENCE = 0;
+export const MAX_CONFIDENCE = 100;
+
+/** Keeps Confidence a whole number from 0 to 100. */
+export function cleanConfidence(value: number): number {
+  if (!Number.isFinite(value)) return tuning.pet.startConfidence;
+  return Math.min(MAX_CONFIDENCE, Math.max(MIN_CONFIDENCE, Math.round(value)));
 }
 
 export const DEFAULT_HABITS: Habit[] = [
@@ -71,7 +89,8 @@ export function cleanGoal(goal: WeeklyGoal): WeeklyGoal | null {
  */
 export function createInitialState(addedOn?: DateKey): TrackerState {
   return {
-    version: 7,
+    version: 8,
+    pet: { confidence: tuning.pet.startConfidence },
     removed: [],
     habits: addedOn ? DEFAULT_HABITS.map((h) => ({ ...h, addedOn })) : DEFAULT_HABITS,
     log: {},
@@ -88,7 +107,11 @@ export type TrackerAction =
   | { type: 'setGoal'; habitId: string; goal: WeeklyGoal }
   | { type: 'removeHabit'; habitId: string; date: DateKey }
   | { type: 'restoreHabit'; habit: Habit; index: number }
-  | { type: 'lockDays'; today: DateKey; openDays?: number };
+  | { type: 'lockDays'; today: DateKey; openDays?: number }
+  /** Test tools: checks in every habit that exists on the day. Locked days never change. */
+  | { type: 'fillDay'; date: DateKey }
+  /** Test tools: sets the pet's Confidence (clamped to 0 to 100). */
+  | { type: 'setConfidence'; value: number };
 
 function withCheckIn(
   state: TrackerState,
@@ -179,5 +202,20 @@ export function trackerReducer(state: TrackerState, action: TrackerAction): Trac
     }
     case 'lockDays':
       return lockDays(state, action.today, action.openDays);
+    case 'fillDay': {
+      if (isLocked(action.date, state.lockedThrough)) return state;
+      const day = { ...state.log[action.date] };
+      let changed = false;
+      for (const habit of state.habits) {
+        if (!existsOn(habit, action.date) || day[habit.id] === 'NailedIt') continue;
+        day[habit.id] = 'NailedIt';
+        changed = true;
+      }
+      return changed ? { ...state, log: { ...state.log, [action.date]: day } } : state;
+    }
+    case 'setConfidence': {
+      const confidence = cleanConfidence(action.value);
+      return confidence === state.pet.confidence ? state : { ...state, pet: { confidence } };
+    }
   }
 }

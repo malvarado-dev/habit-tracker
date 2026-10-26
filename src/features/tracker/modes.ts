@@ -54,7 +54,11 @@ export type AppAction =
   /** Test only. Ignored in Real. */
   | { type: 'nextDay'; realDate: DateKey }
   | { type: 'backToToday' }
-  | { type: 'resetTest'; realDate: DateKey };
+  | { type: 'resetTest'; realDate: DateKey }
+  /** Test only: checks in every habit on the pretend day. Ignored in Real. */
+  | { type: 'fillTestDay'; realDate: DateKey }
+  /** Test only: sets the test pet's Confidence. Ignored in Real. */
+  | { type: 'setTestConfidence'; value: number; realDate: DateKey };
 
 function lockSlot(slot: Slot, today: DateKey, mode: Mode): Slot {
   const state = trackerReducer(slot.state, {
@@ -100,6 +104,20 @@ export function appReducer(app: AppState, action: AppAction): AppState {
     case 'backToToday':
       // Check-ins stay; only the pretend date goes back. Days locked ahead stay locked.
       return app.mode === 'test' && app.testOffset !== 0 ? { ...app, testOffset: 0 } : app;
+    case 'fillTestDay':
+    case 'setTestConfidence': {
+      // Test tools only ever write the Test save. In Real these do nothing.
+      if (app.mode !== 'test') return app;
+      const today = modeToday(app, action.realDate, 'test');
+      const locked = lockSlot(app.test, today, 'test');
+      const change: TrackerAction =
+        action.type === 'fillTestDay'
+          ? { type: 'fillDay', date: today }
+          : { type: 'setConfidence', value: action.value };
+      const state = trackerReducer(locked.state, change);
+      if (locked === app.test && state === locked.state) return app;
+      return { ...app, test: { ...locked, state } };
+    }
     case 'resetTest':
       // Erases only the test save. Real is never touched.
       if (app.mode !== 'test') return app;
