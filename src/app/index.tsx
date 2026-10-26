@@ -3,23 +3,23 @@
 // sits above History on the right. The layout is shared with the Day screen (SceneLayout, T23).
 // No header; the subtle menu button sits top left.
 
-import { petStats } from '@/rules/petStats';
 import { useIsFocused } from 'expo-router';
+import type { Metadata } from 'expo-router/server';
 import { useState } from 'react';
 
 import { HabitSheet } from '@/components/HabitSheet';
 import { MenuButton } from '@/components/MenuButton';
+import { pageTitle } from '@/components/pageTitle';
 import { SceneLayout } from '@/components/SceneLayout';
 import { SideMenu } from '@/components/SideMenu';
+import { useAffectionPurr } from '@/components/useAffectionPurr';
 import { useCritterWake } from '@/components/useCritterWake';
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import { getActivityBar } from '@/rules/activityBar';
-import { hasHabitLog, petPlace } from '@/rules/petPlace';
 import { allHabits, barLog } from '@/rules/locking';
+import { hasHabitLog, petPlace } from '@/rules/petPlace';
+import { petStats } from '@/rules/petStats';
 import { getSkyLevel, getSkyTime } from '@/rules/sky';
-import type { Metadata } from 'expo-router/server';
-
-import { pageTitle } from '@/components/pageTitle';
 
 /** The page title on the web build (#113). */
 export function generateMetadata(): Metadata {
@@ -37,13 +37,17 @@ export default function HomeScreen() {
   const logKey = JSON.stringify([state.log[today], state.slips[today]]);
   const { woken, wake } = useCritterWake(today, logKey, focused);
 
+  const stats = petStats(state);
+  const awake = hasHabitLog(state.log, today);
+  useAffectionPurr(stats.love, awake, focused);
+
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <SceneLayout
       testID="today-screen"
       critter={{ level: skyLevel, woken, onWake: wake, time: skyTime }}
-      pet={petPlace(petStats(state).confidence, hasHabitLog(state.log, today))}
+      pet={petPlace(stats.confidence, awake)}
       corner={(onPage) => (
         <MenuButton time={skyTime} onPage={onPage} onPress={() => setMenuOpen(true)} />
       )}
