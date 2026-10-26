@@ -37,11 +37,11 @@ export const tuning = {
     hideBelow: 10,
     restUpTo: 25,
 
-    /** Idle motion on the pet PNGs (P2-11, #82): breathe, blink, small bounce. Whole body only. */
+    /** Idle motion on the pet PNGs (P2-11, #82): breathe, blink, and a reaction bounce on request. Whole body only. */
     motion: {
-      /** Personality as data. 1 is the default cat. blinkSpeed above 1 blinks quicker; bounceSize
-       * scales the hop and squash; idleTiming above 1 waits longer between blinks and idle bounces. */
-      personality: { blinkSpeed: 1, bounceSize: 1, idleTiming: 1 },
+      /** Personality as data. 1 is the default cat. blinkSpeed above 1 blinks quicker; reactionSize
+       * scales the jump and squash; idleTiming above 1 waits longer between blinks. */
+      personality: { blinkSpeed: 1, reactionSize: 1, idleTiming: 1 },
 
       /** Breathing grows from the feet: taller and a touch narrower, never even all-over scaling.
        * Each breath picks its own length and depth, then holds a moment before the next. */
@@ -76,32 +76,34 @@ export const tuning = {
         doubleGapMs: 140,
       },
 
-      /** Small bounce: squash down, hop up with a stretch, land in a squash, spring back. */
-      bounce: {
-        /** Random wait between idle bounces while awake. */
-        idleGapMinMs: 20000,
-        idleGapMaxMs: 40000,
-        /** Anticipation: how far the body squashes (0.07 = 7% shorter) and how long it takes. */
-        anticipationSquash: 0.07,
-        anticipationMs: 150,
-        /** The hop: height in points, rise and fall times, and the stretch on the way up. */
-        height: 10,
-        riseMs: 170,
-        fallMs: 150,
-        stretch: 0.05,
-        /** A short hold at the top of the hop, so it reads instead of floating. */
-        apexHoldMs: 40,
+      /** Reaction bounce (P2-11b, #106), four beats: crouch and hold, jump with a stretch, hang
+       * at the top, land hard and spring back. Only plays on a request (wake, Test tools). */
+      reaction: {
+        /** Crouch: how far the body squashes (0.16 = 16% shorter), how long, then a held beat. */
+        crouchSquash: 0.16,
+        crouchMs: 260,
+        crouchHoldMs: 140,
+        /** Jump: height in points, rise time, and the stretch on the way up. */
+        height: 30,
+        riseMs: 240,
+        stretch: 0.12,
+        /** Hang at the top so the eye catches it. */
+        apexHoldMs: 160,
+        fallMs: 180,
+        /** Landing: squash on contact, hold it a beat, then a spring that overshoots and settles. */
+        landSquash: 0.14,
+        landMs: 70,
+        landHoldMs: 100,
+        settleDamping: 7,
+        settleStiffness: 220,
         /** Width given back when squashed or stretched, as a share of the height change. */
         squashWidth: 0.6,
-        /** Landing: squash on contact, then a spring that overshoots and settles. */
-        landSquash: 0.08,
-        landMs: 70,
-        settleDamping: 8,
-        settleStiffness: 260,
-        /** The contact shadow shrinks by this share at the top of the hop. */
-        shadowShrink: 0.18,
-        /** Test tools "Bounce the pet": wait this long after Today shows before bouncing. */
-        testDelayMs: 450,
+        /** The contact shadow shrinks by this share at the top of the jump. */
+        shadowShrink: 0.35,
+        /** Eyes stay shut this much longer after the landing hold, so they open on the rebound. */
+        eyesOpenAfterLandMs: 80,
+        /** Wait after Today shows (or the pet wakes) before reacting. */
+        startDelayMs: 450,
       },
     },
   },

@@ -1,5 +1,5 @@
-// Asks the pet on Today to bounce. Test tools uses it (P2-11) so the bounce can be reviewed on
-// demand; later tickets (wake rule P2-12, Activity Bar moments) can call it too.
+// Asks the pet on Today to play its reaction (P2-11b, #106). Called on wake and by Test tools;
+// Activity Bar moments (P2-14) will call it too. The pet never reacts without a request.
 // A request waits until the pet is on screen, then plays once.
 
 type Listener = () => void;
@@ -7,19 +7,19 @@ type Listener = () => void;
 let pending = false;
 const listeners = new Set<Listener>();
 
-export function requestPetBounce(): void {
+export function requestPetReaction(): void {
   pending = true;
   listeners.forEach((l) => l());
 }
 
 /** True once per request; clears it. */
-export function takePetBounce(): boolean {
+export function takePetReaction(): boolean {
   const was = pending;
   pending = false;
   return was;
 }
 
-export function onPetBounceRequest(listener: Listener): () => void {
+export function onPetReactionRequest(listener: Listener): () => void {
   listeners.add(listener);
   return () => {
     listeners.delete(listener);

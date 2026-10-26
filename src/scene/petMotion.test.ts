@@ -3,19 +3,21 @@ import { describe, expect, it } from '@jest/globals';
 import { tuning } from '@/config/tuning';
 
 import {
-  bounceShape,
   canBlink,
-  canBounce,
+  canReact,
+  isWake,
   nextBlink,
   nextBreath,
-  nextIdleBounceMs,
+  reactionBeats,
+  reactionEyesShut,
+  reactionShape,
 } from './petMotion';
-import { onPetBounceRequest, requestPetBounce, takePetBounce } from './petBounce';
+import { onPetReactionRequest, requestPetReaction, takePetReaction } from './petReaction';
 
 const m = tuning.pet.motion;
 const fixed = (n: number) => () => n;
 /** Same tuning with other personality values. */
-const withPersonality = (p: { blinkSpeed?: number; bounceSize?: number; idleTiming?: number }) =>
+const withPersonality = (p: { blinkSpeed?: number; reactionSize?: number; idleTiming?: number }) =>
   ({ ...m, personality: { ...m.personality, ...p } }) as unknown as typeof m;
 
 describe('blink', () => {
@@ -72,40 +74,52 @@ describe('breathing', () => {
   });
 });
 
-describe('bounce', () => {
-  it('never bounces with reduced motion or while asleep', () => {
-    expect(canBounce('sit', false)).toBe(true);
-    expect(canBounce('sit', true)).toBe(false);
-    expect(canBounce('sleep', false)).toBe(false);
+describe('reaction', () => {
+  it('never reacts with reduced motion or while asleep', () => {
+    expect(canReact('sit', false)).toBe(true);
+    expect(canReact('sit', true)).toBe(false);
+    expect(canReact('sleep', false)).toBe(false);
   });
 
-  it('has anticipation, stretch, and a landing squash', () => {
-    const s = bounceShape();
-    expect(s.anticipationSquash).toBeGreaterThan(0);
-    expect(s.stretch).toBeGreaterThan(0);
-    expect(s.landSquash).toBeGreaterThan(0);
+  it('waking is asleep to awake, and nothing else', () => {
+    expect(isWake('sleep', 'sit')).toBe(true);
+    expect(isWake('sleep', 'walk')).toBe(true);
+    expect(isWake(undefined, 'sit')).toBe(false);
+    expect(isWake('sit', 'sit')).toBe(false);
+    expect(isWake('sit', 'sleep')).toBe(false);
+    expect(isWake('sleep', 'sleep')).toBe(false);
   });
 
-  it('bounce size scales the whole bounce', () => {
-    const big = bounceShape(withPersonality({ bounceSize: 2 }));
-    expect(big.height).toBe(m.bounce.height * 2);
-    expect(big.landSquash).toBe(m.bounce.landSquash * 2);
+  it('reaction size scales the distances', () => {
+    const big = reactionShape(withPersonality({ reactionSize: 2 }));
+    expect(big.height).toBe(m.reaction.height * 2);
+    expect(big.crouchSquash).toBe(m.reaction.crouchSquash * 2);
+    expect(big.landSquash).toBe(m.reaction.landSquash * 2);
   });
 
-  it('idle bounces wait inside the tuned range, stretched by idle timing', () => {
-    expect(nextIdleBounceMs(fixed(0))).toBe(m.bounce.idleGapMinMs);
-    expect(nextIdleBounceMs(fixed(0), withPersonality({ idleTiming: 1.5 }))).toBe(
-      m.bounce.idleGapMinMs * 1.5,
-    );
+  it('beats run in order: crouch, jump, fall, land, settle', () => {
+    const b = reactionBeats();
+    expect(0).toBeLessThan(b.jump);
+    expect(b.jump).toBeLessThan(b.fall);
+    expect(b.fall).toBeLessThan(b.land);
+    expect(b.land).toBeLessThan(b.settle);
   });
 
-  it('a Test tools request plays once', () => {
+  it('eyes are shut for the crouch and the landing, open in the air', () => {
+    const b = reactionBeats();
+    const [crouch, landing] = reactionEyesShut();
+    expect(crouch).toEqual([0, b.jump]);
+    expect(landing[0]).toBe(b.land);
+    expect(landing[1]).toBeGreaterThan(b.settle);
+  });
+
+  it('a request plays once', () => {
     let heard = 0;
-    const off = onPetBounceRequest(() => heard++);
-    requestPetBounce();
+    const off = onPetReactionRequest(() => heard++);
+    requestPetReaction();
     off();
     expect(heard).toBe(1);
-    expect(takePetBounce()).toBe(true);
-    expect(takePetBounce()).toBe(false);
+    expect(takePetReaction()).toBe(true);
+    expect(takePetReaction()).toBe(false);
   });
 });

@@ -1,4 +1,4 @@
-// Timing rules for the pet's idle motion (P2-11, #82). Pure functions, so tests can pass a fixed
+// Timing rules for the pet's motion (P2-11 #82, reaction P2-11b #106). Pure functions, so tests can pass a fixed
 // random source. Every number comes from tuning.pet.motion; the personality multipliers apply here.
 
 import { tuning } from '@/config/tuning';
@@ -55,26 +55,45 @@ export function nextBreath(
   };
 }
 
-export function nextIdleBounceMs(rand: Rand, m: Motion = tuning.pet.motion): number {
-  const { bounce, personality } = m;
-  return between(bounce.idleGapMinMs, bounce.idleGapMaxMs, rand) * personality.idleTiming;
-}
-
 /** The sleep pose already has its eyes shut, so it never blinks. */
 export const canBlink = (pose: PetPose) => pose !== 'sleep';
 
-/** No bounce while asleep, and none with reduced motion (pet.md). */
-export const canBounce = (pose: PetPose, reduceMotion: boolean) =>
-  pose !== 'sleep' && !reduceMotion;
+/** No reaction while asleep, and none with reduced motion (pet.md). */
+export const canReact = (pose: PetPose, reduceMotion: boolean) => pose !== 'sleep' && !reduceMotion;
 
-/** Bounce numbers with the personality's bounce size applied. */
-export function bounceShape(m: Motion = tuning.pet.motion) {
-  const { bounce: b, personality } = m;
-  const k = personality.bounceSize;
+/** The pet just woke: it was asleep and now it isn't. */
+export const isWake = (prev: PetPose | undefined, next: PetPose) =>
+  prev === 'sleep' && next !== 'sleep';
+
+/** Reaction numbers with the personality's reaction size applied to the distances. */
+export function reactionShape(m: Motion = tuning.pet.motion) {
+  const { reaction: r, personality } = m;
+  const k = personality.reactionSize;
   return {
-    anticipationSquash: b.anticipationSquash * k,
-    height: b.height * k,
-    stretch: b.stretch * k,
-    landSquash: b.landSquash * k,
+    crouchSquash: r.crouchSquash * k,
+    height: r.height * k,
+    stretch: r.stretch * k,
+    landSquash: r.landSquash * k,
   };
+}
+
+/** When each beat starts, in ms from the start of the reaction. */
+export function reactionBeats(m: Motion = tuning.pet.motion) {
+  const r = m.reaction;
+  const jump = r.crouchMs + r.crouchHoldMs;
+  const fall = jump + r.riseMs + r.apexHoldMs;
+  const land = fall + r.fallMs;
+  const settle = land + r.landMs + r.landHoldMs;
+  return { jump, fall, land, settle };
+}
+
+/** Windows (start and end, in ms) when the eyes-closed art shows: the crouch and the landing. */
+export function reactionEyesShut(
+  m: Motion = tuning.pet.motion,
+): [[number, number], [number, number]] {
+  const b = reactionBeats(m);
+  return [
+    [0, b.jump],
+    [b.land, b.settle + m.reaction.eyesOpenAfterLandMs],
+  ];
 }

@@ -2,13 +2,14 @@
 // - Breathe: grows from the feet, taller and a touch narrower, each breath a little different,
 //   with a rest between breaths. No up/down bob, no even all-over scaling.
 // - Blink: random gaps, swaps to the eyes-closed PNG, sometimes twice.
-// - Small bounce: squash (anticipation), hop with a stretch, squash on landing, spring settle.
-//   Plays now and then while awake, and when Test tools asks for one (petBounce.ts).
-// Reduced motion: blink plus breathing at half strength, no bounce. Asleep: slower, deeper
-// breaths, no blink, no bounce. Every number is in tuning.pet.motion.
+// - Reaction (P2-11b, #106): crouch and hold, jump with a stretch, hang, land hard and spring
+//   back, eyes shut on the crouch and the landing. Only on a request: wake, Test tools, and
+//   later Activity Bar moments (petReaction.ts). Never random.
+// Reduced motion: blink plus breathing at half strength, no reaction. Asleep: slower, deeper
+// breaths, no blink, no reaction. Every number is in tuning.pet.motion.
 
 import { useIsFocused } from 'expo-router';
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Image, StyleSheet, type ImageSourcePropType } from 'react-native';
 import Animated, {
   Easing,
@@ -22,14 +23,15 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { tuning } from '@/config/tuning';
-import { onPetBounceRequest, takePetBounce } from '@/scene/petBounce';
+import { onPetReactionRequest, requestPetReaction, takePetReaction } from '@/scene/petReaction';
 import {
-  bounceShape,
   canBlink,
-  canBounce,
+  canReact,
+  isWake,
   nextBlink,
   nextBreath,
-  nextIdleBounceMs,
+  reactionEyesShut,
+  reactionShape,
 } from '@/scene/petMotion';
 import type { Box, PetPose } from '@/scene/roomGeometry';
 
@@ -64,8 +66,17 @@ export function PetMotion({
   /** Points above the floor. */
   const hop = useSharedValue(0);
   const [blinking, setEyesClosed] = useState(false);
+  /** Eyes squeezed shut during the reaction's crouch and landing. */
+  const [squeezing, setSqueezing] = useState(false);
   /** A pose change can stop blinking mid-blink; never show shut eyes on a pose that can't blink. */
-  const eyesClosed = blinks && blinking;
+  const eyesClosed = blinks && (blinking || squeezing);
+
+  // Wake: asleep to awake asks for one reaction.
+  const lastPose = useRef<PetPose | undefined>(undefined);
+  useEffect(() => {
+    if (isWake(lastPose.current, pose)) requestPetReaction();
+    lastPose.current = pose;
+  }, [pose]);
 
   // Breathing: one breath at a time, each with its own length, depth, and rest.
   useEffect(() => {
@@ -110,66 +121,59 @@ export function PetMotion({
     return () => clearTimeout(timer);
   }, [blinks]);
 
-  const bounce = useCallback(() => {
-    if (!canBounce(pose, reduceMotion)) return;
-    const b = motion.bounce;
-    const s = bounceShape();
-    const ease = Easing.out(Easing.quad);
+  const react = useCallback(() => {
+    if (!canReact(pose, reduceMotion)) return [];
+    const r = motion.reaction;
+    const s = reactionShape();
+    const out = Easing.out(Easing.quad);
     squash.set(
       withSequence(
-        withTiming(-s.anticipationSquash, { duration: b.anticipationMs, easing: ease }),
-        withTiming(s.stretch, { duration: b.riseMs / 2 }),
-        withTiming(0, { duration: b.riseMs / 2 + b.apexHoldMs + b.fallMs / 2 }),
-        withTiming(s.stretch / 2, { duration: b.fallMs / 2 }),
-        withTiming(-s.landSquash, { duration: b.landMs }),
-        withSpring(0, { damping: b.settleDamping, stiffness: b.settleStiffness }),
+        withTiming(-s.crouchSquash, { duration: r.crouchMs, easing: out }),
+        withTiming(-s.crouchSquash, { duration: r.crouchHoldMs }),
+        withTiming(s.stretch, { duration: r.riseMs / 2, easing: out }),
+        withTiming(0, { duration: r.riseMs / 2 + r.apexHoldMs + r.fallMs / 2 }),
+        withTiming(s.stretch / 2, { duration: r.fallMs / 2 }),
+        withTiming(-s.landSquash, { duration: r.landMs }),
+        withTiming(-s.landSquash, { duration: r.landHoldMs }),
+        withSpring(0, { damping: r.settleDamping, stiffness: r.settleStiffness }),
       ),
     );
     hop.set(
       withSequence(
-        withTiming(0, { duration: b.anticipationMs }),
-        withTiming(s.height, { duration: b.riseMs, easing: ease }),
-        withTiming(s.height, { duration: b.apexHoldMs }),
-        withTiming(0, { duration: b.fallMs, easing: Easing.in(Easing.quad) }),
+        withTiming(0, { duration: r.crouchMs + r.crouchHoldMs }),
+        withTiming(s.height, { duration: r.riseMs, easing: out }),
+        withTiming(s.height, { duration: r.apexHoldMs }),
+        withTiming(0, { duration: r.fallMs, easing: Easing.in(Easing.quad) }),
       ),
     );
+    return reactionEyesShut().flatMap(([from, to]) => [
+      setTimeout(() => setSqueezing(true), from),
+      setTimeout(() => setSqueezing(false), to),
+    ]);
   }, [pose, reduceMotion, squash, hop]);
 
-  // Idle bounces now and then, only while Today is on screen.
-  useEffect(() => {
-    if (!focused || !canBounce(pose, reduceMotion)) return;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const schedule = () => {
-      timer = setTimeout(() => {
-        bounce();
-        schedule();
-      }, nextIdleBounceMs(Math.random));
-    };
-    schedule();
-    return () => clearTimeout(timer);
-  }, [focused, pose, reduceMotion, bounce]);
-
-  // Bounce requests (Test tools): play once the pet is on screen.
+  // Reaction requests (wake, Test tools): play once the pet is on screen.
   useEffect(() => {
     if (!focused) return;
-    let timer: ReturnType<typeof setTimeout> | undefined;
+    let timers: ReturnType<typeof setTimeout>[] = [];
     const play = () => {
-      if (!takePetBounce()) return;
-      clearTimeout(timer);
-      timer = setTimeout(bounce, motion.bounce.testDelayMs);
+      if (!takePetReaction()) return;
+      timers.forEach(clearTimeout);
+      timers = [setTimeout(() => (timers = [...timers, ...react()]), motion.reaction.startDelayMs)];
     };
     play();
-    const off = onPetBounceRequest(play);
+    const off = onPetReactionRequest(play);
     return () => {
       off();
-      clearTimeout(timer);
+      timers.forEach(clearTimeout);
+      setSqueezing(false);
     };
-  }, [focused, bounce]);
+  }, [focused, react]);
 
   const narrow = motion.breath.narrow;
-  const squashWidth = motion.bounce.squashWidth;
-  const height = Math.max(bounceShape().height, 1);
-  const shrink = motion.bounce.shadowShrink;
+  const squashWidth = motion.reaction.squashWidth;
+  const height = Math.max(reactionShape().height, 1);
+  const shrink = motion.reaction.shadowShrink;
 
   const bodyStyle = useAnimatedStyle(() => ({
     transform: [
