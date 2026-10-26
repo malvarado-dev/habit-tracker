@@ -9,8 +9,9 @@ export class HomePage {
   readonly undoButton: Locator;
   /** The Coin bar's balance (P2-08c). It counts up as coins land, so assert with toHaveText. */
   readonly coinBalance: Locator;
-  /** The moving pet's body (P2-11). */
+  /** The moving pet's body (P2-11), and the pet art inside it. */
   readonly petBody: Locator;
+  readonly petImage: Locator;
 
   constructor(readonly page: Page) {
     this.activityBar = page.getByTestId('activity-bar');
@@ -18,6 +19,7 @@ export class HomePage {
     this.undoButton = page.getByTestId('undo-button');
     this.coinBalance = page.getByTestId('coin-balance');
     this.petBody = page.getByTestId('pet-body');
+    this.petImage = page.getByTestId('pet-image');
   }
 
   /** The app has loaded its save and drawn the habit sheet. */

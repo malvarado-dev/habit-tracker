@@ -199,7 +199,7 @@ export function PetMotion({
       >
         <Image
           source={art}
-          style={StyleSheet.absoluteFill}
+          style={[styles.fill, fillSize(image)]}
           resizeMode="stretch"
           testID="pet-image"
           nativeID={eyesClosed ? 'pet-eyes-closed' : 'pet-eyes-open'}
@@ -209,7 +209,7 @@ export function PetMotion({
         {eyesClosedArt ? (
           <Image
             source={eyesClosedArt}
-            style={[StyleSheet.absoluteFill, !eyesClosed && styles.hidden]}
+            style={[styles.fill, fillSize(image), !eyesClosed && styles.hidden]}
             resizeMode="stretch"
             accessibilityIgnoresInvertColors
           />
@@ -219,10 +219,14 @@ export function PetMotion({
   );
 }
 
+/** The PNG gets the box's exact size, like before P2-11 (absoluteFill doesn't size an Image on web). */
+const fillSize = (b: Box) => ({ width: b.width, height: b.height });
+
 const boxStyle = (b: Box) => ({ left: b.left, top: b.top, width: b.width, height: b.height });
 
 const styles = StyleSheet.create({
   abs: { position: 'absolute' },
+  fill: { position: 'absolute', left: 0, top: 0 },
   // Breathing and squash grow from the paws, not the middle of the body.
   feet: { transformOrigin: 'center bottom' },
   hidden: { opacity: 0 },
