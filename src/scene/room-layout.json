@@ -7,14 +7,16 @@
     "h": 340
   },
   "bed": {
-    "scale": 1.35,
+    "width": 686,
     "centerX": 1300,
     "bottomY": 1730,
     "shadow": {
-      "yAboveBottom": 22,
-      "halfHeight": 40,
-      "insetX": 10,
-      "floorTint": 0.82
+      "top": -160,
+      "bottom": 24,
+      "insetX": -14,
+      "opacity": 0.42,
+      "softness": 6,
+      "color": "#3C2314"
     }
   },
   "roomShiftScreenPx2x": 113
