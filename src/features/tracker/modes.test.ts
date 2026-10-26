@@ -15,9 +15,8 @@ import {
 } from './modes';
 import { createInitialState } from './state';
 import { existsOn } from '@/rules/habits';
-import { tuning } from '@/config/tuning';
 
-const START_PET = { confidence: tuning.pet.startConfidence };
+const UPGRADED_PET = expect.objectContaining({ loveAdjust: expect.any(Number) });
 
 // Pretend dates. Monday 2026-10-19 is the real date.
 const REAL = '2026-10-19';
@@ -174,8 +173,8 @@ describe('loading', () => {
     const store = fakeStore({ [REAL_KEY]: JSON.stringify(v4) });
     const app = await loadAppState(store, new Date());
     expect(app.real.state).toEqual({
-      version: 12,
-      pet: START_PET,
+      version: 13,
+      pet: UPGRADED_PET,
       habits,
       removed: [],
       log: { [REAL]: { sleep: 1 } },

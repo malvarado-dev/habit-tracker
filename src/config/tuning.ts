@@ -28,10 +28,30 @@ export const tuning = {
 
   /** The pet's starting values (Prototype 2). */
   pet: {
-    /** Confidence (0 to 100) for a new save and for saves upgraded from Prototype 1. */
-    startConfidence: 20,
-    /** Test tools Confidence stepper: how much each tap moves it. */
-    confidenceStep: 10,
+    /** Love and Confidence (P2-13, #84, PRD-09). Worked out from the log (rules/petStats.ts).
+     * Starting values for testing: quests will be the main driver, and scoring gets revisited.
+     * Stats should build slowly, over weeks. */
+    stats: {
+      /** Both stats (0 to 100) before anything is logged. */
+      startLove: 20,
+      startConfidence: 20,
+      /** Each completed habit adds this to its linked stat. */
+      perHabit: 2,
+      /** Each Activity Bar notch a day passes adds this to Love and Confidence. */
+      perNotch: 5,
+      /** The stat each premade category raises. */
+      byCategory: {
+        'Daily Maintenance': 'confidence',
+        'Body & Mind': 'confidence',
+        'Growth & Productivity': 'confidence',
+        'Social & Relationships': 'love',
+        Hobbies: 'love',
+      } as const,
+      /** Custom (or renamed) habits raise this one. */
+      customHabit: 'confidence' as const,
+    },
+    /** Test tools Love and Confidence steppers: how much each tap moves them. */
+    statStep: 10,
     /** Spots (P2-12, PRD-09): under hideBelow the pet hides behind the bed; up to restUpTo it
      * rests on the bed once awake; above that it sits in the middle of the room. */
     hideBelow: 10,

@@ -4,6 +4,7 @@
 // real date; only Test has a pretend date (Next day). Plain TypeScript, no screens, so every
 // safety rule is unit tested. Prototype only: removed with the Test tools after Stage 3.
 
+import type { PetStat } from '@/rules/petStats';
 import { calendar } from '@/config/calendar';
 import type { BadHabitDesign } from '@/rules/badHabits';
 import { addDays, toDateKey, type DateKey } from '@/rules/dates';
@@ -63,8 +64,8 @@ export type AppAction =
   | { type: 'resetTest'; realDate: DateKey }
   /** Test only: checks in every habit on the pretend day. Ignored in Real. */
   | { type: 'fillTestDay'; realDate: DateKey }
-  /** Test only: sets the test pet's Confidence. Ignored in Real. */
-  | { type: 'setTestConfidence'; value: number; realDate: DateKey }
+  /** Test only: makes a test pet stat show this value. Ignored in Real. */
+  | { type: 'setTestStat'; stat: PetStat; value: number; realDate: DateKey }
   /** The bad habits design changed (P2-10). Changes no saved data. */
   | { type: 'setDesign'; design: BadHabitDesign };
 
@@ -116,7 +117,7 @@ export function appReducer(app: AppState, action: AppAction): AppState {
       // Check-ins stay; only the pretend date goes back. Days locked ahead stay locked.
       return app.mode === 'test' && app.testOffset !== 0 ? { ...app, testOffset: 0 } : app;
     case 'fillTestDay':
-    case 'setTestConfidence': {
+    case 'setTestStat': {
       // Test tools only ever write the Test save. In Real these do nothing.
       if (app.mode !== 'test') return app;
       const today = modeToday(app, action.realDate, 'test');
@@ -124,7 +125,7 @@ export function appReducer(app: AppState, action: AppAction): AppState {
       const change: TrackerAction =
         action.type === 'fillTestDay'
           ? { type: 'fillDay', date: today }
-          : { type: 'setConfidence', value: action.value };
+          : { type: 'setStat', stat: action.stat, value: action.value };
       const state = trackerReducer(locked.state, change, app.design);
       if (locked === app.test && state === locked.state) return app;
       return { ...app, test: { ...locked, state } };

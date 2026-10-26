@@ -27,13 +27,13 @@ import {
 import { addToTally, habitsForDesign, timesFor, type DesignTallies } from '@/rules/design';
 import { dayLogs, isSkipped, type Skips } from '@/rules/linked';
 import { allHabits, isLocked, lockDays, type LockedDay } from '@/rules/locking';
-import { tuning } from '@/config/tuning';
+import { adjustFor, type PetAdjust, type PetStat } from '@/rules/petStats';
 import { cleanName, nameProblem } from '@/features/habits/habitName';
 
 export interface TrackerState {
   /** Bumped when the saved shape changes. Older saves are upgraded step by step (save.ts). */
-  version: 12;
-  /** The pet's own values (Prototype 2). Confidence picks its spot in the room (P2-12). */
+  version: 13;
+  /** Test nudges to the pet's Love and Confidence (P2-13). Confidence picks its spot (P2-12). */
   pet: PetState;
   /** Active habits, in card order. */
   habits: Habit[];
@@ -66,19 +66,11 @@ export interface TrackerState {
   lockedThrough: DateKey | null;
 }
 
-export interface PetState {
-  /** 0 to 100. */
-  confidence: number;
-}
+/** Test tools nudges to the pet's stats (P2-13). Love and Confidence themselves are worked out
+ * from the log (rules/petStats.ts); Real saves keep these at 0. */
+export type PetState = PetAdjust;
 
-export const MIN_CONFIDENCE = 0;
-export const MAX_CONFIDENCE = 100;
-
-/** Keeps Confidence a whole number from 0 to 100. */
-export function cleanConfidence(value: number): number {
-  if (!Number.isFinite(value)) return tuning.pet.startConfidence;
-  return Math.min(MAX_CONFIDENCE, Math.max(MIN_CONFIDENCE, Math.round(value)));
-}
+export const START_PET: PetState = { loveAdjust: 0, confidenceAdjust: 0 };
 
 export const DEFAULT_HABITS: Habit[] = [
   {
@@ -121,8 +113,8 @@ export function cleanSchedule(schedule: Schedule): Schedule | null {
 /** A fresh start. `addedOn` is the tracker's own date (Test uses its pretend date). */
 export function createInitialState(addedOn?: DateKey): TrackerState {
   return {
-    version: 12,
-    pet: { confidence: tuning.pet.startConfidence },
+    version: 13,
+    pet: START_PET,
     removed: [],
     habits: addedOn ? DEFAULT_HABITS.map((h) => ({ ...h, addedOn })) : DEFAULT_HABITS,
     log: {},
@@ -154,8 +146,8 @@ export type TrackerAction =
   | { type: 'lockDays'; today: DateKey; openDays?: number }
   /** Test tools: finishes every habit that exists on the day. Locked days never change. */
   | { type: 'fillDay'; date: DateKey }
-  /** Test tools: sets the pet's Confidence (clamped to 0 to 100). */
-  | { type: 'setConfidence'; value: number }
+  /** Test tools: makes a pet stat show this value (clamped to 0 to 100). */
+  | { type: 'setStat'; stat: PetStat; value: number }
   /** Add habit (P2-09): a bad habit, standalone or paired with one good habit. */
   | { type: 'addBadHabit'; id: string; name: string; pairedWith?: string; date: DateKey }
   /** Tray tap: one more slip. */
@@ -369,9 +361,10 @@ export function trackerReducer(
           : day.filter((id) => id !== action.habitId);
       return { ...state, skips: { ...state.skips, [action.date]: next } };
     }
-    case 'setConfidence': {
-      const confidence = cleanConfidence(action.value);
-      return confidence === state.pet.confidence ? state : { ...state, pet: { confidence } };
+    case 'setStat': {
+      const key = action.stat === 'love' ? 'loveAdjust' : 'confidenceAdjust';
+      const adjust = adjustFor(action.stat, action.value, state);
+      return adjust === state.pet[key] ? state : { ...state, pet: { ...state.pet, [key]: adjust } };
     }
   }
 }

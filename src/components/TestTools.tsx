@@ -1,6 +1,6 @@
 // Test tools (SPEC-00, T14, moved to its own screen in T17): prototype only. A Real / Test switch,
 // the date, Bounce the pet (P2-11), and in Test only, Next day, Back to today, Reset (tap twice), Fill today, and the
-// pet's Confidence (P2-05). Times per day for each habit (P2-08a) works in Real and Test, since
+// pet's Love and Confidence (P2-05, P2-13). Times per day for each habit (P2-08a) works in Real and Test, since
 // there's no Edit habit setting for it yet. The bad habit Design 1 / Design 2 switch is a setting, not data (P2-10). Real is your real
 // data on the real date; Test is a separate save, so History can be tried in full without
 // touching real tracking. Theme lives in Profile, where the playtest records them; a Profile settings link
@@ -27,7 +27,7 @@ import { BAD_HABIT_DESIGNS, BAD_HABIT_DESIGN_LABELS } from '@/features/settings/
 import { useSettings } from '@/features/settings/SettingsProvider';
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import { requestPetReaction } from '@/scene/petReaction';
-import { MAX_CONFIDENCE, MIN_CONFIDENCE } from '@/features/tracker/state';
+import { MAX_STAT, MIN_STAT, type PetStat } from '@/rules/petStats';
 import { timesPerDay } from '@/rules/habits';
 import type { Mode } from '@/features/tracker/modes';
 import { MIN_TAP_SIZE, radius, space } from '@/theme';
@@ -46,8 +46,6 @@ export function TestTools() {
   const [confirmReset, setConfirmReset] = useState(false);
   const { badHabitDesign, setBadHabitDesign } = useSettings();
   const ahead = testTools.dayOffset > 0;
-  const step = tuning.pet.confidenceStep;
-  const confidence = testTools.confidence;
 
   return (
     <View style={styles.box} testID="test-tools">
@@ -145,45 +143,20 @@ export function TestTools() {
       ) : null}
 
       {mode === 'test' ? (
-        <View style={styles.section}>
-          <Text style={styles.heading} accessibilityRole="header">
-            Pet confidence
-          </Text>
-          <View
-            style={styles.row}
-            accessibilityRole="adjustable"
-            accessibilityLabel="Pet confidence"
-            accessibilityValue={{ min: MIN_CONFIDENCE, max: MAX_CONFIDENCE, now: confidence }}
-            accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
-            onAccessibilityAction={(e) =>
-              testTools.setConfidence(
-                confidence + (e.nativeEvent.actionName === 'increment' ? step : -step),
-              )
-            }
-          >
-            <Pressable
-              onPress={() => testTools.setConfidence(confidence - step)}
-              disabled={confidence <= MIN_CONFIDENCE}
-              style={[styles.button, confidence <= MIN_CONFIDENCE && styles.off]}
-              testID="confidence-down"
-              accessibilityLabel="Lower confidence"
-            >
-              <Text style={styles.buttonText}>−</Text>
-            </Pressable>
-            <Text style={styles.date} testID="confidence-value">
-              {confidence}
-            </Text>
-            <Pressable
-              onPress={() => testTools.setConfidence(confidence + step)}
-              disabled={confidence >= MAX_CONFIDENCE}
-              style={[styles.button, confidence >= MAX_CONFIDENCE && styles.off]}
-              testID="confidence-up"
-              accessibilityLabel="Raise confidence"
-            >
-              <Text style={styles.buttonText}>+</Text>
-            </Pressable>
-          </View>
-        </View>
+        <>
+          <StatStepper
+            stat="confidence"
+            label="Pet confidence"
+            value={testTools.stats.confidence}
+            onSet={(v) => testTools.setStat('confidence', v)}
+          />
+          <StatStepper
+            stat="love"
+            label="Pet love"
+            value={testTools.stats.love}
+            onSet={(v) => testTools.setStat('love', v)}
+          />
+        </>
       ) : null}
 
       <View style={styles.section}>
@@ -344,3 +317,59 @@ const makeStyles = (c: ThemeColors) =>
     confirm: { borderColor: c.danger },
     confirmText: { color: c.danger },
   });
+
+/** A Test tools stepper for one pet stat (P2-13). Worked-out value shown, nudged in steps. */
+function StatStepper({
+  stat,
+  label,
+  value,
+  onSet,
+}: {
+  stat: PetStat;
+  label: string;
+  value: number;
+  onSet: (value: number) => void;
+}) {
+  const styles = useStyles();
+  const step = tuning.pet.statStep;
+  const name = label.replace('Pet ', '');
+  return (
+    <View style={styles.section}>
+      <Text style={styles.heading} accessibilityRole="header">
+        {label}
+      </Text>
+      <View
+        style={styles.row}
+        accessibilityRole="adjustable"
+        accessibilityLabel={label}
+        accessibilityValue={{ min: MIN_STAT, max: MAX_STAT, now: value }}
+        accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+        onAccessibilityAction={(e) =>
+          onSet(value + (e.nativeEvent.actionName === 'increment' ? step : -step))
+        }
+      >
+        <Pressable
+          onPress={() => onSet(value - step)}
+          disabled={value <= MIN_STAT}
+          style={[styles.button, value <= MIN_STAT && styles.off]}
+          testID={`${stat}-down`}
+          accessibilityLabel={`Lower ${name}`}
+        >
+          <Text style={styles.buttonText}>−</Text>
+        </Pressable>
+        <Text style={styles.date} testID={`${stat}-value`}>
+          {value}
+        </Text>
+        <Pressable
+          onPress={() => onSet(value + step)}
+          disabled={value >= MAX_STAT}
+          style={[styles.button, value >= MAX_STAT && styles.off]}
+          testID={`${stat}-up`}
+          accessibilityLabel={`Raise ${name}`}
+        >
+          <Text style={styles.buttonText}>+</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}

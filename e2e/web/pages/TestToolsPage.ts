@@ -1,4 +1,4 @@
-// Page object for the Test tools screen (prototype only). Only the parts P2-10 and P2-11 tests use.
+// Page object for the Test tools screen (prototype only). Only the parts P2-10 to P2-13 tests use.
 import { expect, type Locator, type Page } from '@playwright/test';
 
 export type Design = 'design1' | 'design2';
@@ -40,5 +40,9 @@ export class TestToolsPage {
 
   confidence(): Locator {
     return this.page.getByTestId('confidence-value');
+  }
+
+  love(): Locator {
+    return this.page.getByTestId('love-value');
   }
 }

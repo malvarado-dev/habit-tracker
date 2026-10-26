@@ -7,10 +7,11 @@
 import { tuning } from '@/config/tuning';
 import type { DateKey } from '@/rules/dates';
 import type { Habit, LogCounts, Weekday } from '@/rules/habits';
-import { dayResult, allHabits, type LockedDay } from '@/rules/locking';
+import { dayResult, allHabits, type LockState, type LockedDay } from '@/rules/locking';
+import { adjustFor } from '@/rules/petStats';
 import type { TrackerState } from './state';
 
-export const CURRENT_VERSION = 12;
+export const CURRENT_VERSION = 13;
 
 /** Before v9 (Prototype 1 and P2-07): a check-in was a star level per habit per day. */
 type OldCheckIn = 'NotToday' | 'Started' | 'OnTrack' | 'NailedIt';
@@ -54,7 +55,10 @@ function isV4(v: Record<string, unknown>): v is SaveV4 & Record<string, unknown>
   );
 }
 
-function isV5Shape(v: Record<string, unknown>, version: 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12): boolean {
+function isV5Shape(
+  v: Record<string, unknown>,
+  version: 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13,
+): boolean {
   return (
     v.version === version &&
     Array.isArray(v.habits) &&
@@ -95,8 +99,19 @@ const isV11 = (v: Record<string, unknown>) =>
   Array.isArray(v.badHabits) &&
   isObject(v.slips) &&
   isObject(v.skips);
-const isV12 = (v: Record<string, unknown>): v is TrackerState & Record<string, unknown> =>
+const isV12 = (v: Record<string, unknown>) =>
   isV11({ ...v, version: 11 }) && v.version === 12 && isObject(v.designTallies);
+const isV13 = (v: Record<string, unknown>): v is TrackerState & Record<string, unknown> =>
+  isV5Shape(v, 13) &&
+  Array.isArray(v.removed) &&
+  isObject(v.pet) &&
+  typeof v.pet.loveAdjust === 'number' &&
+  typeof v.pet.confidenceAdjust === 'number' &&
+  isObject(v.targets) &&
+  Array.isArray(v.badHabits) &&
+  isObject(v.slips) &&
+  isObject(v.skips) &&
+  isObject(v.designTallies);
 
 /** v9: a weekly goal becomes a schedule (when it's due), and every habit starts at 1 time a day. */
 function upgradeHabit(old: OldHabit): Habit {
@@ -163,7 +178,7 @@ const UPGRADES: Record<number, (save: Record<string, unknown>) => Record<string,
   // days are copied exactly as they were, so Prototype 1 tracking carries into Prototype 2.
   7: (save) => {
     if (!isV7(save)) throw new Error('Not a valid v7 save');
-    return { ...save, version: 8, pet: { confidence: tuning.pet.startConfidence } };
+    return { ...save, version: 8, pet: { confidence: tuning.pet.stats.startConfidence } };
   },
   // v8 to v9 (P2-08a): stars, ranks and weekly goals are gone. Each star level becomes 1 log and
   // Skip is dropped. Weekly goals become schedules. Locked days are worked out again from their
@@ -198,6 +213,19 @@ const UPGRADES: Record<number, (save: Record<string, unknown>) => Record<string,
   11: (save) => {
     if (!isV11(save)) throw new Error('Not a valid v11 save');
     return { ...save, version: 12, designTallies: {} };
+  },
+  // v12 to v13 (P2-13): Love and Confidence are now worked out from the log. The saved Confidence
+  // becomes a nudge so the pet keeps the same Confidence (and spot) it had. Love starts at its
+  // start value: logs from before stats existed don't count all at once.
+  12: (save) => {
+    if (!isV12(save)) throw new Error('Not a valid v12 save');
+    const old = (save.pet as { confidence: number }).confidence;
+    const lockState = save as unknown as LockState;
+    const pet = {
+      loveAdjust: adjustFor('love', tuning.pet.stats.startLove, lockState),
+      confidenceAdjust: adjustFor('confidence', old, lockState),
+    };
+    return { ...save, version: 13, pet };
   },
 };
 
@@ -236,7 +264,7 @@ export function loadSave(raw: string | null): LoadResult {
     return { kind: 'unreadable', raw };
   }
 
-  if (!isV12(save)) return { kind: 'unreadable', raw };
+  if (!isV13(save)) return { kind: 'unreadable', raw };
   return { kind: 'loaded', state: save, upgradedFrom: from === CURRENT_VERSION ? null : from };
 }
 
