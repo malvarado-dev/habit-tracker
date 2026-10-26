@@ -32,6 +32,10 @@ export const tuning = {
     startConfidence: 20,
     /** Test tools Confidence stepper: how much each tap moves it. */
     confidenceStep: 10,
+    /** Spots (P2-12, PRD-09): under hideBelow the pet hides behind the bed; up to restUpTo it
+     * rests on the bed once awake; above that it sits in the middle of the room. */
+    hideBelow: 10,
+    restUpTo: 25,
 
     /** Idle motion on the pet PNGs (P2-11, #82): breathe, blink, small bounce. Whole body only. */
     motion: {

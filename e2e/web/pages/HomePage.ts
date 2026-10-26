@@ -111,4 +111,24 @@ export class HomePage {
   async blinkCount(): Promise<number> {
     return this.page.evaluate(() => (window as unknown as { petBlinks: number }).petBlinks);
   }
+
+  /** The pet's spot and bed layer, e.g. 'bed' and 'inBed' (P2-12). */
+  async petPlace(): Promise<{ spot: string; layer: string }> {
+    const id = (await this.page.getByTestId('pet-layer').getAttribute('id')) ?? '';
+    const [, spot = '', layer = ''] = /^pet-at-(\w+)-(\w+)$/.exec(id) ?? [];
+    return { spot, layer };
+  }
+
+  /** Where the pet is drawn against the bed: before its back layer, between, or after the front. */
+  async petDrawOrder(): Promise<'behindBed' | 'inBed' | 'front'> {
+    return this.page.evaluate(() => {
+      const get = (id: string) => document.querySelector(`[data-testid="${id}"]`)!;
+      const pet = get('pet-layer');
+      const before = (a: Element, b: Element) =>
+        !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+      if (before(pet, get('bed-back'))) return 'behindBed';
+      if (before(pet, get('bed-front'))) return 'inBed';
+      return 'front';
+    });
+  }
 }

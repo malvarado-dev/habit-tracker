@@ -26,4 +26,19 @@ export class TestToolsPage {
     await this.designChip(design).click();
     await expect(this.designChip(design)).toHaveAttribute('aria-checked', 'true');
   }
+
+  /** Switches to the Test save, where the pet's Confidence can be changed. */
+  async useTestData(): Promise<void> {
+    await this.page.getByTestId('mode-test').click();
+  }
+
+  /** Steps Confidence down (negative) or up (positive) and waits for the new value. */
+  async stepConfidence(steps: number): Promise<void> {
+    const button = this.page.getByTestId(steps < 0 ? 'confidence-down' : 'confidence-up');
+    for (let i = 0; i < Math.abs(steps); i++) await button.click();
+  }
+
+  confidence(): Locator {
+    return this.page.getByTestId('confidence-value');
+  }
 }

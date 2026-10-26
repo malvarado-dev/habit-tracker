@@ -14,6 +14,7 @@ import { Background } from '@/components/Background';
 import { Critter } from '@/components/Critter';
 import { RoomScene } from '@/components/RoomScene';
 import { roomGeometry } from '@/scene/roomGeometry';
+import type { PetPlace } from '@/rules/petPlace';
 import { HistoryView } from '@/components/history/HistoryView';
 import { layoutMode, wideSizes } from '@/components/todayLayoutMode';
 import { useTheme } from '@/design/theme/ThemeProvider';
@@ -29,6 +30,8 @@ type Props = {
   /** The screen's test ID, on the outer view in both layouts. */
   testID: string;
   critter: CritterProps;
+  /** Where the pet is in the living room (P2-12). Phone and tablet portrait only. */
+  pet: PetPlace;
   /** The top-left button. `onPage` is true on wide, where it sits on the sheet color. */
   corner: (onPage: boolean) => ReactNode;
   /** The sheet's contents. `bottomPadding` keeps the last card clear of the home indicator. */
@@ -39,7 +42,7 @@ type Props = {
   overlay?: ReactNode;
 };
 
-export function SceneLayout({ testID, critter, corner, sheet, onOpenDay, overlay }: Props) {
+export function SceneLayout({ testID, critter, pet, corner, sheet, onOpenDay, overlay }: Props) {
   const styles = useStyles();
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -87,7 +90,7 @@ export function SceneLayout({ testID, critter, corner, sheet, onOpenDay, overlay
   return (
     <View style={styles.screen} testID={testID}>
       {/* The room never scrolls; it sits behind everything. */}
-      <RoomScene geometry={room} petSpot="room" />
+      <RoomScene geometry={room} pet={pet} />
 
       <View style={[styles.corner, { top: insets.top + space.sm, left: insets.left + space.lg }]}>
         {corner(false)}
