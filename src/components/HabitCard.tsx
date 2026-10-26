@@ -78,6 +78,9 @@ export function HabitCard(props: HabitCardProps) {
   const reduceMotion = useReducedMotion();
   const scale = useSharedValue(1);
   const swipe = useRef<SwipeableMethods>(null);
+  // Letting go after a slide can also arrive as a press (seen on the web with a mouse), which
+  // would log the habit by accident. Taps are ignored for a moment after a slide starts.
+  const slidAt = useRef(0);
   const [menu, setMenu] = useState(false);
   const habitColor = c[habit.color];
   const times = timesPerDay(habit);
@@ -96,6 +99,7 @@ export function HabitCard(props: HabitCardProps) {
 
   const log = () => {
     if (locked) return;
+    if (Date.now() - slidAt.current < tuning.card.ignoreTapAfterSlideMs) return;
     // Haptics never block the tap; a phone or browser without them just stays quiet.
     buzz(count + slate + 1 >= times);
     if (!reduceMotion) {
@@ -184,6 +188,12 @@ export function HabitCard(props: HabitCardProps) {
           ref={swipe}
           friction={1.5}
           dragOffsetFromLeft={tuning.card.slideStartOffset}
+          onSwipeableOpenStartDrag={() => {
+            slidAt.current = Date.now();
+          }}
+          onSwipeableWillOpen={() => {
+            slidAt.current = Date.now();
+          }}
           overshootLeft={false}
           renderLeftActions={() => (
             <View style={styles.actions} testID={`habit-actions-${id}`}>

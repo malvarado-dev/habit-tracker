@@ -42,6 +42,8 @@ export const tuning = {
     slideStartOffset: 16,
     /** How long to hold a card before its menu opens. */
     longPressMs: 450,
+    /** After a slide starts, a tap this soon is the finger lifting, not a log. */
+    ignoreTapAfterSlideMs: 600,
   },
 
   /** The segmented ring around a frequency habit's icon (PRD-15). */
