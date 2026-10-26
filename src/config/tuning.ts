@@ -106,6 +106,15 @@ export const tuning = {
     },
   },
 
+  /** Bad habits tray (P2-09). */
+  badHabits: {
+    /** The count badge grows this much when a slip is added, then springs back. */
+    bumpScale: 1.25,
+    bumpMs: 120,
+    /** How long to hold a chip before the stepper opens. */
+    longPressMs: 450,
+  },
+
   habits: {
     /** How long the Undo bar stays after a log or a remove. */
     undoMs: 5000,

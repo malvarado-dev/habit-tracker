@@ -30,8 +30,9 @@ export default function AddHabitDetailsScreen() {
   );
 
   const full = state.habits.length >= MAX_HABITS;
-  const canAdd = !full && nameProblem(name, state.habits) === null;
-  const hint = full ? '15 habits is the most.' : nameHint(name, state.habits);
+  const names = [...state.habits, ...state.badHabits];
+  const canAdd = !full && nameProblem(name, names) === null;
+  const hint = full ? '15 habits is the most.' : nameHint(name, names);
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/add-habit'));
 

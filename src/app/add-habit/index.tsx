@@ -1,9 +1,10 @@
-// Pick a habit (SPEC-00, T13; Figma "Add habit · Pick a habit"). Titled "Add habit" on screen.
-// Create your own, then the premade habits in groups, two to a row. Already-added habits are
-// dimmed with a check and can't be picked again. No search.
+// Add habit (PRD-02, P2-09; canvas "Add Habit with Bad Habits"). Create your own, then the whole
+// habit catalog by category, two to a row, and the bad habits in their own lilac section at the
+// bottom. Added habits are darkened with a check and can't be picked again. No plus buttons, no
+// search. In Design 2, mirror bad habits (Poor Sleep, Sedentary) are hidden (PRD-15).
 
 import { router } from 'expo-router';
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -12,8 +13,15 @@ import { iconLetter } from '@/components/habitCardText';
 import { textStyle } from '@/design/fonts';
 import { withAlpha } from '@/design/theme/theme';
 import { useTheme } from '@/design/theme/ThemeProvider';
-import { tints, type ThemeColors } from '@/design/tokens';
-import { isAdded, PREMADE_GROUPS, PREMADE_HABITS } from '@/features/habits/premadeHabits';
+import { badHabitColors as bad, tints, type ThemeColors } from '@/design/tokens';
+import {
+  findPremade,
+  HABIT_CATEGORIES,
+  isAdded,
+  offeredBadHabits,
+  PREMADE_HABITS,
+} from '@/features/habits/premadeHabits';
+import { useSettings } from '@/features/settings/SettingsProvider';
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import { HABIT_COLORS } from '@/rules/habits';
 import { MIN_TAP_SIZE, radius, space } from '@/theme';
@@ -22,10 +30,13 @@ export default function PickHabitScreen() {
   const styles = useStyles();
   const { colors: c } = useTheme();
   const { state } = useTracker();
+  const { badHabitDesign } = useSettings();
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/habits'));
   const open = (premade?: string) =>
     router.push({ pathname: '/add-habit/details', params: premade ? { premade } : {} });
+  const openBad = (premade?: string) =>
+    router.push({ pathname: '/add-habit/bad', params: premade ? { premade } : {} });
 
   return (
     <SafeAreaView style={styles.screen} testID="pick-habit-screen">
@@ -45,68 +56,124 @@ export default function PickHabitScreen() {
           <Text style={styles.createText}>+ Create your own</Text>
         </Pressable>
 
-        {PREMADE_GROUPS.map((group) => (
-          <View key={group} style={styles.group}>
+        {HABIT_CATEGORIES.map((category) => (
+          <View key={category} style={styles.group}>
             <Text style={styles.groupLabel} accessibilityRole="header">
-              {group.toUpperCase()}
+              {category.toUpperCase()}
             </Text>
-            <View style={styles.grid}>
-              {pairs(PREMADE_HABITS.filter((p) => p.group === group)).map((pair) => (
-                <View key={pair[0].key} style={styles.pairRow}>
-                  {pair.map((p) => {
-                    const added = isAdded(p, state.habits);
-                    const index = PREMADE_HABITS.indexOf(p);
-                    // Display only: the new habit's real color is the least-used one.
-                    const color = c[HABIT_COLORS[index % HABIT_COLORS.length]!];
-                    return (
-                      <Pressable
-                        key={p.key}
-                        onPress={() => open(p.key)}
-                        disabled={added}
-                        style={({ pressed }) => [
-                          styles.cell,
-                          styles.item,
-                          added && styles.added,
-                          pressed && styles.pressed,
-                        ]}
-                        testID={`pick-habit-${p.key}`}
-                        accessibilityRole="button"
-                        accessibilityLabel={added ? `${p.name}, already added` : p.name}
-                        accessibilityState={{ disabled: added }}
-                      >
-                        <View
-                          style={[styles.icon, { backgroundColor: withAlpha(color, tints.icon) }]}
-                        >
-                          <Text style={[styles.iconLetter, { color }]}>{iconLetter(p.name)}</Text>
-                        </View>
-                        <Text style={styles.itemName} numberOfLines={1}>
-                          {p.name}
-                        </Text>
-                        {added ? (
-                          <Text style={styles.check} testID={`pick-habit-${p.key}-added`}>
-                            ✓
-                          </Text>
-                        ) : null}
-                      </Pressable>
-                    );
-                  })}
-                  {/* An odd last habit keeps half width instead of stretching. */}
-                  {pair.length === 1 ? <View style={styles.cell} /> : null}
-                </View>
-              ))}
-            </View>
+            <TwoColumns>
+              {PREMADE_HABITS.filter((p) => p.category === category).map((p) => {
+                const added = isAdded(p, state.habits);
+                const index = PREMADE_HABITS.indexOf(p);
+                // Display only: the new habit's real color is the least-used one.
+                const color = c[HABIT_COLORS[index % HABIT_COLORS.length]!];
+                return (
+                  <Pressable
+                    key={p.key}
+                    onPress={() => open(p.key)}
+                    disabled={added}
+                    style={({ pressed }) => [
+                      styles.item,
+                      added && styles.added,
+                      pressed && styles.pressed,
+                    ]}
+                    testID={`pick-habit-${p.key}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={added ? `${p.name}, already added` : p.name}
+                    accessibilityState={{ disabled: added }}
+                  >
+                    <View style={[styles.icon, { backgroundColor: withAlpha(color, tints.icon) }]}>
+                      <Text style={[styles.iconLetter, { color }]}>{iconLetter(p.name)}</Text>
+                    </View>
+                    <Text style={styles.itemName}>{p.name}</Text>
+                    {added ? (
+                      <Text style={styles.check} testID={`pick-habit-${p.key}-added`}>
+                        ✓
+                      </Text>
+                    ) : null}
+                  </Pressable>
+                );
+              })}
+            </TwoColumns>
           </View>
         ))}
+
+        <View style={styles.badSection} testID="pick-bad-habits">
+          <Text style={styles.badTitle} accessibilityRole="header">
+            Bad habits
+          </Text>
+          <Text style={styles.badHint}>
+            Slips you want to see go down. Counting them never takes anything away.
+          </Text>
+          <TwoColumns>
+            {offeredBadHabits(badHabitDesign).map((b) => {
+              const added = isAdded(b, state.badHabits);
+              const partner = badHabitDesign === 'design1' ? findPremade(b.pairsWith) : undefined;
+              return (
+                <Pressable
+                  key={b.key}
+                  onPress={() => openBad(b.key)}
+                  disabled={added}
+                  style={({ pressed }) => [
+                    styles.badItem,
+                    added && styles.badAdded,
+                    pressed && styles.pressed,
+                  ]}
+                  testID={`pick-bad-${b.key}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    `${b.name}${partner ? `, pairs with ${partner.name}` : ''}` +
+                    (added ? ', already added' : '')
+                  }
+                  accessibilityState={{ disabled: added }}
+                >
+                  <View style={styles.badText}>
+                    <Text style={styles.badName}>{b.name}</Text>
+                    {partner ? <Text style={styles.badPair}>With {partner.name}</Text> : null}
+                  </View>
+                  {added ? (
+                    <Text style={styles.badCheck} testID={`pick-bad-${b.key}-added`}>
+                      ✓
+                    </Text>
+                  ) : null}
+                </Pressable>
+              );
+            })}
+          </TwoColumns>
+          <Pressable
+            onPress={() => openBad()}
+            style={({ pressed }) => [styles.badCreate, pressed && styles.pressed]}
+            testID="pick-bad-create"
+            accessibilityRole="button"
+            accessibilityLabel="Create your own bad habit"
+          >
+            <Text style={styles.badCreateText}>+ Create your own bad habit</Text>
+          </Pressable>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-/** Two to a row: [[a, b], [c, d], [e]]. */
-function pairs<T>(items: T[]): [T, ...T[]][] {
-  const rows: [T, ...T[]][] = [];
-  for (let i = 0; i < items.length; i += 2) rows.push(items.slice(i, i + 2) as [T, ...T[]]);
-  return rows;
+/** Two to a row. An odd last item keeps half width instead of stretching. */
+function TwoColumns({ children }: { children: ReactNode[] }) {
+  const styles = useStyles();
+  const rows: ReactNode[][] = [];
+  for (let i = 0; i < children.length; i += 2) rows.push(children.slice(i, i + 2));
+  return (
+    <View style={styles.grid}>
+      {rows.map((row, i) => (
+        <View key={i} style={styles.pairRow}>
+          {row.map((child, j) => (
+            <View key={j} style={styles.cell}>
+              {child}
+            </View>
+          ))}
+          {row.length === 1 ? <View style={styles.cell} /> : null}
+        </View>
+      ))}
+    </View>
+  );
 }
 
 function useStyles() {
@@ -147,6 +214,7 @@ const makeStyles = (c: ThemeColors) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: space.sm,
+      paddingVertical: space.xs,
       paddingLeft: space.sm,
       paddingRight: space.md,
       borderRadius: radius.pill,
@@ -154,7 +222,8 @@ const makeStyles = (c: ThemeColors) =>
       borderWidth: 1,
       borderColor: c.border,
     },
-    added: { backgroundColor: c.surfaceDim, opacity: 0.6 },
+    // Darkened, not faded (approved canvas): gray fill, full-strength text and check.
+    added: { backgroundColor: c.surfaceDim, borderColor: c.surfaceDim },
     pressed: { opacity: 0.7 },
     icon: {
       width: ICON,
@@ -164,6 +233,43 @@ const makeStyles = (c: ThemeColors) =>
       justifyContent: 'center',
     },
     iconLetter: { ...textStyle('label') },
+    // Long names wrap to a second line instead of being cut off.
     itemName: { ...textStyle('body'), color: c.onSurface, flex: 1 },
     check: { ...textStyle('habitName'), color: c.onSurface },
+    badSection: {
+      marginTop: space.lg,
+      backgroundColor: bad.tray,
+      borderRadius: radius.lg,
+      padding: space.lg,
+      gap: space.md,
+    },
+    badTitle: { ...textStyle('title'), color: bad.onTray },
+    badHint: { ...textStyle('body'), color: bad.onTrayMuted },
+    badItem: {
+      flex: 1,
+      minHeight: MIN_TAP_SIZE + space.xs,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: space.sm,
+      paddingVertical: space.xs,
+      paddingLeft: space.lg,
+      paddingRight: space.md,
+      borderRadius: radius.pill,
+      backgroundColor: bad.chip,
+    },
+    badAdded: { backgroundColor: bad.chipAdded },
+    badText: { flex: 1, gap: 1 },
+    badName: { ...textStyle('label'), color: bad.onChip },
+    badPair: { ...textStyle('caption'), color: bad.onChipMuted },
+    badCheck: { ...textStyle('habitName'), color: c.primary },
+    badCreate: {
+      minHeight: MIN_TAP_SIZE + space.sm,
+      borderRadius: radius.pill,
+      borderWidth: 1.5,
+      borderStyle: 'dashed',
+      borderColor: bad.createBorder,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    badCreateText: { ...textStyle('label'), color: bad.onTray },
   });

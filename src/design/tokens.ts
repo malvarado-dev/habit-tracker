@@ -237,3 +237,23 @@ export const history = {
 
 /** Sky brightness per live rank, 0 to 1 (SPEC-00: C dim, B a little glow, A bright, S rays). */
 export const skyGlow = { asleep: 0.1, rest: 0.3, awake: 0.4, full: 0.9 } as const;
+
+/**
+ * Bad habits tray and chips (docs/design/design-system.md: tray-bad, chip-dark). Fixed in both
+ * themes until the mockups set dark values, like the ring colors in tuning.ts.
+ */
+export const badHabitColors = {
+  tray: '#ECE7F2',
+  /** Body text on the lilac tray (7:1). */
+  onTray: '#1F1F1F',
+  onTrayMuted: '#4A4458',
+  chip: '#3A3633',
+  /** A chip that's already added on Add habit: darker still, with a lemon check. */
+  chipAdded: '#1F1F1F',
+  onChip: '#FFFFFF',
+  onChipMuted: '#D6D1C9',
+  /** The count badge at 0: muted, so a chip with no slips reads quiet. */
+  badgeEmpty: '#5E5A52',
+  /** Dashed outline on "Create your own bad habit". */
+  createBorder: '#6B6478',
+} as const;

@@ -67,7 +67,7 @@ export default function EditHabitScreen() {
           idPrefix="edit"
           name={draft}
           onNameChange={rename}
-          nameHint={nameHint(draft, state.habits, habit.id)}
+          nameHint={nameHint(draft, [...state.habits, ...state.badHabits], habit.id)}
           schedule={habit.schedule}
           onScheduleChange={(schedule) =>
             dispatch({ type: 'setSchedule', habitId: habit.id, schedule })

@@ -10,6 +10,7 @@ import { textStyle, urbanist } from '@/design/fonts';
 const today = readFileSync(join(__dirname, '../app/index.tsx'), 'utf8');
 
 const sheet = readFileSync(join(__dirname, 'HabitSheet.tsx'), 'utf8');
+const tray = readFileSync(join(__dirname, 'BadHabitsTray.tsx'), 'utf8');
 // Today's layout lives in SceneLayout since T23, shared with the Day screen.
 const scene = readFileSync(join(__dirname, 'SceneLayout.tsx'), 'utf8');
 
@@ -42,7 +43,7 @@ describe('acceptance: cards scroll while the Background stays still', () => {
       '<MainQuestCard',
       "section('today'",
       "section('anytime'",
-      'testID="bad-habits-section"',
+      '<BadHabitsTray',
       'testID="history-link"',
     ].map((s) => sheet.indexOf(s));
     expect(order.every((at) => at > 0)).toBe(true);
@@ -51,7 +52,7 @@ describe('acceptance: cards scroll while the Background stays still', () => {
 
   it('the sheet bar shows the Activity Bar icons; Bad habits only show once one exists', () => {
     expect(sheet).toMatch(/<ActivityBar[^>]*activityIcons/);
-    expect(sheet).toContain('badHabits.length > 0 ?');
+    expect(tray).toContain('if (badHabits.length === 0) return null;');
     expect(sheet).not.toMatch(/Done/);
   });
 

@@ -7,14 +7,17 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ActivityBar } from '@/components/ActivityBar';
+import { BadHabitsTray } from '@/components/BadHabitsTray';
 import { HabitCard } from '@/components/HabitCard';
 import { MainQuestCard } from '@/components/MainQuestCard';
 import { UndoBar } from '@/components/UndoBar';
 import { tuning } from '@/config/tuning';
 import { textStyle } from '@/design/fonts';
 import { useTheme } from '@/design/theme/ThemeProvider';
+import { useSettings } from '@/features/settings/SettingsProvider';
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import { getActivityBar } from '@/rules/activityBar';
+import { slipCount, trayHabits, type BadHabit } from '@/rules/badHabits';
 import { logCount, type Habit } from '@/rules/habits';
 import { allHabits } from '@/rules/locking';
 import { groupHabits } from '@/rules/sheet';
@@ -23,17 +26,20 @@ import { space } from '@/theme';
 // Main Quest stand-in until P2-15 (#86) gives the sheet the real quest.
 const QUEST_PLACEHOLDER = { name: 'Heal Neko', done: 0, total: 7, unit: 'days' } as const;
 
-// Bad habits arrive in P2-09 (#80). The section only shows once there is at least one.
-const NO_BAD_HABITS: string[] = [];
-
 export function HabitSheet({ bottomPadding }: { bottomPadding: number }) {
   const { state, dispatch, today } = useTracker();
   const { colors: c } = useTheme();
+  const { badHabitDesign } = useSettings();
   const bar = getActivityBar(allHabits(state), state.log, today, state.targets[today]);
   const sections = groupHabits(state.habits, state.log, today);
-  const badHabits = NO_BAD_HABITS;
-  // The last log, so Undo can take it back. `id` changes every log to restart the timer.
-  const [undo, setUndo] = useState<{ habit: Habit; id: number } | null>(null);
+  const tray = trayHabits(state.badHabits, state.habits, badHabitDesign);
+  // The last change, so Undo can take it back. `id` changes every time to restart the timer.
+  // A slip remembers the count before it, so Undo after a stepper change puts it back exactly.
+  const [undo, setUndo] = useState<
+    | { kind: 'log'; habit: Habit; id: number }
+    | { kind: 'slip'; bad: BadHabit; before: number; after: number; id: number }
+    | null
+  >(null);
 
   useEffect(() => {
     if (!undo) return;
@@ -43,12 +49,22 @@ export function HabitSheet({ bottomPadding }: { bottomPadding: number }) {
 
   const log = (habit: Habit) => {
     dispatch({ type: 'logHabit', date: today, habitId: habit.id });
-    setUndo((u) => ({ habit, id: (u?.id ?? 0) + 1 }));
+    setUndo((u) => ({ kind: 'log', habit, id: (u?.id ?? 0) + 1 }));
   };
 
-  const undoLog = () => {
+  const slips = (id: string) => slipCount(state.slips, today, id);
+
+  const setSlips = (bad: BadHabit, count: number) => {
+    const before = slips(bad.id);
+    if (count < 0 || count === before) return;
+    dispatch({ type: 'setSlips', date: today, badHabitId: bad.id, count });
+    setUndo((u) => ({ kind: 'slip', bad, before, after: count, id: (u?.id ?? 0) + 1 }));
+  };
+
+  const undoLast = () => {
     if (!undo) return;
-    dispatch({ type: 'undoLog', date: today, habitId: undo.habit.id });
+    if (undo.kind === 'log') dispatch({ type: 'undoLog', date: today, habitId: undo.habit.id });
+    else dispatch({ type: 'setSlips', date: today, badHabitId: undo.bad.id, count: undo.before });
     setUndo(null);
   };
 
@@ -92,20 +108,12 @@ export function HabitSheet({ bottomPadding }: { bottomPadding: number }) {
         <MainQuestCard {...QUEST_PLACEHOLDER} />
         {section('today', 'Today', sections.today)}
         {section('anytime', 'Anytime', sections.anytime)}
-        {badHabits.length > 0 ? (
-          <View
-            style={[styles.badHabits, { backgroundColor: c.habit8 + BAD_TINT_ALPHA }]}
-            testID="bad-habits-section"
-          >
-            <Text
-              style={[textStyle('label', '700'), { color: c.onSurface }]}
-              accessibilityRole="header"
-              testID="bad-habits-title"
-            >
-              Bad habits
-            </Text>
-          </View>
-        ) : null}
+        <BadHabitsTray
+          badHabits={tray}
+          countOf={slips}
+          onSlip={(bad) => setSlips(bad, slips(bad.id) + 1)}
+          onSetCount={setSlips}
+        />
         <Pressable
           testID="history-link"
           accessibilityRole="link"
@@ -125,23 +133,33 @@ export function HabitSheet({ bottomPadding }: { bottomPadding: number }) {
       {undo ? (
         <UndoBar
           key={undo.id}
-          text={`${undo.habit.name || 'Habit'} logged`}
-          undoLabel={`Undo, take back the last ${undo.habit.name || 'habit'} log`}
-          onUndo={undoLog}
+          text={undoText(undo)}
+          undoLabel={
+            undo.kind === 'log'
+              ? `Undo, take back the last ${undo.habit.name || 'habit'} log`
+              : `Undo, put ${undo.bad.name || 'the bad habit'} back to ${undo.before}`
+          }
+          onUndo={undoLast}
         />
       ) : null}
     </>
   );
 }
 
-// Soft tint so the Bad habits section reads apart from good habits (P2-07, long-sheet-v3).
-const BAD_TINT_ALPHA = '1F';
+/** What the Undo bar says: "Sleep logged", "Soda counted" (a tap or plus), or "Soda set to 0". */
+function undoText(
+  undo:
+    { kind: 'log'; habit: Habit } | { kind: 'slip'; bad: BadHabit; before: number; after: number },
+): string {
+  if (undo.kind === 'log') return `${undo.habit.name || 'Habit'} logged`;
+  const name = undo.bad.name || 'Bad habit';
+  return undo.after === undo.before + 1 ? `${name} counted` : `${name} set to ${undo.after}`;
+}
 
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { gap: space.lg, paddingTop: space.xs },
   section: { gap: space.md },
-  badHabits: { borderRadius: 24, padding: space.lg, gap: space.md },
   historyLink: {
     alignSelf: 'center',
     paddingVertical: space.sm,

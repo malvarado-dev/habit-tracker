@@ -29,7 +29,7 @@ describe('acceptance: Add habit screens (T13)', () => {
   });
 
   it('Add stays gray and disabled until the name is valid', () => {
-    expect(details).toContain('nameProblem(name, state.habits) === null');
+    expect(details).toContain('nameProblem(name, names) === null');
     expect(details).toContain('disabled={!canAdd}');
     expect(details).toContain('styles.buttonOff');
   });

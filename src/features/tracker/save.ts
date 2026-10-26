@@ -10,7 +10,7 @@ import type { Habit, LogCounts, Weekday } from '@/rules/habits';
 import { dayResult, allHabits, type LockedDay } from '@/rules/locking';
 import type { TrackerState } from './state';
 
-export const CURRENT_VERSION = 9;
+export const CURRENT_VERSION = 10;
 
 /** Before v9 (Prototype 1 and P2-07): a check-in was a star level per habit per day. */
 type OldCheckIn = 'NotToday' | 'Started' | 'OnTrack' | 'NailedIt';
@@ -54,7 +54,7 @@ function isV4(v: Record<string, unknown>): v is SaveV4 & Record<string, unknown>
   );
 }
 
-function isV5Shape(v: Record<string, unknown>, version: 5 | 6 | 7 | 8 | 9): boolean {
+function isV5Shape(v: Record<string, unknown>, version: 5 | 6 | 7 | 8 | 9 | 10): boolean {
   return (
     v.version === version &&
     Array.isArray(v.habits) &&
@@ -72,12 +72,20 @@ const isV8 = (v: Record<string, unknown>) =>
   Array.isArray(v.removed) &&
   isObject(v.pet) &&
   typeof v.pet.confidence === 'number';
-const isV9 = (v: Record<string, unknown>): v is TrackerState & Record<string, unknown> =>
+const isV9 = (v: Record<string, unknown>) =>
   isV5Shape(v, 9) &&
   Array.isArray(v.removed) &&
   isObject(v.pet) &&
   typeof v.pet.confidence === 'number' &&
   isObject(v.targets);
+const isV10 = (v: Record<string, unknown>): v is TrackerState & Record<string, unknown> =>
+  isV5Shape(v, 10) &&
+  Array.isArray(v.removed) &&
+  isObject(v.pet) &&
+  typeof v.pet.confidence === 'number' &&
+  isObject(v.targets) &&
+  Array.isArray(v.badHabits) &&
+  isObject(v.slips);
 
 /** v9: a weekly goal becomes a schedule (when it's due), and every habit starts at 1 time a day. */
 function upgradeHabit(old: OldHabit): Habit {
@@ -163,6 +171,12 @@ const UPGRADES: Record<number, (save: Record<string, unknown>) => Record<string,
     }
     return { ...save, version: 9, habits, removed, log, targets: {}, locked };
   },
+  // v9 to v10 (P2-09): adds bad habits and their slips, both empty. Everything else is copied
+  // exactly as it was.
+  9: (save) => {
+    if (!isV9(save)) throw new Error('Not a valid v9 save');
+    return { ...save, version: 10, badHabits: [], slips: {} };
+  },
 };
 
 export type LoadResult =
@@ -200,7 +214,7 @@ export function loadSave(raw: string | null): LoadResult {
     return { kind: 'unreadable', raw };
   }
 
-  if (!isV9(save)) return { kind: 'unreadable', raw };
+  if (!isV10(save)) return { kind: 'unreadable', raw };
   return { kind: 'loaded', state: save, upgradedFrom: from === CURRENT_VERSION ? null : from };
 }
 

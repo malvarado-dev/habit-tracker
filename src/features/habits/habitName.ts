@@ -1,7 +1,9 @@
 // Habit name rules (SPEC-00, decided 2026-10-19): never blank, never a duplicate, at most
-// 20 characters. Shared by Add habit, Edit habit, and the reducer, so all three agree.
+// 20 characters. Shared by Add habit, Edit habit, and the reducer, so all three agree. Good and
+// bad habits share one set of names, so "Gaming" and "Too Much Gaming" can't clash with a copy.
 
-import type { Habit } from '@/rules/habits';
+/** Anything with a name: good habits and bad habits share one set of names. */
+export type Named = { id: string; name: string };
 
 /** Fits one line of a phone habit card at normal text size. Bigger text sizes get "…". */
 export const MAX_NAME_LENGTH = 20;
@@ -25,7 +27,7 @@ export type NameProblem = 'blank' | 'duplicate' | 'tooLong';
  * What's wrong with a name, or null if it can be saved.
  * `exceptId` is the habit being edited, so keeping its own name is fine.
  */
-export function nameProblem(name: string, habits: Habit[], exceptId?: string): NameProblem | null {
+export function nameProblem(name: string, habits: Named[], exceptId?: string): NameProblem | null {
   const clean = cleanName(name);
   if (!clean) return 'blank';
   if (clean.length > MAX_NAME_LENGTH) return 'tooLong';
@@ -35,7 +37,7 @@ export function nameProblem(name: string, habits: Habit[], exceptId?: string): N
 }
 
 /** The one-line hint under the name field. */
-export function nameHint(name: string, habits: Habit[], exceptId?: string): string {
+export function nameHint(name: string, habits: Named[], exceptId?: string): string {
   switch (nameProblem(name, habits, exceptId)) {
     case 'blank':
       return 'Give this habit a name.';
