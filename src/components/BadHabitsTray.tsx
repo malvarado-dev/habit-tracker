@@ -29,11 +29,13 @@ type Props = {
   onSlip: (bad: BadHabit) => void;
   /** Stepper: set the day's count (the reducer keeps it at 0 or more). */
   onSetCount: (bad: BadHabit, count: number) => void;
+  /** History before day edits (P2-18a): chips only show counts; taps are off. */
+  readOnly?: boolean;
 };
 
 type Anchor = { bad: BadHabit; x: number; y: number; width: number };
 
-export function BadHabitsTray({ badHabits, countOf, onSlip, onSetCount }: Props) {
+export function BadHabitsTray({ badHabits, countOf, onSlip, onSetCount, readOnly }: Props) {
   const styles = useStyles();
   const [open, setOpen] = useState<Anchor | null>(null);
 
@@ -43,7 +45,7 @@ export function BadHabitsTray({ badHabits, countOf, onSlip, onSetCount }: Props)
       <Text style={styles.title} accessibilityRole="header" testID="bad-habits-title">
         Bad habits
       </Text>
-      <Text style={styles.hint}>Tap to count a slip</Text>
+      {readOnly ? null : <Text style={styles.hint}>Tap to count a slip</Text>}
       <View style={styles.chips}>
         {badHabits.map((b) => (
           <Chip
@@ -53,6 +55,7 @@ export function BadHabitsTray({ badHabits, countOf, onSlip, onSetCount }: Props)
             onSlip={() => onSlip(b)}
             onSetCount={(n) => onSetCount(b, n)}
             onOpen={(anchor) => setOpen({ bad: b, ...anchor })}
+            readOnly={readOnly}
           />
         ))}
       </View>
@@ -74,6 +77,7 @@ function Chip(props: {
   onSlip: () => void;
   onSetCount: (count: number) => void;
   onOpen: (anchor: Omit<Anchor, 'bad'>) => void;
+  readOnly?: boolean;
 }) {
   const { bad: b, count } = props;
   const styles = useStyles();
@@ -109,6 +113,7 @@ function Chip(props: {
       ref={ref}
       onPress={props.onSlip}
       onLongPress={openStepper}
+      disabled={props.readOnly}
       delayLongPress={tuning.badHabits.longPressMs}
       style={({ pressed }) => [styles.chip, pressed && styles.pressed]}
       testID={`bad-chip-${b.id}`}

@@ -1,16 +1,16 @@
-// History (SPEC-00, T16; canvas "History options · Stage 3", board 1). Opened from the menu.
+// History (P2-18a, #89). Opened from the History link on Today and from the menu.
 // Back returns to the screen the user came from, and its label names it.
 
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { HistoryView } from '@/components/history/HistoryView';
 import { textStyle } from '@/design/fonts';
 import { useTheme } from '@/design/theme/ThemeProvider';
 import { todayLayout, type ThemeColors } from '@/design/tokens';
-import { MIN_TAP_SIZE, space } from '@/theme';
+import { MIN_TAP_SIZE, radius, space } from '@/theme';
 
 const BACK = {
   today: { label: 'Today', path: '/' },
@@ -30,23 +30,24 @@ export default function HistoryScreen() {
   return (
     <SafeAreaView style={styles.screen} testID="history-screen">
       <ScrollView contentContainerStyle={styles.content}>
-        <Pressable
-          onPress={goBack}
-          style={styles.back}
-          testID="history-back"
-          accessibilityRole="button"
-          accessibilityLabel={`Back to ${back.label}`}
-        >
-          <Text style={styles.backText}>‹ {back.label}</Text>
-        </Pressable>
-        <Text style={styles.title} accessibilityRole="header">
-          History
-        </Text>
-        <HistoryView
-          onOpenDay={(date) =>
-            router.push({ pathname: '/day/[date]', params: { date, from: 'history' } })
-          }
-        />
+        {/* Round back button with the title centered, like the P2-18a boards. */}
+        <View style={styles.bar}>
+          <Pressable
+            onPress={goBack}
+            style={styles.back}
+            testID="history-back"
+            accessibilityRole="button"
+            accessibilityLabel={`Back to ${back.label}`}
+          >
+            <Text style={styles.backText}>‹</Text>
+          </Pressable>
+          <Text style={styles.title} accessibilityRole="header">
+            History
+          </Text>
+          {/* Keeps the title centered. */}
+          <View style={styles.spacer} />
+        </View>
+        <HistoryView />
       </ScrollView>
     </SafeAreaView>
   );
@@ -67,7 +68,18 @@ const makeStyles = (c: ThemeColors) =>
       padding: space.lg,
       gap: space.md,
     },
-    back: { minHeight: MIN_TAP_SIZE, justifyContent: 'center', alignSelf: 'flex-start' },
-    backText: { ...textStyle('habitName'), color: c.onSurface },
-    title: { ...textStyle('display'), color: c.onSurface },
+    bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    back: {
+      width: MIN_TAP_SIZE,
+      height: MIN_TAP_SIZE,
+      borderRadius: radius.pill,
+      borderWidth: 1,
+      borderColor: c.border,
+      backgroundColor: c.surface,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    spacer: { width: MIN_TAP_SIZE, height: MIN_TAP_SIZE },
+    backText: { ...textStyle('title'), color: c.onSurface },
+    title: { ...textStyle('habitName', '700'), color: c.onSurface },
   });

@@ -3,12 +3,11 @@ import { describe, expect, it } from '@jest/globals';
 import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 
-// Acceptance (T16): History and Day screens follow the build rules.
+// Acceptance (T16, P2-18a): the History screen follows the build rules. The Day screen and
+// critter faces were removed in P2-18a.
 const read = (p: string) => readFileSync(join(__dirname, p), 'utf8');
 const view = read('HistoryView.tsx');
-const face = read('CritterFace.tsx');
 const historyScreen = read('../../app/history.tsx');
-const dayScreen = read('../../app/day/[date].tsx');
 const menu = read('../SideMenu.tsx');
 const today = read('../../app/index.tsx');
 
@@ -24,7 +23,9 @@ describe('acceptance: History (T16)', () => {
     [view, 'history-next-month'],
     [view, 'history-day-${cell.date}'],
     [historyScreen, 'history-back'],
-    [dayScreen, 'day-back'],
+    [view, 'history-day-title'],
+    [view, 'history-day-status'],
+    [view, 'history-streak'],
   ])('has test ID %#', (source, id) => {
     expect(source).toContain(id);
   });
@@ -36,16 +37,13 @@ describe('acceptance: History (T16)', () => {
   });
 
   it('colors come from the theme or the critter palette, never raw hex', () => {
-    for (const source of [view, face, historyScreen, dayScreen]) {
+    for (const source of [view, historyScreen]) {
       expect(source).not.toMatch(/#[0-9A-Fa-f]{3,8}\b/);
     }
   });
 
-  it('the Day screen uses the same scene and critter as Today (T23, replaces T16 rule)', () => {
-    for (const mod of ['components/SceneLayout', 'components/useCritterWake']) {
-      expect(dayScreen).toContain(`/${mod}'`);
-      expect(today).toContain(`/${mod}'`);
-    }
+  it('the Day screen is gone; History holds the day (P2-18a)', () => {
+    expect(view + historyScreen + today).not.toContain('/day/[date]');
   });
 
   it('no test files live in src/app', () => {
@@ -61,7 +59,6 @@ describe('acceptance: no week highlight in the calendar (T20)', () => {
   const view = readFileSync(join(__dirname, 'HistoryView.tsx'), 'utf8');
   it('calendar rows have no gray highlight, and the week panel is gone with weekly goals', () => {
     expect(view).not.toContain('focusRow');
-    expect(view).not.toContain('surfaceDim');
     expect(view).not.toContain('WeekPanel');
   });
 });

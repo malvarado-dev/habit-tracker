@@ -3,7 +3,7 @@
 // sits above History on the right. The layout is shared with the Day screen (SceneLayout, T23).
 // No header; the subtle menu button sits top left.
 
-import { router, useIsFocused } from 'expo-router';
+import { useIsFocused } from 'expo-router';
 import { useState } from 'react';
 
 import { HabitSheet } from '@/components/HabitSheet';
@@ -39,9 +39,6 @@ export default function HomeScreen() {
         <MenuButton time={skyTime} onPage={onPage} onPress={() => setMenuOpen(true)} />
       )}
       sheet={(bottomPadding) => <HabitSheet bottomPadding={bottomPadding} />}
-      onOpenDay={(date) =>
-        router.push({ pathname: '/day/[date]', params: { date, from: 'today' } })
-      }
       overlay={<SideMenu open={menuOpen} onClose={() => setMenuOpen(false)} />}
     />
   );

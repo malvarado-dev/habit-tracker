@@ -213,3 +213,89 @@ export function canOpenDay(
 ): boolean {
   return date <= today && (oldestDay === null || date >= oldestDay);
 }
+
+// ---- P2-18a: streak band, streak counts, day header (#89) ----
+
+/** A streak day is a day the Activity Bar was filled. A Rest day counts too (PRD-14). */
+export function isStreakDay(state: LockState, date: DateKey): boolean {
+  const outcome = historyDay(state, date).outcome;
+  return outcome === 'checkIn' || outcome === 'rest';
+}
+
+/** How a cell sits in the lemon band: alone, or the start, middle or end of a run in its row. */
+export type BandPart = 'none' | 'single' | 'start' | 'middle' | 'end';
+
+/**
+ * The band for each cell of a month grid. Runs join across a row and break at the row's edges,
+ * so a run that crosses a week wraps onto the next row. Only this month's days are banded.
+ */
+export function streakBand(weeks: DayCell[][], state: LockState): BandPart[][] {
+  return weeks.map((week) => {
+    const on = week.map((c) => c.kind === 'day' && isStreakDay(state, c.date));
+    return on.map((isOn, i) => {
+      if (!isOn) return 'none';
+      const left = i > 0 && on[i - 1];
+      const right = i < on.length - 1 && on[i + 1];
+      if (left && right) return 'middle';
+      if (left) return 'end';
+      if (right) return 'start';
+      return 'single';
+    });
+  });
+}
+
+/**
+ * Current and best streak in days. Today only counts once it's filled, so an unfilled today
+ * doesn't break the current streak; it runs back from yesterday.
+ */
+export function streaks(
+  state: LockState & { log: LogCounts },
+  today: DateKey,
+): { current: number; best: number } {
+  const first = Object.keys(state.log).sort()[0] ?? today;
+  let current = 0;
+  let day = isStreakDay(state, today) ? today : addDays(today, -1);
+  while (day >= first && isStreakDay(state, day)) {
+    current++;
+    day = addDays(day, -1);
+  }
+  let best = 0;
+  let run = 0;
+  for (let d = first; d <= today; d = addDays(d, 1)) {
+    run = isStreakDay(state, d) ? run + 1 : 0;
+    best = Math.max(best, run);
+  }
+  return { current, best: Math.max(best, current) };
+}
+
+/** "6 day streak · Best 6" */
+export function streakText({ current, best }: { current: number; best: number }): string {
+  return `${current} day streak · Best ${best}`;
+}
+
+/** The selected day's title: "Today, Sun Oct 25" or "Thu, Oct 22". */
+export function dayTitle(date: DateKey, today: DateKey): string {
+  const [, m, d] = date.split('-').map(Number);
+  const weekday = WEEKDAY_SHORT[weekdayIndex(date)];
+  const month = MONTHS[m! - 1]!.slice(0, 3);
+  return date === today ? `Today, ${weekday} ${month} ${d}` : `${weekday}, ${month} ${d}`;
+}
+
+/**
+ * Right side of the day header: "Changeable for 2 more days", "… 1 more day", "Changeable
+ * until midnight" on the last day, or "Locked in". Test keeps older days open (T22) and says
+ * "Changeable in Test".
+ */
+export function dayHeaderText(
+  date: DateKey,
+  today: DateKey,
+  lockedThrough: DateKey | null,
+  openDays: number = calendar.openDaysBeforeToday,
+): { locked: boolean; text: string } {
+  const age = daysBetween(date, today);
+  if (isLocked(date, lockedThrough) || age > openDays) return { locked: true, text: 'Locked in' };
+  const left = calendar.openDaysBeforeToday - age;
+  if (left < 0) return { locked: false, text: 'Changeable in Test' };
+  if (left === 0) return { locked: false, text: 'Changeable until midnight' };
+  return { locked: false, text: `Changeable for ${left} more ${left === 1 ? 'day' : 'days'}` };
+}

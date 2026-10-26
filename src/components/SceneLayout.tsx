@@ -19,7 +19,6 @@ import { HistoryView } from '@/components/history/HistoryView';
 import { layoutMode, wideSizes } from '@/components/todayLayoutMode';
 import { useTheme } from '@/design/theme/ThemeProvider';
 import { todayLayout, wideLayout as wide, type ThemeColors } from '@/design/tokens';
-import type { DateKey } from '@/rules/dates';
 import { space } from '@/theme';
 
 const CRITTER_ASPECT = 260 / 360;
@@ -36,13 +35,11 @@ type Props = {
   corner: (onPage: boolean) => ReactNode;
   /** The sheet's contents. `bottomPadding` keeps the last card clear of the home indicator. */
   sheet: (bottomPadding: number) => ReactNode;
-  /** Wide only: tapping a day in History. */
-  onOpenDay: (date: DateKey) => void;
   /** Drawn last, over everything (the side menu). */
   overlay?: ReactNode;
 };
 
-export function SceneLayout({ testID, critter, pet, corner, sheet, onOpenDay, overlay }: Props) {
+export function SceneLayout({ testID, critter, pet, corner, sheet, overlay }: Props) {
   const styles = useStyles();
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -74,7 +71,7 @@ export function SceneLayout({ testID, critter, pet, corner, sheet, onOpenDay, ov
               contentContainerStyle={styles.historyContent}
               testID="wide-history"
             >
-              <HistoryView onOpenDay={onOpenDay} />
+              <HistoryView />
             </ScrollView>
           </View>
         </View>
