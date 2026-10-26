@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { CoinBar } from '@/components/CoinBar';
 import { TestModeBanner } from '@/components/TestModeBanner';
 import { ThemeProvider, useTheme } from '@/design/theme/ThemeProvider';
 import { SettingsProvider } from '@/features/settings/SettingsProvider';
@@ -43,6 +44,8 @@ function AppStack() {
             contentStyle: { backgroundColor: colors.surfaceSheet },
           }}
         />
+        {/* Over every screen, so Today and History both show Coins earned (P2-08c). */}
+        <CoinBar />
       </View>
       <TestModeBanner />
     </>

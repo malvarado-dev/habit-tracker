@@ -11,7 +11,9 @@
 
 import * as Haptics from 'expo-haptics';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, View, type GestureResponderEvent } from 'react-native';
+
+import { noteCoinOrigin } from '@/features/coins/coinOrigin';
 import ReanimatedSwipeable, {
   type SwipeableMethods,
 } from 'react-native-gesture-handler/ReanimatedSwipeable';
@@ -114,6 +116,10 @@ export function HabitCard(props: HabitCardProps) {
     onLog();
   };
 
+  // Flying coins start where the finger is (P2-08c).
+  const coinOrigin = (e: GestureResponderEvent) =>
+    noteCoinOrigin(e.nativeEvent.pageX, e.nativeEvent.pageY);
+
   // Each action closes the slide (and the menu) first, then runs.
   const act = (run?: () => void) => () => {
     swipe.current?.close();
@@ -130,6 +136,7 @@ export function HabitCard(props: HabitCardProps) {
   const card = (
     <Animated.View style={[scaleStyle, locked && { opacity: history.lockedCardOpacity }]}>
       <Pressable
+        onPressIn={coinOrigin}
         onPress={log}
         onLongPress={canSlide ? () => setMenu(true) : undefined}
         delayLongPress={tuning.card.longPressMs}
@@ -209,6 +216,7 @@ export function HabitCard(props: HabitCardProps) {
               </Pressable>
               {linked ? (
                 <Pressable
+                  onPressIn={coinOrigin}
                   onPress={slip}
                   style={styles.chip}
                   testID={`habit-slip-${id}`}
