@@ -11,7 +11,7 @@ A habit tracker where checking in takes seconds and a critter companion grows wi
 
 ## Tech
 
-Expo (React Native) with Expo Router, TypeScript in strict mode, Jest for unit tests. App rules (scores, ranks, weekly targets) live in plain TypeScript in `src/rules`, separate from the screens in `src/app`. Every interactive element has a test ID for Playwright (web) and Maestro (phones).
+Expo (React Native) with Expo Router, TypeScript in strict mode, Jest for unit tests. App rules (scores, ranks, weekly goals) live in plain TypeScript in `src/rules`, separate from the screens in `src/app`. Every interactive element has a test ID for Playwright (web) and Maestro (phones).
 
 ## Run it locally
 
