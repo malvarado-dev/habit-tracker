@@ -24,6 +24,15 @@ const FILES = [
   ['pet/pet-cat-sleep-eyes-open.png', 'pet.png'],
   ['pet/pet-cat-walk.png', 'pet.png'],
   ['pet/pet-cat-walk-eyes-closed.png', 'pet.png'],
+  ['icons/icon-food-bowl@1x.png', 'clear.png'],
+  ['icons/icon-food-bowl@2x.png', 'clear.png'],
+  ['icons/icon-food-bowl@3x.png', 'clear.png'],
+  ['icons/icon-yarn-ball@1x.png', 'clear.png'],
+  ['icons/icon-yarn-ball@2x.png', 'clear.png'],
+  ['icons/icon-yarn-ball@3x.png', 'clear.png'],
+  ['icons/icon-petting-hand@1x.png', 'clear.png'],
+  ['icons/icon-petting-hand@2x.png', 'clear.png'],
+  ['icons/icon-petting-hand@3x.png', 'clear.png'],
 ];
 
 mkdirSync(outDir, { recursive: true });

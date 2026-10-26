@@ -25,11 +25,34 @@ describe('acceptance: cards scroll while the Background stays still', () => {
   it('the habit cards are inside the scroll view, under the Energy bar', () => {
     const bar = sheet.indexOf('<EnergyBar');
     const scrollOpen = sheet.indexOf('<ScrollView');
-    const card = sheet.indexOf('<HabitCard');
     const scrollClose = sheet.indexOf('</ScrollView>');
+    const today = sheet.indexOf("section('today'");
+    const anytime = sheet.indexOf("section('anytime'");
     expect(bar).toBeLessThan(scrollOpen);
-    expect(card).toBeGreaterThan(scrollOpen);
-    expect(card).toBeLessThan(scrollClose);
+    expect(sheet).toContain('{habits.map(card)}');
+    for (const at of [today, anytime]) {
+      expect(at).toBeGreaterThan(scrollOpen);
+      expect(at).toBeLessThan(scrollClose);
+    }
+  });
+
+  it('sheet order: Activity Bar, Main Quest, Today, Anytime, Bad habits, History (P2-07)', () => {
+    const order = [
+      '<EnergyBar',
+      '<MainQuestCard',
+      "section('today'",
+      "section('anytime'",
+      'testID="bad-habits-section"',
+      'testID="history-link"',
+    ].map((s) => sheet.indexOf(s));
+    expect(order.every((at) => at > 0)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+  });
+
+  it('the sheet bar shows the Activity Bar icons; Bad habits only show once one exists', () => {
+    expect(sheet).toMatch(/<EnergyBar[^>]*activityIcons/);
+    expect(sheet).toContain('badHabits.length > 0 ?');
+    expect(sheet).not.toMatch(/Done/);
   });
 
   it('both layouts put the habit sheet in a testable container', () => {

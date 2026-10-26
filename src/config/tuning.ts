@@ -130,6 +130,12 @@ export const tuning = {
     crescentInner: 0.6,
   },
 
+  activityBar: {
+    /** Food, toy, and pet icons on the Activity Bar notches (P2-07), in points. */
+    iconSize: 30,
+    /** Points from the track's bottom edge to the icons' bottoms. */
+    iconBottomInset: 2,
+  },
   energy: {
     /** Energy bar fill glides to its new width this fast. Reduced motion jumps instead. */
     fillMs: 450,

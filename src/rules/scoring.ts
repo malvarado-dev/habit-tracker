@@ -58,7 +58,14 @@ export interface Habit {
    * habits that are still active.
    */
   removedOn?: DateKey;
+  /**
+   * Which habit sheet section the habit sits in (P2-07). Missing means Today. No form setting yet.
+   */
+  section?: HabitSection;
 }
+
+/** Habit sheet sections (P2-07): Today first, then Anytime. */
+export type HabitSection = 'today' | 'anytime';
 
 /** Every check-in, keyed by date, then by habit id. */
 export type CheckInLog = Record<DateKey, Record<string, CheckIn>>;
