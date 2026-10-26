@@ -18,13 +18,14 @@ import {
   type Weekday,
 } from '@/rules/habits';
 import { cleanCount, slipCount, type BadHabit, type SlipCounts } from '@/rules/badHabits';
+import { dayLogs, isSkipped, type Skips } from '@/rules/linked';
 import { allHabits, isLocked, lockDays, type LockedDay } from '@/rules/locking';
 import { tuning } from '@/config/tuning';
 import { cleanName, nameProblem } from '@/features/habits/habitName';
 
 export interface TrackerState {
   /** Bumped when the saved shape changes. Older saves are upgraded step by step (save.ts). */
-  version: 10;
+  version: 11;
   /** The pet's own values (Prototype 2). Confidence picks its spot in the room (P2-12). */
   pet: PetState;
   /** Active habits, in card order. */
@@ -45,6 +46,8 @@ export interface TrackerState {
    * progress (PRD-15).
    */
   slips: SlipCounts;
+  /** Habits skipped for a day (P2-08b). Skip hides the card and changes nothing else. */
+  skips: Skips;
   /** Results saved for good when each day locked (T16). Days with no check-in have no entry. */
   locked: Record<DateKey, LockedDay>;
   /** Every day up to and including this one is locked. Null until the first lock. */
@@ -106,7 +109,7 @@ export function cleanSchedule(schedule: Schedule): Schedule | null {
 /** A fresh start. `addedOn` is the tracker's own date (Test uses its pretend date). */
 export function createInitialState(addedOn?: DateKey): TrackerState {
   return {
-    version: 10,
+    version: 11,
     pet: { confidence: tuning.pet.startConfidence },
     removed: [],
     habits: addedOn ? DEFAULT_HABITS.map((h) => ({ ...h, addedOn })) : DEFAULT_HABITS,
@@ -114,6 +117,7 @@ export function createInitialState(addedOn?: DateKey): TrackerState {
     targets: {},
     badHabits: [],
     slips: {},
+    skips: {},
     locked: {},
     lockedThrough: null,
   };
@@ -144,7 +148,11 @@ export type TrackerAction =
   /** Tray tap: one more slip. */
   | { type: 'logSlip'; date: DateKey; badHabitId: string }
   /** Tray stepper and Undo: sets the day's count (never below 0). */
-  | { type: 'setSlips'; date: DateKey; badHabitId: string; count: number };
+  | { type: 'setSlips'; date: DateKey; badHabitId: string; count: number }
+  /** Slide right, Skip (P2-08b): hides the card for that day. */
+  | { type: 'skipHabit'; date: DateKey; habitId: string }
+  /** Undo after Skip. */
+  | { type: 'unskipHabit'; date: DateKey; habitId: string };
 
 /**
  * Saves the day's Activity Bar target the first time the day is seen, from the habits active at
@@ -178,8 +186,9 @@ export function trackerReducer(state: TrackerState, action: TrackerAction): Trac
       const habit = allHabits(state).find((h) => h.id === action.habitId);
       if (!habit || !existsOn(habit, action.date)) return state;
       const count = logCount(state.log, action.date, action.habitId);
-      // A finished habit takes no more logs.
-      if (count >= timesPerDay(habit)) return state;
+      // A finished habit takes no more logs. Linked slips count toward finished too (P2-08b).
+      const { total } = dayLogs(habit, state.log, state.slips, state.badHabits, action.date);
+      if (total >= timesPerDay(habit)) return state;
       return withCount(withTarget(state, action.date), action.date, action.habitId, count + 1);
     }
     case 'undoLog': {
@@ -289,12 +298,32 @@ export function trackerReducer(state: TrackerState, action: TrackerAction): Trac
       if (isLocked(action.date, state.lockedThrough)) return state;
       if (!state.badHabits.some((b) => b.id === action.badHabitId)) return state;
       const current = slipCount(state.slips, action.date, action.badHabitId);
+      // A linked slip fills one of its good habit's segments, so it stops when that habit is
+      // finished, the same as a gold log (P2-08b). Standalone slips have no limit.
+      const bad = state.badHabits.find((b) => b.id === action.badHabitId);
+      const partner = state.habits.find((h) => h.id === bad?.pairedWith);
+      if (action.type === 'logSlip' && partner) {
+        const { total } = dayLogs(partner, state.log, state.slips, state.badHabits, action.date);
+        if (total >= timesPerDay(partner)) return state;
+      }
       const next = action.type === 'logSlip' ? current + 1 : cleanCount(action.count);
       if (next === current) return state;
       const day = { ...state.slips[action.date] };
       if (next === 0) delete day[action.badHabitId];
       else day[action.badHabitId] = next;
       return { ...state, slips: { ...state.slips, [action.date]: day } };
+    }
+    case 'skipHabit':
+    case 'unskipHabit': {
+      if (isLocked(action.date, state.lockedThrough)) return state;
+      const skipped = isSkipped(state.skips, action.date, action.habitId);
+      if (action.type === 'skipHabit' ? skipped : !skipped) return state;
+      const day = state.skips[action.date] ?? [];
+      const next =
+        action.type === 'skipHabit'
+          ? [...day, action.habitId]
+          : day.filter((id) => id !== action.habitId);
+      return { ...state, skips: { ...state.skips, [action.date]: next } };
     }
     case 'setConfidence': {
       const confidence = cleanConfidence(action.value);

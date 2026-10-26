@@ -1,21 +1,42 @@
 // The segmented ring around a habit's icon (PRD-15 Frequency). Only habits done more than once a
 // day get one: one segment per time, filled clockwise from the top, plus a count like "3/8".
-// Once-a-day habits show no ring and no count. Plain TypeScript, no screens.
+// Good logs fill gold first, then linked bad logs fill slate after them (P2-08b). Once-a-day
+// habits show no ring and no count. Plain TypeScript, no screens.
 
 export interface RingState {
   /** One segment per time a day. */
   segments: number;
-  /** Segments filled so far, never more than `segments`. */
+  /** Segments filled so far (gold plus slate), never more than `segments`. */
   filled: number;
+  /** Gold segments come first, then slate ones. */
+  gold: number;
+  slate: number;
   /** "3/8" */
   label: string;
 }
 
+export type SegmentFill = 'gold' | 'slate' | 'empty';
+
 /** The ring for a habit, or null for a once-a-day habit. */
-export function ringFor(timesPerDay: number, count: number): RingState | null {
+export function ringFor(timesPerDay: number, count: number, slate = 0): RingState | null {
   if (timesPerDay <= 1) return null;
-  const filled = Math.max(0, Math.min(count, timesPerDay));
-  return { segments: timesPerDay, filled, label: `${filled}/${timesPerDay}` };
+  const gold = Math.max(0, Math.min(count, timesPerDay));
+  const slateFill = Math.max(0, Math.min(slate, timesPerDay - gold));
+  const filled = gold + slateFill;
+  return {
+    segments: timesPerDay,
+    filled,
+    gold,
+    slate: slateFill,
+    label: `${filled}/${timesPerDay}`,
+  };
+}
+
+/** What fills each segment, in order around the ring: gold, then slate, then empty. */
+export function segmentFills(ring: RingState): SegmentFill[] {
+  return Array.from({ length: ring.segments }, (_, i) =>
+    i < ring.gold ? 'gold' : i < ring.filled ? 'slate' : 'empty',
+  );
 }
 
 export interface Arc {

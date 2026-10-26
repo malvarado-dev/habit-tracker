@@ -5,8 +5,10 @@
 
 import { calendar } from '@/config/calendar';
 import { getActivityBar } from './activityBar';
+import type { BadHabit, SlipCounts } from './badHabits';
 import { addDays, type DateKey } from './dates';
 import type { Habit, LogCounts } from './habits';
+import { withLinkedSlips } from './linked';
 
 /** checkIn: the Activity Bar filled. rest: nothing to log. none: logged too little, or nothing. */
 export type DayOutcome = 'checkIn' | 'rest' | 'none';
@@ -60,6 +62,14 @@ export interface LockState {
   targets: Record<DateKey, number>;
   locked: Record<DateKey, LockedDay>;
   lockedThrough: DateKey | null;
+  /** Linked slips count as logs (P2-08b). Missing in older test data means none. */
+  badHabits?: BadHabit[];
+  slips?: SlipCounts;
+}
+
+/** Every log that fills the Activity Bar: gold logs plus linked slips (P2-08b). */
+export function barLog(state: LockState): LogCounts {
+  return withLinkedSlips(allHabits(state), state.log, state.slips ?? {}, state.badHabits ?? []);
 }
 
 /**
@@ -75,16 +85,17 @@ export function lockDays<S extends LockState>(
   const through = lastLockedDay(today, openDays);
   if (state.lockedThrough !== null && state.lockedThrough >= through) return state;
 
-  const newlyLocked = [...new Set([...Object.keys(state.log), ...Object.keys(state.targets)])]
+  const log = barLog(state);
+  const newlyLocked = [...new Set([...Object.keys(log), ...Object.keys(state.targets)])]
     .filter((date) => date <= through && !isLocked(date, state.lockedThrough))
     .sort();
 
   const locked = { ...state.locked };
   for (const date of newlyLocked) {
     if (locked[date]) continue;
-    const hasLogs = Object.values(state.log[date] ?? {}).some((n) => n > 0);
+    const hasLogs = Object.values(log[date] ?? {}).some((n) => n > 0);
     if (!hasLogs && state.targets[date] !== 0) continue;
-    locked[date] = dayResult(allHabits(state), state.log, date, state.targets[date]);
+    locked[date] = dayResult(allHabits(state), log, date, state.targets[date]);
   }
   return { ...state, locked, lockedThrough: through };
 }
@@ -94,5 +105,5 @@ export function historyDay(state: LockState, date: DateKey): LockedDay {
   if (isLocked(date, state.lockedThrough)) {
     return state.locked[date] ?? { outcome: 'none', logs: 0, target: 0 };
   }
-  return dayResult(allHabits(state), state.log, date, state.targets[date]);
+  return dayResult(allHabits(state), barLog(state), date, state.targets[date]);
 }

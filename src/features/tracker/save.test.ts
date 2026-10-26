@@ -97,13 +97,23 @@ describe('loadSave', () => {
   });
 
   it('v9 to v10 (P2-09) adds empty bad habits and slips, and keeps everything else', () => {
-    const { badHabits: _b, slips: _s, ...rest } = createInitialState();
+    const { badHabits: _b, slips: _s, skips: _k, ...rest } = createInitialState();
     const v9 = { ...rest, version: 9, log: { '2026-10-20': { sleep: 1 } } };
     const result = loadSave(JSON.stringify(v9));
     expect(result).toEqual({
       kind: 'loaded',
-      state: { ...v9, version: 10, badHabits: [], slips: {} },
+      state: { ...v9, version: 11, badHabits: [], slips: {}, skips: {} },
       upgradedFrom: 9,
+    });
+  });
+
+  it('v10 to v11 (P2-08b) adds empty skips, and keeps everything else', () => {
+    const { skips: _k, ...rest } = createInitialState();
+    const v10 = { ...rest, version: 10, slips: { '2026-10-20': { soda: 2 } } };
+    expect(loadSave(JSON.stringify(v10))).toEqual({
+      kind: 'loaded',
+      state: { ...v10, version: 11, skips: {} },
+      upgradedFrom: 10,
     });
   });
 
@@ -141,8 +151,8 @@ describe('loadSave', () => {
       JSON.stringify({ ...createInitialState(), targets: undefined }),
     ],
     [
-      'a current save missing its slips',
-      JSON.stringify({ ...createInitialState(), slips: undefined }),
+      'a current save missing its skips',
+      JSON.stringify({ ...createInitialState(), skips: undefined }),
     ],
   ])('an unreadable save (%s) is returned whole for the backup slot', (_, raw) => {
     expect(loadSave(raw)).toEqual({ kind: 'unreadable', raw });

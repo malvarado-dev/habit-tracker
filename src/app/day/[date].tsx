@@ -24,8 +24,9 @@ import { canOpenDay, dayBarLabel, dayStatusText } from '@/features/history/histo
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import type { DateKey } from '@/rules/dates';
 import { getActivityBar } from '@/rules/activityBar';
-import { existsOn, logCount } from '@/rules/habits';
-import { allHabits, historyDay } from '@/rules/locking';
+import { existsOn, type Habit } from '@/rules/habits';
+import { dayLogs } from '@/rules/linked';
+import { allHabits, barLog, historyDay } from '@/rules/locking';
 import { getSkyTime, sceneLevel, type SkyTime } from '@/rules/sky';
 import { MIN_TAP_SIZE, space } from '@/theme';
 
@@ -71,11 +72,17 @@ function DayScene({ date, back }: { date: DateKey; back: Back }) {
   const now = useMinuteClock();
   const status = dayStatusText(date, today, state.lockedThrough, openDays, now);
   // Same bar math as Today. The bar is live; the sky uses the saved result once locked.
-  const bar = getActivityBar(allHabits(state), state.log, date, state.targets[date]);
+  const bar = getActivityBar(allHabits(state), barLog(state), date, state.targets[date]);
   const skyLevel = sceneLevel(historyDay(state, date));
   const skyTime = getSkyTime(new Date().getHours());
-  const logKey = JSON.stringify(state.log[date] ?? {});
+  const logKey = JSON.stringify([state.log[date], state.slips[date]]);
   const { woken, wake } = useCritterWake(date, logKey, focused);
+
+  // Gold and linked slips (slate) for each card's ring. Slide actions come to History in P2-18.
+  const dayCounts = (habit: Habit, day: DateKey) => {
+    const { gold, slate } = dayLogs(habit, state.log, state.slips, state.badHabits, day);
+    return { count: gold, slate };
+  };
 
   const log = (habitId: string) => {
     if (status.locked) return;
@@ -117,7 +124,7 @@ function DayScene({ date, back }: { date: DateKey; back: Back }) {
                 <HabitCard
                   key={habit.id}
                   habit={habit}
-                  count={logCount(state.log, date, habit.id)}
+                  {...dayCounts(habit, date)}
                   locked={status.locked}
                   onLog={() => log(habit.id)}
                 />

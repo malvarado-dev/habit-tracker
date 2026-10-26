@@ -13,7 +13,7 @@ import { SideMenu } from '@/components/SideMenu';
 import { useCritterWake } from '@/components/useCritterWake';
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import { getActivityBar } from '@/rules/activityBar';
-import { allHabits } from '@/rules/locking';
+import { allHabits, barLog } from '@/rules/locking';
 import { getSkyLevel, getSkyTime } from '@/rules/sky';
 
 export default function HomeScreen() {
@@ -21,10 +21,10 @@ export default function HomeScreen() {
   // Today stays loaded under the Day screen; the critter only wakes while it's on screen.
   const focused = useIsFocused();
 
-  const bar = getActivityBar(allHabits(state), state.log, today, state.targets[today]);
+  const bar = getActivityBar(allHabits(state), barLog(state), today, state.targets[today]);
   const skyLevel = getSkyLevel(bar);
   const skyTime = getSkyTime(new Date().getHours());
-  const logKey = JSON.stringify(state.log[today] ?? {});
+  const logKey = JSON.stringify([state.log[today], state.slips[today]]);
   const { woken, wake } = useCritterWake(today, logKey, focused);
 
   const [menuOpen, setMenuOpen] = useState(false);
