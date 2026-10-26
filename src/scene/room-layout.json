@@ -19,5 +19,54 @@
       "color": "#3C2314"
     }
   },
-  "roomShiftScreenPx2x": 113
+  "roomShiftScreenPx2x": 113,
+  "pet": {
+    "scale": 0.4,
+    "shadow": {
+      "opacity": 0.35,
+      "softness": 10,
+      "color": "#3C2314"
+    },
+    "poses": {
+      "sit": {
+        "size": [958, 1283],
+        "shadow": {
+          "centerX": 570,
+          "centerY": 1167,
+          "width": 470,
+          "height": 56
+        }
+      },
+      "walk": {
+        "size": [1384, 917],
+        "shadow": {
+          "centerX": 620,
+          "centerY": 887,
+          "width": 1081,
+          "height": 135
+        }
+      },
+      "sleep": {
+        "size": [1198, 845],
+        "shadow": {
+          "centerX": 605,
+          "centerY": 815,
+          "width": 1133,
+          "height": 141
+        }
+      }
+    },
+    "spots": {
+      "bed": {
+        "pose": "sleep",
+        "centerX": 1300,
+        "bottomY": 1690
+      },
+      "room": {
+        "pose": "sit",
+        "centerX": 980,
+        "bottomY": 2330
+      }
+    }
+  }
 }
