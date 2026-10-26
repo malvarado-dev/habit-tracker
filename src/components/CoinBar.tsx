@@ -27,9 +27,7 @@ import { allHabits } from '@/rules/locking';
 
 const BAR_HEIGHT = 44;
 const COIN = 22;
-// Placeholder coin colors, fixed like art (not theme colors).
-const COIN_FILL = '#F2B705';
-const COIN_EDGE = '#B07D00';
+const { coinFill, coinEdge, barColor, barText, flyArc } = tuning.coins;
 
 interface Flight {
   id: number;
@@ -156,7 +154,7 @@ function FlyingCoin(props: { flight: Flight; to: { x: number; y: number }; onLan
     const p = t.get();
     // A small arc up, then into the bar.
     const x = flight.from.x + (to.x - flight.from.x) * p;
-    const y = flight.from.y + (to.y - flight.from.y) * p - Math.sin(p * Math.PI) * 60;
+    const y = flight.from.y + (to.y - flight.from.y) * p - Math.sin(p * Math.PI) * flyArc;
     return {
       opacity: p === 0 ? 0 : 1,
       transform: [
@@ -190,23 +188,23 @@ const styles = StyleSheet.create({
     minWidth: 96,
     paddingHorizontal: 16,
     borderRadius: BAR_HEIGHT / 2,
-    backgroundColor: 'rgba(31, 31, 31, 0.92)',
+    backgroundColor: barColor,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
   },
-  balance: { color: '#FFFFFF', fontSize: 18, fontFamily: 'Urbanist_700Bold' },
+  balance: { color: barText, fontSize: 18, fontFamily: 'Urbanist_700Bold' },
   flying: { position: 'absolute', left: 0, top: 0 },
   coin: {
     width: COIN,
     height: COIN,
     borderRadius: COIN / 2,
-    backgroundColor: COIN_FILL,
+    backgroundColor: coinFill,
     borderWidth: 2,
-    borderColor: COIN_EDGE,
+    borderColor: coinEdge,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  coinInner: { width: 8, height: 8, borderRadius: 4, borderWidth: 1.5, borderColor: COIN_EDGE },
+  coinInner: { width: 8, height: 8, borderRadius: 4, borderWidth: 1.5, borderColor: coinEdge },
 });

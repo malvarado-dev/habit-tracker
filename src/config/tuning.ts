@@ -139,6 +139,13 @@ export const tuning = {
     flyGapMs: 90,
     /** At most this many coins fly at once; more Coins still count, they just don't all fly. */
     maxFlying: 6,
+    /** How high a flying coin arcs on its way to the bar, in points. */
+    flyArc: 60,
+    /** Placeholder coin and bar colors, fixed like art (not theme colors) until the coin art exists. */
+    coinFill: '#F2B705',
+    coinEdge: '#B07D00',
+    barColor: 'rgba(31, 31, 31, 0.92)',
+    barText: '#FFFFFF',
   },
 
   habits: {
