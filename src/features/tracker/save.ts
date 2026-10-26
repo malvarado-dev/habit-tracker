@@ -9,9 +9,10 @@ import type { DateKey } from '@/rules/dates';
 import type { Habit, LogCounts, Weekday } from '@/rules/habits';
 import { dayResult, allHabits, type LockState, type LockedDay } from '@/rules/locking';
 import { adjustFor } from '@/rules/petStats';
+import { START_QUESTS } from '@/rules/quest';
 import type { TrackerState } from './state';
 
-export const CURRENT_VERSION = 13;
+export const CURRENT_VERSION = 14;
 
 /** Before v9 (Prototype 1 and P2-07): a check-in was a star level per habit per day. */
 type OldCheckIn = 'NotToday' | 'Started' | 'OnTrack' | 'NailedIt';
@@ -57,7 +58,7 @@ function isV4(v: Record<string, unknown>): v is SaveV4 & Record<string, unknown>
 
 function isV5Shape(
   v: Record<string, unknown>,
-  version: 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13,
+  version: 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14,
 ): boolean {
   return (
     v.version === version &&
@@ -101,7 +102,7 @@ const isV11 = (v: Record<string, unknown>) =>
   isObject(v.skips);
 const isV12 = (v: Record<string, unknown>) =>
   isV11({ ...v, version: 11 }) && v.version === 12 && isObject(v.designTallies);
-const isV13 = (v: Record<string, unknown>): v is TrackerState & Record<string, unknown> =>
+const isV13 = (v: Record<string, unknown>) =>
   isV5Shape(v, 13) &&
   Array.isArray(v.removed) &&
   isObject(v.pet) &&
@@ -112,6 +113,8 @@ const isV13 = (v: Record<string, unknown>): v is TrackerState & Record<string, u
   isObject(v.slips) &&
   isObject(v.skips) &&
   isObject(v.designTallies);
+const isV14 = (v: Record<string, unknown>): v is TrackerState & Record<string, unknown> =>
+  isV13({ ...v, version: 13 }) && v.version === 14 && isObject(v.quests) && isObject(v.quests.heal);
 
 /** v9: a weekly goal becomes a schedule (when it's due), and every habit starts at 1 time a day. */
 function upgradeHabit(old: OldHabit): Habit {
@@ -227,6 +230,11 @@ const UPGRADES: Record<number, (save: Record<string, unknown>) => Record<string,
     };
     return { ...save, version: 13, pet };
   },
+  // v13 to v14 (P2-15): adds the Heal quest, not accepted yet. Everything else is copied as it was.
+  13: (save) => {
+    if (!isV13(save)) throw new Error('Not a valid v13 save');
+    return { ...save, version: 14, quests: START_QUESTS };
+  },
 };
 
 export type LoadResult =
@@ -264,7 +272,7 @@ export function loadSave(raw: string | null): LoadResult {
     return { kind: 'unreadable', raw };
   }
 
-  if (!isV13(save)) return { kind: 'unreadable', raw };
+  if (!isV14(save)) return { kind: 'unreadable', raw };
   return { kind: 'loaded', state: save, upgradedFrom: from === CURRENT_VERSION ? null : from };
 }
 

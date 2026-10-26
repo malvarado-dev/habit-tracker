@@ -66,6 +66,9 @@ export type AppAction =
   | { type: 'fillTestDay'; realDate: DateKey }
   /** Test only: makes a test pet stat show this value. Ignored in Real. */
   | { type: 'setTestStat'; stat: PetStat; value: number; realDate: DateKey }
+  /** Test only: the Heal quest's check-in days, or a fresh quest (P2-15). Ignored in Real. */
+  | { type: 'setTestHealCheckIns'; count: number; realDate: DateKey }
+  | { type: 'resetTestQuest'; realDate: DateKey }
   /** The bad habits design changed (P2-10). Changes no saved data. */
   | { type: 'setDesign'; design: BadHabitDesign };
 
@@ -117,7 +120,9 @@ export function appReducer(app: AppState, action: AppAction): AppState {
       // Check-ins stay; only the pretend date goes back. Days locked ahead stay locked.
       return app.mode === 'test' && app.testOffset !== 0 ? { ...app, testOffset: 0 } : app;
     case 'fillTestDay':
-    case 'setTestStat': {
+    case 'setTestStat':
+    case 'setTestHealCheckIns':
+    case 'resetTestQuest': {
       // Test tools only ever write the Test save. In Real these do nothing.
       if (app.mode !== 'test') return app;
       const today = modeToday(app, action.realDate, 'test');
@@ -125,7 +130,11 @@ export function appReducer(app: AppState, action: AppAction): AppState {
       const change: TrackerAction =
         action.type === 'fillTestDay'
           ? { type: 'fillDay', date: today }
-          : { type: 'setStat', stat: action.stat, value: action.value };
+          : action.type === 'setTestStat'
+            ? { type: 'setStat', stat: action.stat, value: action.value }
+            : action.type === 'setTestHealCheckIns'
+              ? { type: 'setHealCheckIns', count: action.count, date: today }
+              : { type: 'resetQuest' };
       const state = trackerReducer(locked.state, change, app.design);
       if (locked === app.test && state === locked.state) return app;
       return { ...app, test: { ...locked, state } };

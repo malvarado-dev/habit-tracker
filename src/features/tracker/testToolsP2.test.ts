@@ -114,6 +114,28 @@ describe('Pet Love and Confidence steppers (Test only)', () => {
   });
 });
 
+describe('Heal quest tools (Test only, P2-15)', () => {
+  const heal = (count: number): AppAction => ({
+    type: 'setTestHealCheckIns',
+    count,
+    realDate: REAL,
+  });
+
+  it('the stepper changes the Test quest and leaves Real alone', () => {
+    const start = inTest();
+    const { app, keys } = run(start, heal(4));
+    expect(app.test.state.quests.heal.testBonus).toBeGreaterThan(0);
+    expect(app.real).toBe(start.real);
+    expect(keys).toEqual([TEST_KEY]);
+  });
+
+  it('does nothing in Real', () => {
+    const start = createAppState();
+    expect(appReducer(start, heal(4))).toBe(start);
+    expect(appReducer(start, { type: 'resetTestQuest', realDate: REAL })).toBe(start);
+  });
+});
+
 describe('Prototype 1 saves carry into Prototype 2', () => {
   it('a v7 save gains the pet, and its stars become logs', () => {
     const { pet: _pet, targets: _targets, habits, ...rest } = createInitialState();

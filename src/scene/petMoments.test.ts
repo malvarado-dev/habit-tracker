@@ -53,4 +53,13 @@ describe('pet moment queue', () => {
     finishPetMoment();
     expect(requestPetting()).toBe(true);
   });
+
+  it('while asleep only a claim celebration plays; the rest wait their turn (P2-15)', () => {
+    requestPetMoment({ kind: 'eat' });
+    requestPetMoment({ kind: 'celebrate' });
+    expect(takePetMoment({ asleep: true })).toBeUndefined();
+    expect(takePetMoment()).toEqual({ kind: 'eat' });
+    finishPetMoment();
+    expect(takePetMoment({ asleep: true })).toEqual({ kind: 'celebrate' });
+  });
 });

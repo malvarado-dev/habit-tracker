@@ -12,6 +12,9 @@ import { existsOn, timesPerDay, type Habit, type LogCounts } from './habits';
 export type MomentKind = 'eat' | 'pounce' | 'purr';
 export const MOMENT_KINDS: readonly MomentKind[] = ['eat', 'pounce', 'purr'];
 
+/** Every pet moment with a timeline: the bar's three, plus a quest's claim celebration (P2-15). */
+export type PetMomentKind = MomentKind | 'celebrate';
+
 /** Which notch icon each moment pops: food, toy, petting. */
 export const MOMENT_NOTCH: Record<MomentKind, number> = { eat: 0, pounce: 1, purr: 2 };
 
@@ -76,11 +79,19 @@ export interface MomentPlan {
 
 /** A moment's timeline. Reduced motion keeps the eyes and hearts but drops all movement. */
 export function momentPlan(
-  kind: MomentKind,
+  kind: PetMomentKind,
   { reduceMotion, hopMs }: { reduceMotion: boolean; hopMs: number },
   m: Moments = tuning.pet.moments,
 ): MomentPlan {
   const moves = !reduceMotion;
+  if (kind === 'celebrate') {
+    // A purr with a burst of hearts, closer together (tuning.quest.heal).
+    const c = tuning.quest.heal;
+    const gap = m.heartMs * c.celebrateHeartOverlap;
+    const hearts = Array.from({ length: c.celebrateHearts }, (_, i) => i * gap);
+    const end = hearts[hearts.length - 1]! + m.heartMs;
+    return { eyesShut: [[0, end]], hearts, moves, totalMs: end + m.restMs };
+  }
   if (kind === 'purr') {
     const gap = m.heartMs * m.purrHeartOverlap;
     const hearts = Array.from({ length: m.purrHearts }, (_, i) => i * gap);

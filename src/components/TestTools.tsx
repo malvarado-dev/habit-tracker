@@ -28,7 +28,7 @@ import { useSettings } from '@/features/settings/SettingsProvider';
 import { PET_LOOK_IDS, petLook } from '@/scene/petLooks';
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import { requestPetReaction } from '@/scene/petMoments';
-import { MAX_STAT, MIN_STAT, type PetStat } from '@/rules/petStats';
+import { MAX_STAT, MIN_STAT } from '@/rules/petStats';
 import { timesPerDay } from '@/rules/habits';
 import type { Mode } from '@/features/tracker/modes';
 import { MIN_TAP_SIZE, radius, space } from '@/theme';
@@ -152,18 +152,39 @@ export function TestTools() {
 
       {mode === 'test' ? (
         <>
-          <StatStepper
-            stat="confidence"
+          <Stepper
+            id="confidence"
             label="Pet confidence"
+            name="confidence"
             value={testTools.stats.confidence}
             onSet={(v) => testTools.setStat('confidence', v)}
           />
-          <StatStepper
-            stat="love"
+          <Stepper
+            id="love"
             label="Pet love"
+            name="love"
             value={testTools.stats.love}
             onSet={(v) => testTools.setStat('love', v)}
           />
+          {/* Heal quest (P2-15): jump to any check-in count, or start the quest over. */}
+          <Stepper
+            id="heal-check-ins"
+            label="Heal check-ins"
+            name="Heal check-ins"
+            value={testTools.healCheckIns}
+            onSet={testTools.setHealCheckIns}
+            min={0}
+            max={tuning.quest.heal.goal}
+            step={1}
+          />
+          <Pressable
+            onPress={testTools.resetQuest}
+            style={styles.button}
+            testID="reset-quest"
+            accessibilityRole="button"
+          >
+            <Text style={styles.buttonText}>Reset quest</Text>
+          </Pressable>
         </>
       ) : null}
 
@@ -363,21 +384,29 @@ const makeStyles = (c: ThemeColors) =>
     confirmText: { color: c.danger },
   });
 
-/** A Test tools stepper for one pet stat (P2-13). Worked-out value shown, nudged in steps. */
-function StatStepper({
-  stat,
+/** A Test tools stepper: a value nudged in steps between a min and a max (P2-13, P2-15). */
+function Stepper({
+  id,
   label,
+  name,
   value,
   onSet,
+  min = MIN_STAT,
+  max = MAX_STAT,
+  step = tuning.pet.statStep,
 }: {
-  stat: PetStat;
+  /** testID prefix: `${id}-down`, `${id}-value`, `${id}-up`. */
+  id: string;
   label: string;
+  /** Word for the button labels: "Lower confidence". */
+  name: string;
   value: number;
   onSet: (value: number) => void;
+  min?: number;
+  max?: number;
+  step?: number;
 }) {
   const styles = useStyles();
-  const step = tuning.pet.statStep;
-  const name = label.replace('Pet ', '');
   return (
     <View style={styles.section}>
       <Text style={styles.heading} accessibilityRole="header">
@@ -387,8 +416,8 @@ function StatStepper({
         style={styles.row}
         accessibilityRole="adjustable"
         accessibilityLabel={label}
-        aria-valuemin={MIN_STAT}
-        aria-valuemax={MAX_STAT}
+        aria-valuemin={min}
+        aria-valuemax={max}
         aria-valuenow={value}
         accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
         onAccessibilityAction={(e) =>
@@ -397,21 +426,21 @@ function StatStepper({
       >
         <Pressable
           onPress={() => onSet(value - step)}
-          disabled={value <= MIN_STAT}
-          style={[styles.button, value <= MIN_STAT && styles.off]}
-          testID={`${stat}-down`}
+          disabled={value <= min}
+          style={[styles.button, value <= min && styles.off]}
+          testID={`${id}-down`}
           accessibilityLabel={`Lower ${name}`}
         >
           <Text style={styles.buttonText}>−</Text>
         </Pressable>
-        <Text style={styles.date} testID={`${stat}-value`}>
+        <Text style={styles.date} testID={`${id}-value`}>
           {value}
         </Text>
         <Pressable
           onPress={() => onSet(value + step)}
-          disabled={value >= MAX_STAT}
-          style={[styles.button, value >= MAX_STAT && styles.off]}
-          testID={`${stat}-up`}
+          disabled={value >= max}
+          style={[styles.button, value >= max && styles.off]}
+          testID={`${id}-up`}
           accessibilityLabel={`Raise ${name}`}
         >
           <Text style={styles.buttonText}>+</Text>
