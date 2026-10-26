@@ -6,6 +6,7 @@ import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { HistoryEditScope } from '@/components/history/HistoryEditScope';
 import { HistoryView } from '@/components/history/HistoryView';
 import { textStyle } from '@/design/fonts';
 import { useTheme } from '@/design/theme/ThemeProvider';
@@ -29,26 +30,28 @@ export default function HistoryScreen() {
 
   return (
     <SafeAreaView style={styles.screen} testID="history-screen">
-      <ScrollView contentContainerStyle={styles.content}>
-        {/* Round back button with the title centered, like the P2-18a boards. */}
-        <View style={styles.bar}>
-          <Pressable
-            onPress={goBack}
-            style={styles.back}
-            testID="history-back"
-            accessibilityRole="button"
-            accessibilityLabel={`Back to ${back.label}`}
-          >
-            <Text style={styles.backText}>‹</Text>
-          </Pressable>
-          <Text style={styles.title} accessibilityRole="header">
-            History
-          </Text>
-          {/* Keeps the title centered. */}
-          <View style={styles.spacer} />
-        </View>
-        <HistoryView />
-      </ScrollView>
+      <HistoryEditScope>
+        <ScrollView contentContainerStyle={styles.content}>
+          {/* Round back button with the title centered, like the P2-18a boards. */}
+          <View style={styles.bar}>
+            <Pressable
+              onPress={goBack}
+              style={styles.back}
+              testID="history-back"
+              accessibilityRole="button"
+              accessibilityLabel={`Back to ${back.label}`}
+            >
+              <Text style={styles.backText}>‹</Text>
+            </Pressable>
+            <Text style={styles.title} accessibilityRole="header">
+              History
+            </Text>
+            {/* Keeps the title centered. */}
+            <View style={styles.spacer} />
+          </View>
+          <HistoryView />
+        </ScrollView>
+      </HistoryEditScope>
     </SafeAreaView>
   );
 }
