@@ -1,13 +1,18 @@
 // Review recordings for P2-11 (#82). Not a test: `npm run e2e:record` saves phone-size videos of
 // the pet's idle, a bounce, and reduced motion to test-results/. Attach them to the PR for review.
+import { toDateKey } from '../../src/rules/dates';
 import { tuning } from '../../src/config/tuning';
-import { dailyHabit, openWithSave, saveWith, test } from '../web/fixtures';
+import { dailyHabit, FIXED_NOW, openWithSave, saveWith, test } from '../web/fixtures';
 import { HomePage } from '../web/pages/HomePage';
 import { TestToolsPage } from '../web/pages/TestToolsPage';
 
 /** How long each recording watches the idle. */
 const IDLE_MS = 20000;
-const SAVE = saveWith([dailyHabit('sleep', 'Sleep'), dailyHabit('water', 'Water', 3)]);
+// One log today, so the pet is awake (it sleeps until the first log, P2-12).
+const SAVE = {
+  ...saveWith([dailyHabit('sleep', 'Sleep'), dailyHabit('water', 'Water', 3)]),
+  log: { [toDateKey(FIXED_NOW)]: { water: 1 } },
+};
 
 test.use({ video: { mode: 'on', size: { width: 412, height: 915 } } });
 test.setTimeout(IDLE_MS + 60000);

@@ -1,6 +1,6 @@
 // The living room behind the habit sheet (P2-06, #77). The pet's idle motion is PetMotion (P2-11). Layers, back to front: room, back of the
-// bed, pet, front of the bed. When the pet hides (low Confidence, P2-12), it moves behind the back
-// of the bed. The room is art, not theme: it looks the same in Light and Dark theme. The window
+// bed, pet, front of the bed. Hiding puts the pet behind the back of the bed; the middle of the
+// room puts it in front of everything (P2-12). The room is art, not theme: it looks the same in Light and Dark theme. The window
 // already shows the day sky; other times of day are out of Prototype 2 scope.
 
 import { Image, StyleSheet, View } from 'react-native';
@@ -8,14 +8,9 @@ import Svg, { Defs, Ellipse, RadialGradient, Stop } from 'react-native-svg';
 
 import { PetMotion } from '@/components/PetMotion';
 import { tuning } from '@/config/tuning';
+import type { PetPlace } from '@/rules/petPlace';
 import { petArt, roomArt } from '@/scene/art';
-import {
-  petGeometry,
-  shiftOf,
-  type Box,
-  type PetSpot,
-  type RoomGeometry,
-} from '@/scene/roomGeometry';
+import { petGeometry, shiftOf, type Box, type RoomGeometry } from '@/scene/roomGeometry';
 
 type Shadow = Box & { opacity: number; softness: number; color: string };
 
@@ -55,20 +50,23 @@ const BLINK_ART = {
 
 export function RoomScene({
   geometry,
-  petSpot,
-  petHiding = false,
+  pet: place,
 }: {
   geometry: RoomGeometry;
-  petSpot: PetSpot;
-  /** Hiding: the pet goes behind the back of the bed. */
-  petHiding?: boolean;
+  /** Where the pet is and which bed layer it's drawn against (P2-12, rules/petPlace.ts). */
+  pet: PetPlace;
 }) {
   const { room, bed, bedShadow } = geometry;
-  const pet = petGeometry(petSpot, { scale: geometry.scale, shift: shiftOf(geometry) });
+  const pet = petGeometry(place.spot, { scale: geometry.scale, shift: shiftOf(geometry) });
   const at = (b: Box) => ({ left: b.left, top: b.top, width: b.width, height: b.height });
 
   const petLayer = (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none" testID="pet-layer">
+    <View
+      style={StyleSheet.absoluteFill}
+      pointerEvents="none"
+      testID="pet-layer"
+      nativeID={`pet-at-${place.spot}-${place.layer}`}
+    >
       <PetMotion
         pose={pet.pose}
         image={pet.image}
@@ -95,10 +93,21 @@ export function RoomScene({
         testID="room-base"
       />
       <SoftShadow box={bedShadow} id="bed-shadow" />
-      {petHiding ? petLayer : null}
-      <Image source={roomArt.bedBack} style={[styles.abs, at(bed)]} resizeMode="stretch" />
-      {petHiding ? null : petLayer}
-      <Image source={roomArt.bedFront} style={[styles.abs, at(bed)]} resizeMode="stretch" />
+      {place.layer === 'behindBed' ? petLayer : null}
+      <Image
+        source={roomArt.bedBack}
+        style={[styles.abs, at(bed)]}
+        resizeMode="stretch"
+        testID="bed-back"
+      />
+      {place.layer === 'inBed' ? petLayer : null}
+      <Image
+        source={roomArt.bedFront}
+        style={[styles.abs, at(bed)]}
+        resizeMode="stretch"
+        testID="bed-front"
+      />
+      {place.layer === 'front' ? petLayer : null}
     </View>
   );
 }

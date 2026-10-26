@@ -24,6 +24,7 @@ import { canOpenDay, dayBarLabel, dayStatusText } from '@/features/history/histo
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import type { DateKey } from '@/rules/dates';
 import { getActivityBar } from '@/rules/activityBar';
+import { hasHabitLog, petPlace } from '@/rules/petPlace';
 import { existsOn, type Habit } from '@/rules/habits';
 import { dayLogs } from '@/rules/linked';
 import { allHabits, barLog, historyDay } from '@/rules/locking';
@@ -93,6 +94,7 @@ function DayScene({ date, back }: { date: DateKey; back: Back }) {
     <SceneLayout
       testID="day-screen"
       critter={{ level: skyLevel, woken, onWake: wake, time: skyTime }}
+      pet={petPlace(state.pet.confidence, hasHabitLog(state.log, date))}
       corner={(onPage) => <BackButton back={back} time={skyTime} onPage={onPage} />}
       // Wide History: pick another day in place, keeping where Back goes.
       onOpenDay={(next) => router.setParams({ date: next })}

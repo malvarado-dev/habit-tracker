@@ -65,6 +65,16 @@
         "pose": "sit",
         "centerX": 640,
         "bottomY": 1720
+      },
+      "bedAwake": {
+        "pose": "sit",
+        "centerX": 1300,
+        "bottomY": 1660
+      },
+      "hide": {
+        "pose": "sit",
+        "centerX": 1500,
+        "bottomY": 1620
       }
     }
   },

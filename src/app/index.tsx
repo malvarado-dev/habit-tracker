@@ -13,6 +13,7 @@ import { SideMenu } from '@/components/SideMenu';
 import { useCritterWake } from '@/components/useCritterWake';
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import { getActivityBar } from '@/rules/activityBar';
+import { hasHabitLog, petPlace } from '@/rules/petPlace';
 import { allHabits, barLog } from '@/rules/locking';
 import { getSkyLevel, getSkyTime } from '@/rules/sky';
 
@@ -33,6 +34,7 @@ export default function HomeScreen() {
     <SceneLayout
       testID="today-screen"
       critter={{ level: skyLevel, woken, onWake: wake, time: skyTime }}
+      pet={petPlace(state.pet.confidence, hasHabitLog(state.log, today))}
       corner={(onPage) => (
         <MenuButton time={skyTime} onPage={onPage} onPress={() => setMenuOpen(true)} />
       )}
