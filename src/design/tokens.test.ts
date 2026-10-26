@@ -4,9 +4,9 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { background, critter, darkTheme, lightTheme } from './tokens';
 
-// The .md files in docs/design are the source of truth. This fails if tokens.ts drifts from them.
+// The Prototype 1 .md files in docs/design/prototype-1 are the source of truth. This fails if tokens.ts drifts from them.
 const docColors = (file: string): Record<string, string> => {
-  const text = readFileSync(join(__dirname, '../../docs/design', file), 'utf8');
+  const text = readFileSync(join(__dirname, '../../docs/design/prototype-1', file), 'utf8');
   const out: Record<string, string> = {};
   for (const [, key = '', hex = ''] of text.matchAll(/^ {2}([\w-]+): "(#[0-9A-F]{6})"$/gm)) {
     out[key.replace(/-(\w)/g, (_: string, c: string) => c.toUpperCase())] = hex;
@@ -14,7 +14,7 @@ const docColors = (file: string): Record<string, string> => {
   return out;
 };
 
-describe('design tokens match docs/design', () => {
+describe('design tokens match docs/design/prototype-1', () => {
   const doc = docColors('design-system.md');
 
   it('Light theme matches every light token', () => {
