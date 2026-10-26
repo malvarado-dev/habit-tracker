@@ -97,24 +97,50 @@ describe('loadSave', () => {
   });
 
   it('v9 to v10 (P2-09) adds empty bad habits and slips, and keeps everything else', () => {
-    const { badHabits: _b, slips: _s, skips: _k, ...rest } = createInitialState();
+    const {
+      badHabits: _b,
+      slips: _s,
+      skips: _k,
+      designTallies: _d,
+      ...rest
+    } = createInitialState();
     const v9 = { ...rest, version: 9, log: { '2026-10-20': { sleep: 1 } } };
     const result = loadSave(JSON.stringify(v9));
     expect(result).toEqual({
       kind: 'loaded',
-      state: { ...v9, version: 11, badHabits: [], slips: {}, skips: {} },
+      state: { ...v9, version: 12, badHabits: [], slips: {}, skips: {}, designTallies: {} },
       upgradedFrom: 9,
     });
   });
 
   it('v10 to v11 (P2-08b) adds empty skips, and keeps everything else', () => {
-    const { skips: _k, ...rest } = createInitialState();
+    const { skips: _k, designTallies: _d, ...rest } = createInitialState();
     const v10 = { ...rest, version: 10, slips: { '2026-10-20': { soda: 2 } } };
     expect(loadSave(JSON.stringify(v10))).toEqual({
       kind: 'loaded',
-      state: { ...v10, version: 11, skips: {} },
+      state: { ...v10, version: 12, skips: {}, designTallies: {} },
       upgradedFrom: 10,
     });
+  });
+
+  it('v11 to v12 (P2-10) adds an empty design tally, and keeps everything else', () => {
+    const { designTallies: _d, ...rest } = createInitialState();
+    const v11 = {
+      ...rest,
+      version: 11,
+      log: { '2026-10-20': { sleep: 1 } },
+      skips: { '2026-10-20': ['diet'] },
+    };
+    expect(loadSave(JSON.stringify(v11))).toEqual({
+      kind: 'loaded',
+      state: { ...v11, version: 12, designTallies: {} },
+      upgradedFrom: 11,
+    });
+  });
+
+  it('a v12 save without the design tally is unreadable', () => {
+    const { designTallies: _d, ...rest } = createInitialState();
+    expect(loadSave(JSON.stringify(rest)).kind).toBe('unreadable');
   });
 
   it('upgrades a v3 save all the way to the current shape', () => {

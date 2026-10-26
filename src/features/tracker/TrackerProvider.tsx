@@ -4,6 +4,8 @@
 // and each tracker saves only to its own key, so Test can never touch real data.
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSettings } from '@/features/settings/SettingsProvider';
+import { designView } from './designView';
 import {
   createContext,
   useCallback,
@@ -63,14 +65,20 @@ const TrackerContext = createContext<TrackerContextValue | null>(null);
 type InternalAction = AppAction | { type: 'load'; app: AppState };
 
 function reducer(app: AppState, action: InternalAction): AppState {
-  return action.type === 'load' ? action.app : appReducer(app, action);
+  // A load keeps the design in use: it's a setting, not part of the saves.
+  return action.type === 'load' ? { ...action.app, design: app.design } : appReducer(app, action);
 }
 
 /** The real date, never moved by test tools. */
 const realDate = () => toDateKey(new Date());
 
 export function TrackerProvider({ children }: { children: ReactNode }) {
-  const [app, rawDispatch] = useReducer(reducer, undefined, createAppState);
+  // Settings load first (SettingsProvider waits), so the design is right from the first frame.
+  const { badHabitDesign } = useSettings();
+  const [app, rawDispatch] = useReducer(reducer, badHabitDesign, (design) => ({
+    ...createAppState(),
+    design,
+  }));
   const [loaded, setLoaded] = useState(false);
   const [now, setNow] = useState(realDate);
   // What's on the device, so only changed pieces are written.
@@ -80,12 +88,19 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
     loadAppState(AsyncStorage, new Date())
       .then((loadedApp) => {
         // Lock before anything else can change the data.
-        const locked = appReducer(loadedApp, { type: 'lock', realDate: realDate() });
+        const withDesign = { ...loadedApp, design: badHabitDesign };
+        const locked = appReducer(withDesign, { type: 'lock', realDate: realDate() });
         saved.current = loadedApp;
         rawDispatch({ type: 'load', app: locked });
       })
       .finally(() => setLoaded(true));
+    // Runs once on launch with the saved design; later switches go through setDesign below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    rawDispatch({ type: 'setDesign', design: badHabitDesign });
+  }, [badHabitDesign]);
 
   useEffect(() => {
     // Don't save until the old saves have loaded, or fresh state would overwrite them.
@@ -112,7 +127,7 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<TrackerContextValue>(
     () => ({
-      state: app[app.mode].state,
+      state: designView(app[app.mode].state, badHabitDesign),
       dispatch,
       today: modeToday(app, now),
       mode: app.mode,
@@ -130,7 +145,7 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
           rawDispatch({ type: 'setTestConfidence', value, realDate: realDate() }),
       },
     }),
-    [app, dispatch, now],
+    [app, dispatch, now, badHabitDesign],
   );
 
   if (!loaded) return null;

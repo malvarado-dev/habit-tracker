@@ -6,7 +6,7 @@ import { createInitialState, leastUsedColor, trackerReducer, type TrackerState }
 const MON = '2026-10-12';
 
 function apply(state: TrackerState, ...actions: Parameters<typeof trackerReducer>[1][]) {
-  return actions.reduce(trackerReducer, state);
+  return actions.reduce((s, a) => trackerReducer(s, a), state);
 }
 
 describe('trackerReducer', () => {

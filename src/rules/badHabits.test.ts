@@ -11,7 +11,7 @@ const poorSleep: BadHabit = { id: 'poor-sleep', name: 'Poor Sleep', pairedWith: 
 
 const withBad = (...bad: BadHabit[]): TrackerState => ({ ...createInitialState(), badHabits: bad });
 const run = (state: TrackerState, ...actions: Parameters<typeof trackerReducer>[1][]) =>
-  actions.reduce(trackerReducer, state);
+  actions.reduce((s, a) => trackerReducer(s, a), state);
 
 describe('which bad habits show in the tray (P2-09)', () => {
   const habits = createInitialState().habits;

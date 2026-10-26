@@ -5,6 +5,7 @@
 // safety rule is unit tested. Prototype only: removed with the Test tools after Stage 3.
 
 import { calendar } from '@/config/calendar';
+import type { BadHabitDesign } from '@/rules/badHabits';
 import { addDays, toDateKey, type DateKey } from '@/rules/dates';
 import { backupKey, loadSave } from './save';
 import { createInitialState, trackerReducer, type TrackerAction, type TrackerState } from './state';
@@ -28,6 +29,11 @@ export interface AppState {
   test: Slot;
   /** Test only: days ahead of the real date. Real has no pretend date at all. */
   testOffset: number;
+  /**
+   * The bad habits design in use (P2-10). Not saved here: it's a setting (settings.ts), copied in
+   * by the provider so every change and lock reads the same design. Missing means Design 1.
+   */
+  design?: BadHabitDesign;
 }
 
 /** The date a mode lives on. Real is always the real date. */
@@ -58,14 +64,16 @@ export type AppAction =
   /** Test only: checks in every habit on the pretend day. Ignored in Real. */
   | { type: 'fillTestDay'; realDate: DateKey }
   /** Test only: sets the test pet's Confidence. Ignored in Real. */
-  | { type: 'setTestConfidence'; value: number; realDate: DateKey };
+  | { type: 'setTestConfidence'; value: number; realDate: DateKey }
+  /** The bad habits design changed (P2-10). Changes no saved data. */
+  | { type: 'setDesign'; design: BadHabitDesign };
 
-function lockSlot(slot: Slot, today: DateKey, mode: Mode): Slot {
-  const state = trackerReducer(slot.state, {
-    type: 'lockDays',
-    today,
-    openDays: openDaysFor(mode),
-  });
+function lockSlot(slot: Slot, today: DateKey, mode: Mode, design?: BadHabitDesign): Slot {
+  const state = trackerReducer(
+    slot.state,
+    { type: 'lockDays', today, openDays: openDaysFor(mode) },
+    design,
+  );
   return state === slot.state ? slot : { ...slot, state };
 }
 
@@ -79,17 +87,20 @@ export function appReducer(app: AppState, action: AppAction): AppState {
       const key = app.mode;
       const today = modeToday(app, action.realDate);
       // Lock first, so a day can't be edited after it locks.
-      const locked = lockSlot(app[key], today, key);
-      const state = trackerReducer(locked.state, action.action);
+      const locked = lockSlot(app[key], today, key, app.design);
+      const state = trackerReducer(locked.state, action.action, app.design);
       if (locked === app[key] && state === locked.state) return app;
       return { ...app, [key]: { ...locked, state } };
     }
     case 'lock': {
-      const real = lockSlot(app.real, action.realDate, 'real');
-      const test = lockSlot(app.test, modeToday(app, action.realDate, 'test'), 'test');
+      const real = lockSlot(app.real, action.realDate, 'real', app.design);
+      const test = lockSlot(app.test, modeToday(app, action.realDate, 'test'), 'test', app.design);
       if (real === app.real && test === app.test) return app;
       return { ...app, real, test };
     }
+    case 'setDesign':
+      // Only the read changes. No tracker object changes, so nothing is saved.
+      return (app.design ?? 'design1') === action.design ? app : { ...app, design: action.design };
     case 'setMode':
       return app.mode === action.mode ? app : { ...app, mode: action.mode };
     case 'nextDay': {
@@ -98,7 +109,7 @@ export function appReducer(app: AppState, action: AppAction): AppState {
       const moved = { ...app, testOffset: app.testOffset + 1 };
       return {
         ...moved,
-        test: lockSlot(moved.test, modeToday(moved, action.realDate, 'test'), 'test'),
+        test: lockSlot(moved.test, modeToday(moved, action.realDate, 'test'), 'test', app.design),
       };
     }
     case 'backToToday':
@@ -109,12 +120,12 @@ export function appReducer(app: AppState, action: AppAction): AppState {
       // Test tools only ever write the Test save. In Real these do nothing.
       if (app.mode !== 'test') return app;
       const today = modeToday(app, action.realDate, 'test');
-      const locked = lockSlot(app.test, today, 'test');
+      const locked = lockSlot(app.test, today, 'test', app.design);
       const change: TrackerAction =
         action.type === 'fillTestDay'
           ? { type: 'fillDay', date: today }
           : { type: 'setConfidence', value: action.value };
-      const state = trackerReducer(locked.state, change);
+      const state = trackerReducer(locked.state, change, app.design);
       if (locked === app.test && state === locked.state) return app;
       return { ...app, test: { ...locked, state } };
     }

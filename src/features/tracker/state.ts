@@ -17,7 +17,14 @@ import {
   type Schedule,
   type Weekday,
 } from '@/rules/habits';
-import { cleanCount, slipCount, type BadHabit, type SlipCounts } from '@/rules/badHabits';
+import {
+  cleanCount,
+  slipCount,
+  type BadHabit,
+  type BadHabitDesign,
+  type SlipCounts,
+} from '@/rules/badHabits';
+import { addToTally, habitsForDesign, timesFor, type DesignTallies } from '@/rules/design';
 import { dayLogs, isSkipped, type Skips } from '@/rules/linked';
 import { allHabits, isLocked, lockDays, type LockedDay } from '@/rules/locking';
 import { tuning } from '@/config/tuning';
@@ -25,7 +32,7 @@ import { cleanName, nameProblem } from '@/features/habits/habitName';
 
 export interface TrackerState {
   /** Bumped when the saved shape changes. Older saves are upgraded step by step (save.ts). */
-  version: 11;
+  version: 12;
   /** The pet's own values (Prototype 2). Confidence picks its spot in the room (P2-12). */
   pet: PetState;
   /** Active habits, in card order. */
@@ -48,6 +55,11 @@ export interface TrackerState {
   slips: SlipCounts;
   /** Habits skipped for a day (P2-08b). Skip hides the card and changes nothing else. */
   skips: Skips;
+  /**
+   * Logs and slips per day, split by the bad habits design they were made in (P2-10). Playtest
+   * data only: screens never read it, so it can't change any score.
+   */
+  designTallies: DesignTallies;
   /** Results saved for good when each day locked (T16). Days with no check-in have no entry. */
   locked: Record<DateKey, LockedDay>;
   /** Every day up to and including this one is locked. Null until the first lock. */
@@ -109,7 +121,7 @@ export function cleanSchedule(schedule: Schedule): Schedule | null {
 /** A fresh start. `addedOn` is the tracker's own date (Test uses its pretend date). */
 export function createInitialState(addedOn?: DateKey): TrackerState {
   return {
-    version: 11,
+    version: 12,
     pet: { confidence: tuning.pet.startConfidence },
     removed: [],
     habits: addedOn ? DEFAULT_HABITS.map((h) => ({ ...h, addedOn })) : DEFAULT_HABITS,
@@ -118,6 +130,7 @@ export function createInitialState(addedOn?: DateKey): TrackerState {
     badHabits: [],
     slips: {},
     skips: {},
+    designTallies: {},
     locked: {},
     lockedThrough: null,
   };
@@ -158,9 +171,13 @@ export type TrackerAction =
  * Saves the day's Activity Bar target the first time the day is seen, from the habits active at
  * that moment. Later adds and removes that day leave it alone (PRD-14).
  */
-export function withTarget(state: TrackerState, date: DateKey): TrackerState {
+export function withTarget(
+  state: TrackerState,
+  date: DateKey,
+  design: BadHabitDesign = 'design1',
+): TrackerState {
   if (state.targets[date] !== undefined || isLocked(date, state.lockedThrough)) return state;
-  const target = dayTarget(allHabits(state), date);
+  const target = dayTarget(habitsForDesign(allHabits(state), design), date);
   return { ...state, targets: { ...state.targets, [date]: target } };
 }
 
@@ -171,6 +188,16 @@ function withCount(state: TrackerState, date: DateKey, habitId: string, count: n
   return { ...state, log: { ...state.log, [date]: day } };
 }
 
+function withTally(
+  state: TrackerState,
+  date: DateKey,
+  design: BadHabitDesign,
+  change: { logs?: number; slips?: number },
+): TrackerState {
+  const designTallies = addToTally(state.designTallies, date, design, change);
+  return designTallies === state.designTallies ? state : { ...state, designTallies };
+}
+
 function updateHabit(state: TrackerState, habitId: string, change: Partial<Habit>): TrackerState {
   return {
     ...state,
@@ -178,7 +205,15 @@ function updateHabit(state: TrackerState, habitId: string, change: Partial<Habit
   };
 }
 
-export function trackerReducer(state: TrackerState, action: TrackerAction): TrackerState {
+/**
+ * `design` is the bad habits layout in use (P2-10). It only changes how many logs finish a habit
+ * and tags new logs for the playtest tally. Saved habits, logs, and slips are never rewritten.
+ */
+export function trackerReducer(
+  state: TrackerState,
+  action: TrackerAction,
+  design: BadHabitDesign = 'design1',
+): TrackerState {
   switch (action.type) {
     case 'logHabit': {
       // A locked day never changes (T16). The screens turn taps off too; this is the backstop.
@@ -188,14 +223,21 @@ export function trackerReducer(state: TrackerState, action: TrackerAction): Trac
       const count = logCount(state.log, action.date, action.habitId);
       // A finished habit takes no more logs. Linked slips count toward finished too (P2-08b).
       const { total } = dayLogs(habit, state.log, state.slips, state.badHabits, action.date);
-      if (total >= timesPerDay(habit)) return state;
-      return withCount(withTarget(state, action.date), action.date, action.habitId, count + 1);
+      if (total >= timesFor(habit, design)) return state;
+      const next = withCount(
+        withTarget(state, action.date, design),
+        action.date,
+        action.habitId,
+        count + 1,
+      );
+      return withTally(next, action.date, design, { logs: 1 });
     }
     case 'undoLog': {
       if (isLocked(action.date, state.lockedThrough)) return state;
       const count = logCount(state.log, action.date, action.habitId);
       if (count <= 0) return state;
-      return withCount(state, action.date, action.habitId, count - 1);
+      const next = withCount(state, action.date, action.habitId, count - 1);
+      return withTally(next, action.date, design, { logs: -1 });
     }
     case 'addHabit': {
       // Name rules (habitName.ts): never blank, never a duplicate, at most 20 characters.
@@ -207,7 +249,7 @@ export function trackerReducer(state: TrackerState, action: TrackerAction): Trac
         days: EVERY_DAY,
       };
       // Save today's target first, so a habit added today is a bonus (PRD-14).
-      const before = withTarget(state, action.date);
+      const before = withTarget(state, action.date, design);
       return {
         ...before,
         habits: [
@@ -247,7 +289,7 @@ export function trackerReducer(state: TrackerState, action: TrackerAction): Trac
       // It stops counting from the day it was removed (T21). Earlier days keep counting it, and
       // today's target was saved before it went, so removing it never moves the finish line.
       // Removed the same day it was added: it was never active on a full day, so drop it.
-      const before = withTarget(state, action.date);
+      const before = withTarget(state, action.date, design);
       const removedOn = action.date;
       const neverActive = habit.addedOn !== undefined && habit.addedOn >= removedOn;
       const removed = neverActive ? before.removed : [...before.removed, { ...habit, removedOn }];
@@ -265,15 +307,16 @@ export function trackerReducer(state: TrackerState, action: TrackerAction): Trac
     }
     case 'lockDays':
       // Runs on every open and every minute, so it's also where today's target gets saved.
-      return withTarget(lockDays(state, action.today, action.openDays), action.today);
+      return withTarget(lockDays(state, action.today, action.openDays), action.today, design);
     case 'fillDay': {
       if (isLocked(action.date, state.lockedThrough)) return state;
-      const withDay = withTarget(state, action.date);
+      const withDay = withTarget(state, action.date, design);
       const day = { ...withDay.log[action.date] };
       let changed = false;
       for (const habit of withDay.habits) {
-        if (!existsOn(habit, action.date) || (day[habit.id] ?? 0) >= timesPerDay(habit)) continue;
-        day[habit.id] = timesPerDay(habit);
+        const times = timesFor(habit, design);
+        if (!existsOn(habit, action.date) || (day[habit.id] ?? 0) >= times) continue;
+        day[habit.id] = times;
         changed = true;
       }
       return changed ? { ...withDay, log: { ...withDay.log, [action.date]: day } } : state;
@@ -304,14 +347,15 @@ export function trackerReducer(state: TrackerState, action: TrackerAction): Trac
       const partner = state.habits.find((h) => h.id === bad?.pairedWith);
       if (action.type === 'logSlip' && partner) {
         const { total } = dayLogs(partner, state.log, state.slips, state.badHabits, action.date);
-        if (total >= timesPerDay(partner)) return state;
+        if (total >= timesFor(partner, design)) return state;
       }
       const next = action.type === 'logSlip' ? current + 1 : cleanCount(action.count);
       if (next === current) return state;
       const day = { ...state.slips[action.date] };
       if (next === 0) delete day[action.badHabitId];
       else day[action.badHabitId] = next;
-      return { ...state, slips: { ...state.slips, [action.date]: day } };
+      const withSlips = { ...state, slips: { ...state.slips, [action.date]: day } };
+      return withTally(withSlips, action.date, design, { slips: next - current });
     }
     case 'skipHabit':
     case 'unskipHabit': {

@@ -127,3 +127,14 @@ export function suggestedPair(
   if (!partner) return undefined;
   return habits.find((h) => nameKey(h.name) === nameKey(partner.name))?.id;
 }
+
+/**
+ * A mirror bad habit (Poor Sleep, Sedentary): not doing its good habit already records the day,
+ * so Design 2 hides it (PRD-15). Matched by the catalog key in its id, or by name for a bad habit
+ * the user typed in with the same name.
+ */
+export function isMirrorBadHabit(bad: { id: string; name: string }): boolean {
+  return PREMADE_BAD_HABITS.some(
+    (p) => p.mirror && (bad.id.startsWith(`bad-${p.key}-`) || isAdded(p, [bad])),
+  );
+}

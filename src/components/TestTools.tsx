@@ -256,7 +256,7 @@ export function TestTools() {
                 style={[styles.chip, on && styles.chipOn]}
                 testID={`bad-habit-${d}`}
                 accessibilityRole="radio"
-                accessibilityState={{ selected: on }}
+                aria-checked={on}
                 accessibilityLabel={BAD_HABIT_DESIGN_LABELS[d]}
               >
                 <Text style={[styles.chipText, on && styles.chipTextOn]}>
