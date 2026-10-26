@@ -1,5 +1,6 @@
 // Test tools (SPEC-00, T14, moved to its own screen in T17): prototype only. A Real / Test switch,
-// the date, and in Test only, Next day, Back to today, and Reset (tap twice). Real is your real
+// the date, and in Test only, Next day, Back to today, Reset (tap twice), Fill today, and the
+// pet's Confidence (P2-05). The bad habit Design 1 / Design 2 switch is a setting, not data (P2-10). Real is your real
 // data on the real date; Test is a separate save, so History can be tried in full without
 // touching real tracking. Ring/Dots and Theme live in Profile, where the playtest records them; a Profile settings link
 // opens it (T19).
@@ -20,7 +21,11 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { textStyle } from '@/design/fonts';
 import { useTheme } from '@/design/theme/ThemeProvider';
 import type { ThemeColors } from '@/design/tokens';
+import { tuning } from '@/config/tuning';
+import { BAD_HABIT_DESIGNS, BAD_HABIT_DESIGN_LABELS } from '@/features/settings/settings';
+import { useSettings } from '@/features/settings/SettingsProvider';
 import { useTracker } from '@/features/tracker/TrackerProvider';
+import { MAX_CONFIDENCE, MIN_CONFIDENCE } from '@/features/tracker/state';
 import type { Mode } from '@/features/tracker/modes';
 import { MIN_TAP_SIZE, radius, space } from '@/theme';
 
@@ -35,7 +40,10 @@ export function TestTools() {
   const styles = useStyles();
   const { mode, setMode, today, testTools } = useTracker();
   const [confirmReset, setConfirmReset] = useState(false);
+  const { badHabitDesign, setBadHabitDesign } = useSettings();
   const ahead = testTools.dayOffset > 0;
+  const step = tuning.pet.confidenceStep;
+  const confidence = testTools.confidence;
 
   return (
     <View style={styles.box} testID="test-tools">
@@ -120,8 +128,89 @@ export function TestTools() {
               {confirmReset ? 'Tap again to erase test data' : 'Reset test data'}
             </Text>
           </Pressable>
+          <Pressable
+            onPress={testTools.fillToday}
+            style={styles.button}
+            testID="fill-today-button"
+            accessibilityRole="button"
+            accessibilityLabel="Fill today, checks in every habit on the pretend day"
+          >
+            <Text style={styles.buttonText}>Fill today</Text>
+          </Pressable>
         </View>
       ) : null}
+
+      {mode === 'test' ? (
+        <View style={styles.section}>
+          <Text style={styles.heading} accessibilityRole="header">
+            Pet confidence
+          </Text>
+          <View
+            style={styles.row}
+            accessibilityRole="adjustable"
+            accessibilityLabel="Pet confidence"
+            accessibilityValue={{ min: MIN_CONFIDENCE, max: MAX_CONFIDENCE, now: confidence }}
+            accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+            onAccessibilityAction={(e) =>
+              testTools.setConfidence(
+                confidence + (e.nativeEvent.actionName === 'increment' ? step : -step),
+              )
+            }
+          >
+            <Pressable
+              onPress={() => testTools.setConfidence(confidence - step)}
+              disabled={confidence <= MIN_CONFIDENCE}
+              style={[styles.button, confidence <= MIN_CONFIDENCE && styles.off]}
+              testID="confidence-down"
+              accessibilityLabel="Lower confidence"
+            >
+              <Text style={styles.buttonText}>−</Text>
+            </Pressable>
+            <Text style={styles.date} testID="confidence-value">
+              {confidence}
+            </Text>
+            <Pressable
+              onPress={() => testTools.setConfidence(confidence + step)}
+              disabled={confidence >= MAX_CONFIDENCE}
+              style={[styles.button, confidence >= MAX_CONFIDENCE && styles.off]}
+              testID="confidence-up"
+              accessibilityLabel="Raise confidence"
+            >
+              <Text style={styles.buttonText}>+</Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
+
+      <View style={styles.section}>
+        <Text style={styles.heading} accessibilityRole="header">
+          Bad habits layout
+        </Text>
+        <View
+          style={styles.choices}
+          accessibilityRole="radiogroup"
+          accessibilityLabel="Bad habits layout"
+        >
+          {BAD_HABIT_DESIGNS.map((d) => {
+            const on = d === badHabitDesign;
+            return (
+              <Pressable
+                key={d}
+                onPress={() => setBadHabitDesign(d)}
+                style={[styles.chip, on && styles.chipOn]}
+                testID={`bad-habit-${d}`}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: on }}
+                accessibilityLabel={BAD_HABIT_DESIGN_LABELS[d]}
+              >
+                <Text style={[styles.chipText, on && styles.chipTextOn]}>
+                  {BAD_HABIT_DESIGN_LABELS[d]}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
     </View>
   );
 }

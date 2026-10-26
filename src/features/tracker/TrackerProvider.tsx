@@ -50,6 +50,11 @@ interface TrackerContextValue {
     nextDay: () => void;
     backToToday: () => void;
     reset: () => void;
+    /** Checks in every habit on the pretend day. */
+    fillToday: () => void;
+    /** The Test pet's Confidence, 0 to 100. */
+    confidence: number;
+    setConfidence: (value: number) => void;
   };
 }
 
@@ -119,6 +124,10 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
         nextDay: () => rawDispatch({ type: 'nextDay', realDate: realDate() }),
         backToToday: () => rawDispatch({ type: 'backToToday' }),
         reset: () => rawDispatch({ type: 'resetTest', realDate: realDate() }),
+        fillToday: () => rawDispatch({ type: 'fillTestDay', realDate: realDate() }),
+        confidence: app.test.state.pet.confidence,
+        setConfidence: (value) =>
+          rawDispatch({ type: 'setTestConfidence', value, realDate: realDate() }),
       },
     }),
     [app, dispatch, now],

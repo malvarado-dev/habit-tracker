@@ -5,9 +5,10 @@
 // is left alone. No screens here, so every path is unit tested.
 
 import type { CheckInLog, Habit } from '@/rules/scoring';
+import { tuning } from '@/config/tuning';
 import type { TrackerState } from './state';
 
-export const CURRENT_VERSION = 7;
+export const CURRENT_VERSION = 8;
 
 /** v3 (before T16): habits, check-ins, and the test-tools day offset. */
 interface SaveV3 {
@@ -43,7 +44,7 @@ function isV4(v: Record<string, unknown>): v is SaveV4 & Record<string, unknown>
   );
 }
 
-function isV5Shape(v: Record<string, unknown>, version: 5 | 6 | 7): boolean {
+function isV5Shape(v: Record<string, unknown>, version: 5 | 6 | 7 | 8): boolean {
   return (
     v.version === version &&
     Array.isArray(v.habits) &&
@@ -55,8 +56,12 @@ function isV5Shape(v: Record<string, unknown>, version: 5 | 6 | 7): boolean {
 
 const isV5 = (v: Record<string, unknown>) => isV5Shape(v, 5);
 const isV6 = (v: Record<string, unknown>) => isV5Shape(v, 6);
-const isV7 = (v: Record<string, unknown>): v is TrackerState & Record<string, unknown> =>
-  isV5Shape(v, 7) && Array.isArray(v.removed);
+const isV7 = (v: Record<string, unknown>) => isV5Shape(v, 7) && Array.isArray(v.removed);
+const isV8 = (v: Record<string, unknown>): v is TrackerState & Record<string, unknown> =>
+  isV5Shape(v, 8) &&
+  Array.isArray(v.removed) &&
+  isObject(v.pet) &&
+  typeof v.pet.confidence === 'number';
 
 /** One step per version: takes a valid save of that version, returns the next version. */
 const UPGRADES: Record<number, (save: Record<string, unknown>) => Record<string, unknown>> = {
@@ -98,6 +103,12 @@ const UPGRADES: Record<number, (save: Record<string, unknown>) => Record<string,
     if (!isV6(save)) throw new Error('Not a valid v6 save');
     return { ...save, version: 7, removed: [] };
   },
+  // v7 to v8 (P2-05): adds the pet with its starting Confidence. Habits, check-ins and locked
+  // days are copied exactly as they were, so Prototype 1 tracking carries into Prototype 2.
+  7: (save) => {
+    if (!isV7(save)) throw new Error('Not a valid v7 save');
+    return { ...save, version: 8, pet: { confidence: tuning.pet.startConfidence } };
+  },
 };
 
 export type LoadResult =
@@ -135,7 +146,7 @@ export function loadSave(raw: string | null): LoadResult {
     return { kind: 'unreadable', raw };
   }
 
-  if (!isV7(save)) return { kind: 'unreadable', raw };
+  if (!isV8(save)) return { kind: 'unreadable', raw };
   return { kind: 'loaded', state: save, upgradedFrom: from === CURRENT_VERSION ? null : from };
 }
 

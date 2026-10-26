@@ -15,6 +15,9 @@ import {
 } from './modes';
 import { createInitialState } from './state';
 import { existsOn } from '../../rules/scoring';
+import { tuning } from '@/config/tuning';
+
+const START_PET = { confidence: tuning.pet.startConfidence };
 
 // Pretend dates. Monday 2026-10-19 is the real date.
 const REAL = '2026-10-19';
@@ -152,7 +155,7 @@ describe('loading', () => {
     expect(app.testOffset).toBe(0);
   });
 
-  it('upgrades a v4 real save to v7 keeping all real data, and drops its pretend date', async () => {
+  it('upgrades a v4 real save to v8 keeping all real data, and drops its pretend date', async () => {
     const v4 = {
       version: 4,
       habits: createInitialState().habits,
@@ -164,7 +167,8 @@ describe('loading', () => {
     const store = fakeStore({ [REAL_KEY]: JSON.stringify(v4) });
     const app = await loadAppState(store, new Date());
     expect(app.real.state).toEqual({
-      version: 7,
+      version: 8,
+      pet: START_PET,
       habits: v4.habits,
       removed: [],
       log: v4.log,

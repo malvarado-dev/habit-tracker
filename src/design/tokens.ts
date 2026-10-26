@@ -155,7 +155,6 @@ export const shadows = {
 
 /** Today phone layout (SPEC-00): the habit sheet starts this far down the screen. */
 export const todayLayout = {
-  sheetTopRatio: 0.4,
   /** How far the critter's face sits above the sheet; its body runs behind the sheet. */
   critterOverlap: 56,
   critterWidthRatio: 0.62,

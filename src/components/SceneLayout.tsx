@@ -5,6 +5,7 @@
 // and iPad landscape): the page is the sheet color, with the sheet on the left and, on the right,
 // the Background as a rounded card with the critter above History (T16).
 
+import { tuning } from '@/config/tuning';
 import type { ComponentProps, ReactNode } from 'react';
 import { useMemo } from 'react';
 import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
@@ -78,7 +79,7 @@ export function SceneLayout({ testID, critter, corner, sheet, onOpenDay, overlay
     );
   }
 
-  const sheetTop = Math.round(height * todayLayout.sheetTopRatio);
+  const sheetTop = Math.round(height * tuning.scene.sheetTopRatio);
   const critterWidth = Math.min(width * todayLayout.critterWidthRatio, todayLayout.critterMaxWidth);
   const critterHeight = critterWidth * CRITTER_ASPECT;
 
