@@ -15,7 +15,8 @@ export default defineConfig({
   // CI retries a failed test once. A test that passes on retry is reported as "flaky", not hidden.
   retries: isCI ? 1 : 0,
   // List in the terminal; the HTML report is what you open (or download from CI) to dig in.
-  reporter: isCI ? [['list'], ['html', { open: 'never' }]] : [['list'], ['html']],
+  // In CI, the github reporter also pins each failure to the pull request as an annotation.
+  reporter: isCI ? [['list'], ['github'], ['html', { open: 'never' }]] : [['list'], ['html']],
   use: {
     // Every page.goto('') is relative to this, the same path GitHub Pages serves.
     baseURL: `http://localhost:${PORT}/habit-tracker/`,
