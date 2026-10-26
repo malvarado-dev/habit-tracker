@@ -6,7 +6,7 @@
 // `glowKey` changes. Reduced motion: only the brighten, and the glow without motion.
 
 import { useEffect, useRef, useState } from 'react';
-import { type LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
+import { Image, type LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -22,6 +22,7 @@ import { tuning } from '@/config/tuning';
 import { textStyle } from '@/design/fonts';
 import { useTheme } from '@/design/theme/ThemeProvider';
 import { energyBar as bar } from '@/design/tokens';
+import { activityArt } from '@/scene/art';
 
 import { seeded } from './cardEffectLayout';
 import {
@@ -41,9 +42,21 @@ type Props = {
   label?: string;
   /** Changes each time Weekly goal met plays, to pulse the glow. */
   glowKey?: number;
+  /**
+   * Activity Bar on the habit sheet (P2-07): food, toy, and pet icons sit on the notches, and the
+   * "Today · 64%" row is left out. The icons rise above the track without adding height.
+   */
+  activityIcons?: boolean;
 };
 
-export function EnergyBar({ fill, isRestDay, label, glowKey = 0 }: Props) {
+/** Activity Bar icons, one per notch, lowest notch first. */
+const ACTIVITY_ICONS = [
+  ['food', activityArt.food],
+  ['toy', activityArt.toy],
+  ['pet', activityArt.pet],
+] as const;
+
+export function EnergyBar({ fill, isRestDay, label, glowKey = 0, activityIcons = false }: Props) {
   const { colors } = useTheme();
   const reduceMotion = useReducedMotion();
   const fraction = clampEnergy(fill);
@@ -132,14 +145,16 @@ export function EnergyBar({ fill, isRestDay, label, glowKey = 0 }: Props) {
       accessibilityValue={isRestDay ? undefined : { min: 0, max: 100, now: percent }}
       style={styles.wrap}
     >
-      <View style={styles.labelRow} importantForAccessibility="no-hide-descendants">
-        <Text style={[styles.labelText, { color: colors.onSurface }]} testID="energy-label">
-          {label ?? ''}
-        </Text>
-        <Text style={[styles.labelText, { color: colors.onSurface }]} testID="energy-percent">
-          {percentText(fraction)}
-        </Text>
-      </View>
+      {activityIcons ? null : (
+        <View style={styles.labelRow} importantForAccessibility="no-hide-descendants">
+          <Text style={[styles.labelText, { color: colors.onSurface }]} testID="energy-label">
+            {label ?? ''}
+          </Text>
+          <Text style={[styles.labelText, { color: colors.onSurface }]} testID="energy-percent">
+            {percentText(fraction)}
+          </Text>
+        </View>
+      )}
       <View>
         <Animated.View
           pointerEvents="none"
@@ -183,6 +198,28 @@ export function EnergyBar({ fill, isRestDay, label, glowKey = 0 }: Props) {
                         backgroundColor: passed ? colors.onPrimary : colors.onInverse,
                       },
                     ]}
+                  />
+                );
+              })
+            : null}
+          {activityIcons && trackWidth > 0
+            ? tickPositions().map((at, i) => {
+                const [name, source] = ACTIVITY_ICONS[i] ?? ACTIVITY_ICONS[2];
+                const size = tuning.activityBar.iconSize;
+                return (
+                  <Image
+                    key={name}
+                    source={source}
+                    pointerEvents="none"
+                    testID={`activity-icon-${name}`}
+                    style={{
+                      position: 'absolute',
+                      width: size,
+                      height: size,
+                      left: bar.trackPadding + innerWidth * at - size / 2,
+                      // Bottom just above the track's bottom edge, so the bar keeps its height.
+                      bottom: tuning.activityBar.iconBottomInset,
+                    }}
                   />
                 );
               })

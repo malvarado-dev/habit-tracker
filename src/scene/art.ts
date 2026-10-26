@@ -16,3 +16,10 @@ export const petArt = {
   walk: require('../../assets/private/pet-cat-walk.png'),
   walkEyesClosed: require('../../assets/private/pet-cat-walk-eyes-closed.png'),
 };
+
+/** Activity Bar icons (P2-07): food, toy, petting. Metro picks the @1x/@2x/@3x file. */
+export const activityArt = {
+  food: require('../../assets/private/icon-food-bowl.png'),
+  toy: require('../../assets/private/icon-yarn-ball.png'),
+  pet: require('../../assets/private/icon-petting-hand.png'),
+};
