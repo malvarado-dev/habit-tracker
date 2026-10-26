@@ -13,7 +13,7 @@
 
 import { useIsFocused } from 'expo-router';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Image, StyleSheet, View, type ImageSourcePropType } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
@@ -47,23 +47,26 @@ import {
   reactionEyesShut,
   reactionShape,
 } from '@/scene/petMotion';
+import type { PetLook } from '@/scene/petLooks';
 import type { Box, PetPose } from '@/scene/roomGeometry';
+import { PetBandages, PetEyeLids } from './PetAccessories';
 
 const motion = tuning.pet.motion;
 
 export function PetMotion({
   pose,
   image,
-  art,
-  eyesClosedArt,
+  look,
+  bandages = false,
   shadowBox,
   shadow,
 }: {
   pose: PetPose;
   image: Box;
-  art: ImageSourcePropType;
-  /** The same pose with the eyes shut. Left out for poses that never blink. */
-  eyesClosedArt?: ImageSourcePropType;
+  /** The pet look (P2-15a): its art, and where accessories snap on. */
+  look: PetLook;
+  /** Show the tail and leg bandages (Test tools check now, the Heal quest next). */
+  bandages?: boolean;
   shadowBox: Box;
   /** The contact shadow, drawn at 0,0 inside shadowBox. */
   shadow: ReactNode;
@@ -71,7 +74,12 @@ export function PetMotion({
   const reduceMotion = useReducedMotion();
   const focused = useIsFocused();
   const asleep = pose === 'sleep';
-  const blinks = canBlink(pose) && !!eyesClosedArt;
+  const art = look.art[pose];
+  /** Eyes-closed image (Tabby-Orange), or the lid overlay at the look's eye anchors. */
+  const eyesClosedArt = look.eyesClosedArt?.[pose];
+  const lookPose = look.poses[pose];
+  const lids = !eyesClosedArt && !!look.lid && !!lookPose.eyes;
+  const blinks = canBlink(pose) && (!!eyesClosedArt || lids);
 
   /** Breath depth: 0 is breathed out. */
   const breath = useSharedValue(0);
@@ -294,6 +302,8 @@ export function PetMotion({
             accessibilityIgnoresInvertColors
           />
         ) : null}
+        {lids && eyesClosed ? <PetEyeLids look={look} pose={lookPose} image={image} /> : null}
+        {bandages ? <PetBandages pose={lookPose} image={image} /> : null}
       </Animated.View>
       <PetMomentLayer pet={image} hearts={hearts} prop={prop} moves={moves} />
       {asleep ? null : (

@@ -9,7 +9,9 @@ import Svg, { Defs, Ellipse, RadialGradient, Stop } from 'react-native-svg';
 import { PetMotion } from '@/components/PetMotion';
 import { tuning } from '@/config/tuning';
 import type { PetPlace } from '@/rules/petPlace';
-import { petArt, roomArt } from '@/scene/art';
+import { useSettings } from '@/features/settings/SettingsProvider';
+import { roomArt } from '@/scene/art';
+import { petLook } from '@/scene/petLooks';
 import { petGeometry, shiftOf, type Box, type RoomGeometry } from '@/scene/roomGeometry';
 
 type Shadow = Box & { opacity: number; softness: number; color: string };
@@ -40,14 +42,6 @@ function SoftShadow({ box, id }: { box: Shadow; id: string }) {
   );
 }
 
-const POSE_ART = { sit: petArt.sit, sleep: petArt.sleep, walk: petArt.walk } as const;
-/** Eyes-closed frames for blinking (P2-11). Sleep has its eyes shut already, so it has none. */
-const BLINK_ART = {
-  sit: petArt.sitEyesClosed,
-  sleep: undefined,
-  walk: petArt.walkEyesClosed,
-} as const;
-
 export function RoomScene({
   geometry,
   pet: place,
@@ -57,7 +51,14 @@ export function RoomScene({
   pet: PetPlace;
 }) {
   const { room, bed, bedShadow } = geometry;
-  const pet = petGeometry(place.spot, { scale: geometry.scale, shift: shiftOf(geometry) });
+  // The look picked in Test tools (P2-15a): its art, size, and accessory anchors.
+  const { petLook: lookId, showBandages } = useSettings();
+  const look = petLook(lookId);
+  const pet = petGeometry(place.spot, {
+    scale: geometry.scale,
+    shift: shiftOf(geometry),
+    look,
+  });
   const at = (b: Box) => ({ left: b.left, top: b.top, width: b.width, height: b.height });
 
   const petLayer = (
@@ -70,8 +71,8 @@ export function RoomScene({
       <PetMotion
         pose={pet.pose}
         image={pet.image}
-        art={POSE_ART[pet.pose]}
-        eyesClosedArt={BLINK_ART[pet.pose]}
+        look={look}
+        bandages={showBandages}
         shadowBox={pet.shadow}
         shadow={<SoftShadow box={{ ...pet.shadow, left: 0, top: 0 }} id="pet-shadow" />}
       />
@@ -84,6 +85,8 @@ export function RoomScene({
       // Only the pet takes touches (petting, P2-14); everything else in the room passes them on.
       pointerEvents="box-none"
       testID="room-scene"
+      // Which pet look is drawn (P2-15a), for tests.
+      nativeID={`pet-look-${look.id}`}
       accessible={false}
       importantForAccessibility="no-hide-descendants"
     >

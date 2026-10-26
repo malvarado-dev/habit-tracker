@@ -25,6 +25,7 @@ import type { ThemeColors } from '@/design/tokens';
 import { tuning } from '@/config/tuning';
 import { BAD_HABIT_DESIGNS, BAD_HABIT_DESIGN_LABELS } from '@/features/settings/settings';
 import { useSettings } from '@/features/settings/SettingsProvider';
+import { PET_LOOK_IDS, petLook } from '@/scene/petLooks';
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import { requestPetReaction } from '@/scene/petMoments';
 import { MAX_STAT, MIN_STAT, type PetStat } from '@/rules/petStats';
@@ -44,7 +45,14 @@ export function TestTools() {
   const { mode, setMode, today, testTools, state, dispatch } = useTracker();
   const maxTimes = tuning.activityBar.timesPerDayMax;
   const [confirmReset, setConfirmReset] = useState(false);
-  const { badHabitDesign, setBadHabitDesign } = useSettings();
+  const {
+    badHabitDesign,
+    setBadHabitDesign,
+    petLook: petLookId,
+    setPetLook,
+    showBandages,
+    setShowBandages,
+  } = useSettings();
   const ahead = testTools.dayOffset > 0;
 
   return (
@@ -262,6 +270,41 @@ export function TestTools() {
             );
           })}
         </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.heading} accessibilityRole="header">
+          Pet
+        </Text>
+        <View style={styles.choices} accessibilityRole="radiogroup" accessibilityLabel="Pet">
+          {PET_LOOK_IDS.map((id) => {
+            const on = id === petLookId;
+            const name = petLook(id).name;
+            return (
+              <Pressable
+                key={id}
+                onPress={() => setPetLook(id)}
+                style={[styles.chip, on && styles.chipOn]}
+                testID={`pet-look-${id}`}
+                accessibilityRole="radio"
+                aria-checked={on}
+                accessibilityLabel={name}
+              >
+                <Text style={[styles.chipText, on && styles.chipTextOn]}>{name}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        <Pressable
+          onPress={() => setShowBandages(!showBandages)}
+          style={[styles.chip, showBandages && styles.chipOn]}
+          testID="show-bandages"
+          accessibilityRole="switch"
+          aria-checked={showBandages}
+          accessibilityLabel="Show bandages"
+        >
+          <Text style={[styles.chipText, showBandages && styles.chipTextOn]}>Show bandages</Text>
+        </Pressable>
       </View>
     </View>
   );

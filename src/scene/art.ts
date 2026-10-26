@@ -23,3 +23,23 @@ export const activityArt = {
   toy: require('../../assets/private/icon-yarn-ball.png'),
   pet: require('../../assets/private/icon-petting-hand.png'),
 };
+
+/** Pet looks (P2-15a). Each look's sit, walk and sleep. Tabby-Orange is petArt above. */
+export const lookArt = {
+  tabbyGray: {
+    sit: require('../../assets/private/tabby-gray-sit.png'),
+    walk: require('../../assets/private/tabby-gray-walk.png'),
+    sleep: require('../../assets/private/tabby-gray-sleep.png'),
+  },
+  tabbyGrayReal: {
+    sit: require('../../assets/private/tabby-grayreal-sit.png'),
+    walk: require('../../assets/private/tabby-grayreal-walk.png'),
+    sleep: require('../../assets/private/tabby-grayreal-sleep.png'),
+  },
+};
+
+/** Accessories placed on any look by anchor points (P2-15a). */
+export const accessoryArt = {
+  bandageTail: require('../../assets/private/accessories-bandage-tail.png'),
+  bandageLeg: require('../../assets/private/accessories-bandage-leg.png'),
+};
