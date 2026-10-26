@@ -1,8 +1,5 @@
 {
-  "sourceSize": [
-    1882,
-    3344
-  ],
+  "sourceSize": [1882, 3344],
   "windowGlass": {
     "x": 868,
     "y": 387,
@@ -32,10 +29,7 @@
     },
     "poses": {
       "sit": {
-        "size": [
-          958,
-          1283
-        ],
+        "size": [958, 1283],
         "shadow": {
           "centerX": 570,
           "centerY": 1167,
@@ -44,10 +38,7 @@
         }
       },
       "walk": {
-        "size": [
-          1384,
-          917
-        ],
+        "size": [1384, 917],
         "shadow": {
           "centerX": 620,
           "centerY": 887,
@@ -56,10 +47,7 @@
         }
       },
       "sleep": {
-        "size": [
-          1198,
-          845
-        ],
+        "size": [1198, 845],
         "shadow": {
           "centerX": 605,
           "centerY": 815,
