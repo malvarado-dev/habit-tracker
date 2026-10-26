@@ -1,7 +1,7 @@
 ---
-version: alpha
-name: Habit Tracker Design System
-description: A fresh, rounded system with white (or dark olive) pill cards, colored progress rings, and lemon accents, in light and dark modes with AA fixes.
+version: beta
+name: Bad Neko Design System
+description: A fresh, rounded system with white (or dark olive) pill cards on a cream habit sheet, lemon accents, and an Activity Bar, in light and dark modes with AA fixes.
 colors:
   surface: "#FFFFFF"
   surface-sheet: "#FBFAF5"
@@ -21,14 +21,16 @@ colors:
   habit-6: "#0D9488"
   habit-7: "#58900B"
   habit-8: "#6366F1"
-  score-started: "#BE185D"
-  score-started-star: "#EC4899"
-  score-on-track: "#15803D"
-  score-on-track-star: "#16A34A"
-  score-nailed-it: "#B45309"
-  score-nailed-it-star: "#D97706"
-  star-score-needed: "#8E8E93"
-  star-not-today: "#6B7280"
+  habit-9: "#0E7490"
+  habit-10: "#BE123C"
+  habit-11: "#A16207"
+  habit-12: "#475569"
+  habit-default: "{colors.habit-6}"
+  ring-good: "#D97706"
+  ring-bad: "#475569"
+  ring-track: "#E6E2D9"
+  tray-bad: "#ECE7F2"
+  chip-dark: "#3A3633"
   danger: "#B91C1C"
   surface-dark: "#3A3D33"
   surface-sheet-dark: "#2A2C24"
@@ -45,11 +47,12 @@ colors:
   habit-6-dark: "#2DD4BF"
   habit-7-dark: "#A3E635"
   habit-8-dark: "#818CF8"
-  score-started-dark: "#F9A8D4"
-  score-on-track-dark: "#4ADE80"
-  score-nailed-it-dark: "#FACC15"
-  star-score-needed-dark: "#A3A396"
-  star-not-today-dark: "#8E8E82"
+  habit-9-dark: "#22D3EE"
+  habit-10-dark: "#FB7185"
+  habit-11-dark: "#FDE047"
+  habit-12-dark: "#94A3B8"
+  ring-good-dark: "#FACC15"
+  ring-bad-dark: "#94A3B8"
   danger-dark: "#FCA5A5"
 typography:
   display:
@@ -103,60 +106,102 @@ components:
     typography: "{typography.habit-name}"
     rounded: "{rounded.full}"
     padding: "{spacing.3}"
-  habit-card-not-today:
-    backgroundColor: "{colors.surface-dim}"
-    textColor: "{colors.on-surface}"
-    rounded: "{rounded.full}"
-    padding: "{spacing.3}"
-  progress-ring:
-    rounded: "{rounded.full}"
-    size: 48px
   habit-icon:
     rounded: "{rounded.full}"
     size: 36px
-  star-score-needed:
-    textColor: "{colors.star-score-needed}"
-    size: 18px
-  star-not-today:
-    textColor: "{colors.star-not-today}"
-    size: 18px
-    style: outlined, crossed out by a 2px diagonal slash (bottom left to top right)
-  status-slot:
+    color: the habit's color (habit-default unless the user picks one)
+  frequency-ring:
+    track: "{colors.ring-track}"
+    good: "{colors.ring-good}"
+    bad: "{colors.ring-bad}"
+    fill: clockwise from the top
+    placement: around the habit icon, with the count (like "3/8") on the right of the card; on every habit with frequency on
+  bad-habit-reveal:
+    backgroundColor: "{colors.surface-dim}"
+    textColor: "{colors.on-surface}"
+    placement: revealed behind the card when it slides right; shows the linked bad habit name and a log button
+  long-press-menu:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.on-surface}"
+    rounded: "{rounded.xl}"
+    items: Log [linked bad habit], Edit habit
+  section-header:
+    textColor: "{colors.on-surface-muted}"
+    typography: "{typography.caption}"
+    content: Today, Anytime
+  bad-habits-tray:
+    backgroundColor: "{colors.tray-bad}"
+    rounded: "{rounded.xl}"
+    padding: "{spacing.4}"
+    content: "Bad habits" title, "Tap to count a slip" hint, and the bad habit chips
+  bad-habit-chip:
+    backgroundColor: "{colors.chip-dark}"
+    textColor: "{colors.on-inverse}"
     typography: "{typography.label}"
+    rounded: "{rounded.full}"
+    size: 44px
+    content: name and a count badge; tap counts a slip, long-press opens the popover stepper
+  count-badge:
+    rounded: "{rounded.full}"
+    zero: muted, shows 0
+    above-zero: "{colors.primary}" with "{colors.on-primary}" text
+    placement: always reserved on the chip, so the chip never changes width
+  popover-stepper:
+    backgroundColor: "{colors.inverse}"
+    textColor: "{colors.on-inverse}"
+    rounded: "{rounded.full}"
+    content: minus, today's count, plus (lemon); points at its chip
+    behavior: opens on long-press of a bad habit chip; tap outside to close
   habit-sheet:
     backgroundColor: "{colors.surface-sheet}"
     rounded: "{rounded.2xl}"
     padding: "{spacing.4}"
-  energy-bar:
+  activity-bar:
     backgroundColor: "{colors.inverse}"
     rounded: "{rounded.full}"
     padding: 3px
     height: 14px
-  energy-bar-fill:
+  activity-bar-fill:
     backgroundColor: "{colors.primary}"
     rounded: "{rounded.full}"
     height: 8px
-  energy-bar-label:
+  activity-notch:
+    count: 3
+    placement: at one third, two thirds, and the end of the bar
+    icons: full-color food bowl, yarn ball, and petting hand, sitting on the bar at the notches with bottoms aligned
+    behavior: an icon rattles when the fill reaches its notch; when the bar is full, the chosen icon pops
+  main-quest-card:
+    backgroundColor: "{colors.surface}"
     textColor: "{colors.on-surface}"
-    typography: "{typography.habit-name}"
-    weight: 700
-    content: "Today" on the left (Today only), the percentage on the right
-  energy-tick:
-    width: 3px
+    rounded: "{rounded.xl}"
+    padding: "{spacing.4}"
+    placement: under the Activity Bar
+    content: quest name, a progress line (like "3/7 Check in days"), and a progress bar
+    behavior: tap opens Quests; a dot badge shows when a new quest is available
+  history-link:
+    textColor: "{colors.on-surface}"
+    typography: "{typography.label}"
+    placement: centered at the bottom of the habit sheet, underlined
+    behavior: opens History
+  explore-button:
+    backgroundColor: "{colors.primary}"
+    textColor: "{colors.on-primary}"
+    typography: "{typography.label}"
     rounded: "{rounded.full}"
-    color: "{colors.on-inverse}"
-    passedColor: "{colors.on-primary}"
-    placement: inside the energy-bar at the B, A, and S rank cutoffs (50, 75, 90%); the S tick runs 3px past the bar
-  weekly-goal-met:
+    height: 52px
+    placement: appears when the Activity Bar is full
+  ad-card:
+    backgroundColor: "{colors.surface-dim}"
     textColor: "{colors.on-surface}"
-    habitNameColor: the habit's color
-    size: 19px
-    weight: 700
-    placement: centered under the energy-bar, plain text, no box
+    borderColor: "{colors.border}"
+    rounded: "{rounded.xl}"
+    label: "Ad", always visible, styled unlike shop items
   menu-button:
+    backgroundColor: see-through light fill over the room
     textColor: "{colors.on-surface}"
     rounded: "{rounded.full}"
     size: 44px
+    placement: top left, over the room
   chip:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.on-surface-muted}"
@@ -192,40 +237,49 @@ components:
     padding: "{spacing.3}"
 ---
 
-# Habit Tracker Design System
+# Bad Neko Design System
 
 ## Overview
-A light, fresh look for Habit Tracker. The shared Background sits above, and white pill cards sit on a solid warm white habit sheet, and each habit has its own color shown in its icon and progress ring. The tone stays playful, cozy, and rewarding. It must never feel game-loud, guilt-driven, or cluttered. Very light gray text and thin small type fail contrast, so this system avoids both.
+A light, fresh, cozy look for Bad Neko. The living room sits behind, and white pill cards sit on a cream habit sheet with soft pill buttons. The tone stays playful, cozy, and rewarding, with a little mischief. It must never feel game-loud, guilt-driven, or cluttered. Very light gray text and thin small type fail contrast, so this system avoids both. Exact sheet and card colors are tuned in the Prototype 2 mockups.
 
 ## Colors
-The sky belongs to the shared Background (background.md), not this theme; this theme covers the habit sheet, cards, text, and Energy bar. Cards stay white so habit colors pop. Dark mode (tokens ending in -dark) swaps the sheet to olive-charcoal and the cards to dark olive pills with a 1 px border-dark edge (3:1 on the sheet, since the card itself is only 1.3:1), with brighter habit and score colors that pass AA on dark; lemon and the critter stay the same. Each habit color is a mid-tone, not a pastel, so its ring passes 3:1 on white; pale tints of it fill the icon circle. Lemon primary is the signature accent; it is only ever used on the dark inverse color or with dark text on top, because lemon on white is about 1.2:1. Score labels use deep pink, green, and amber at 5:1 or better on white, and their stars use brighter versions that pass 3:1. To do stars are outlined, and Skip stars are outlined and crossed out by a diagonal slash, so the two states differ by shape, not just shade. Danger (deep red, 6.5:1 on white; light red in dark, 5.8:1 on dark cards) is only for destructive actions like Remove habit, never for scores.
+The room belongs to living-room.md and the pet to pet.md, not this theme; this theme covers the habit sheet, cards, text, Activity Bar, and controls. Cards stay white so the pet and habit icons pop. Dark mode (tokens ending in -dark) swaps the sheet to olive-charcoal and the cards to dark olive pills with a 1 px border-dark edge (3:1 on the sheet), with brighter habit and ring colors that pass AA on dark; lemon, the pet, and the room stay the same. Dark values for ring-track, tray-bad, and chip-dark are set in the mockups. Habit colors: a curated palette of 12 mid-tones that pass 3:1 on white; colors can repeat, and every habit uses habit-default until the user picks one. Lemon primary is the signature accent; it is only used on the dark inverse color or with dark text on top, because lemon on white is about 1.2:1. Rings fill gold for good logs and slate for linked bad logs on a light track. Bad habits sit in a lilac tray so they read apart from good habits and aren't tapped by mistake. Danger (deep red) is only for destructive actions like Remove habit.
 
 ## Typography
-Urbanist: geometric and friendly, with wide, airy letters. Thin weight (300) only at display size and above; everything 16 px and below is 500 to 700, because thin small text is hard to read. Nothing goes below 12 px.
+Urbanist: geometric and friendly, with wide, airy letters. Thin weight (300) only at display size and above; everything 16 px and below is 500 to 700. Nothing goes below 12 px.
 
 ## Layout
-4-point spacing. Pill cards are 12 px apart with 12 px padding. The habit sheet has 16 px padding. Comfortable density with plenty of air.
+4-point spacing. Pill cards are 12 px apart with 12 px padding. The habit sheet has 16 px padding. Top to bottom on the sheet: Activity Bar, Main Quest card, Today section, Anytime section, Bad habits tray (only if the user added one), History link.
 
 ## Elevation & Depth
-Depth comes from light, not dark: cards use a soft, warm, low shadow (0 4px 14px at 8% plus 0 1px 2px at 6%) and a hairline border. The habit sheet is a solid warm white (#FBFAF5); a see-through sheet let the critter body show through and muddied the cards. No heavy dark shadows.
+Depth comes from light, not dark: cards use a soft, warm, low shadow (0 4px 14px at 8% plus 0 1px 2px at 6%) and a hairline border. The habit sheet is solid; a see-through sheet muddies the cards. No heavy dark shadows.
 
 ## Shapes
-Fully rounded everything: pill cards, chips, buttons, the Energy bar, and the Undo bar. The habit sheet uses 28 px top corners. Icons sit in circles inside their progress ring.
+Fully rounded everything: pill cards, chips, buttons, the Activity Bar, the popover stepper, and the Undo bar. The habit sheet uses 28 px top corners.
 
 ## Components
-The Habit Card is a white pill: a progress ring with the habit icon inside, the name, the status slot, and three stars on the right. The ring fills for each day this week scored Started, On track, or Nailed it, in the habit's color; screen readers hear "3 of 4 this week." The ring is the default; progress bubbles under the name are a Settings option being tested. Skip turns the card light gray and crosses out each outlined gray star with a diagonal slash. The Energy bar is a dark pill with a smooth lemon fill, with "Today" on the left and the percentage on the right above it, both in on-surface at the same size. Three thin ticks sit inside the bar at the B, A, and S rank cutoffs (50, 75, 90%); the S tick is a little taller. A tick is light on the dark track until the fill passes it, then dark on the lemon fill. No letters and no flag. The fill counts habits due today plus Any days habits still owed this week, so every counted star moves it the same amount; a habit whose weekly goal is already met doesn't move it. Crossing the S tick sweeps a shimmer across the fill; reaching 100% also brightens the fill briefly and pops a few sparkles off the end. Both are subtle, play only on an upward crossing, and reduce to the brighten with reduced motion. On a Rest day the bar shows full. When a habit's weekly goal is met, "Weekly goal met · Habit" fades in under the bar as plain text, 19 px bold, with the habit name in its habit color (every habit color passes 3:1 as large text on both sheets), and the bar gets a soft lemon glow. Text only fades, never scales, so it stays sharp. Chips and day buttons are pills on the card color; selected ones fill with the text color (on-surface) and use the sheet color for their label, so they are near-black in light and near-white in dark. The primary button is a lemon pill with dark text. The Remove habit button is a card-color pill with danger text. The Undo bar is a dark pill with a 1 px border, which keeps its edge visible on the dark sheet. The habit sheet is fixed, with no grab handle; cards scroll inside it. The critter is not part of this theme: its look and colors come from the shared critter palette in critter.md, so a user's critter looks the same in every theme. The sky comes from the shared Background (background.md), not this theme.
+The Habit Card is a white pill: the habit icon in the habit's color and the name, and, on habits with frequency on, a ring around the icon that fills clockwise with the count on the right ("3/8"). Tap the card to log it. Slide it right to reveal its linked bad habit; long-press for a menu with Log [linked bad habit] and Edit habit. Each log plays a quick animation inside the card.
+
+Bad habits live in a lilac tray under the habit cards. Each one is a dark chip with a count badge that always keeps its space: muted at 0, lemon above 0. Tap a chip to count a slip. Long-press opens a dark popover stepper (minus, count, plus) that points at the chip; tap outside to close.
+
+The Activity Bar is a dark pill with a smooth lemon fill and 3 notches. Full-color icons sit on the bar at the notches (food bowl, yarn ball, petting hand), bottoms aligned. An icon does a quick rattle when the fill reaches its notch. A full bar is the day's check-in: the chosen icon pops, its moment plays in the room, and the Explore button appears. Subtle effects only, and they reduce to a brief brighten with reduced motion.
+
+The Main Quest card sits under the Activity Bar and shows the active quest, a progress line ("3/7 Check in days"), and a bar. Tapping it opens Quests, and a dot badge shows when a new quest is available. Home has no separate Quests button. A centered "History" text link at the bottom of the sheet opens History. The menu button is a see-through round button at the top left, over the room.
+
+The shop's ad card is always labeled "Ad" and styled unlike items. Chips and day buttons are pills on the card color; selected ones fill with the text color. The primary button is a lemon pill with dark text. The Remove habit button is a card-color pill with danger text. The Undo bar is a dark pill with a 1 px border. The habit sheet is fixed, with no grab handle; cards scroll inside it.
 
 ## Do's and Don'ts
 Do:
-- Keep cards white and let habit colors live in the ring and icon.
+- Keep cards white and let color live in the icon and ring.
 - Use lemon only on dark or with dark text.
 - Use weight 500 or more for any text 16 px and below.
-- Show To do vs Skip by star shape (plain outline vs outline with a slash), not shade alone.
-- Keep tap targets at 44 px or larger.
+- Show ring progress with the count text too, not color alone.
+- Keep tap targets at 44 px or larger, and give every swipe and long-press a tap alternative.
+- Label every ad as an ad.
 
 Don't:
 - Make it game-loud: no confetti spam, flashing, or fake streak urgency.
-- Make it guilt-driven: Skip is a choice, never a failure.
+- Make it guilt-driven: bad habits never take anything away.
 - Let it get cluttered: no charts or extra numbers on Today.
-- Use pale gray text on the gradient.
-- Use pastel habit colors for rings; they fail contrast on white.
+- Show ads in the habit layer or during a check-in.
+- Use pastel habit colors; they fail contrast on white.
