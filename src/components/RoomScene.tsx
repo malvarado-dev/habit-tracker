@@ -1,4 +1,4 @@
-// The living room behind the habit sheet (P2-06, #77). Layers, back to front: room, back of the
+// The living room behind the habit sheet (P2-06, #77). The pet's idle motion is PetMotion (P2-11). Layers, back to front: room, back of the
 // bed, pet, front of the bed. When the pet hides (low Confidence, P2-12), it moves behind the back
 // of the bed. The room is art, not theme: it looks the same in Light and Dark theme. The window
 // already shows the day sky; other times of day are out of Prototype 2 scope.
@@ -6,6 +6,7 @@
 import { Image, StyleSheet, View } from 'react-native';
 import Svg, { Defs, Ellipse, RadialGradient, Stop } from 'react-native-svg';
 
+import { PetMotion } from '@/components/PetMotion';
 import { tuning } from '@/config/tuning';
 import { petArt, roomArt } from '@/scene/art';
 import {
@@ -45,6 +46,12 @@ function SoftShadow({ box, id }: { box: Shadow; id: string }) {
 }
 
 const POSE_ART = { sit: petArt.sit, sleep: petArt.sleep, walk: petArt.walk } as const;
+/** Eyes-closed frames for blinking (P2-11). Sleep has its eyes shut already, so it has none. */
+const BLINK_ART = {
+  sit: petArt.sitEyesClosed,
+  sleep: undefined,
+  walk: petArt.walkEyesClosed,
+} as const;
 
 export function RoomScene({
   geometry,
@@ -62,13 +69,13 @@ export function RoomScene({
 
   const petLayer = (
     <View style={StyleSheet.absoluteFill} pointerEvents="none" testID="pet-layer">
-      <SoftShadow box={pet.shadow} id="pet-shadow" />
-      <Image
-        source={POSE_ART[pet.pose]}
-        style={[styles.abs, at(pet.image)]}
-        resizeMode="stretch"
-        testID="pet-image"
-        accessibilityIgnoresInvertColors
+      <PetMotion
+        pose={pet.pose}
+        image={pet.image}
+        art={POSE_ART[pet.pose]}
+        eyesClosedArt={BLINK_ART[pet.pose]}
+        shadowBox={pet.shadow}
+        shadow={<SoftShadow box={{ ...pet.shadow, left: 0, top: 0 }} id="pet-shadow" />}
       />
     </View>
   );
