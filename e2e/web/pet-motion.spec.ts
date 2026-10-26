@@ -23,6 +23,14 @@ async function bounceFromTestTools(page: import('@playwright/test').Page): Promi
 }
 
 test.describe('Pet idle motion (P2-11)', () => {
+  test('the pet art fills its spot in the room', async ({ home }) => {
+    const body = await home.petBody.boundingBox();
+    const art = await home.petImage.boundingBox();
+    expect(body && art).toBeTruthy();
+    expect(Math.abs(art!.width - body!.width)).toBeLessThan(2);
+    expect(Math.abs(art!.height - body!.height)).toBeLessThan(2);
+  });
+
   test('the pet blinks on its own', async ({ home }) => {
     await home.watchBlinks();
     await expect.poll(() => home.blinkCount(), { timeout: BLINK_WAIT }).toBeGreaterThan(0);
