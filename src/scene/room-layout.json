@@ -1,0 +1,21 @@
+{
+  "sourceSize": [1882, 3344],
+  "windowGlass": {
+    "x": 868,
+    "y": 387,
+    "w": 543,
+    "h": 340
+  },
+  "bed": {
+    "scale": 1.35,
+    "centerX": 1300,
+    "bottomY": 1730,
+    "shadow": {
+      "yAboveBottom": 22,
+      "halfHeight": 40,
+      "insetX": 10,
+      "floorTint": 0.82
+    }
+  },
+  "roomShiftScreenPx2x": 113
+}
