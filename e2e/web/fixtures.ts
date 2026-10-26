@@ -30,9 +30,10 @@ export function dailyHabit(id: string, name: string, timesPerDay = 1): Habit {
 /** A current save with these habits (and bad habits) and nothing logged yet. */
 export function saveWith(habits: Habit[], badHabits: BadHabit[] = []): TrackerState {
   return {
-    version: 14,
+    version: 15,
     pet: { loveAdjust: 0, confidenceAdjust: 0 },
     quests: { heal: { acceptedOn: null, claimedOn: null } },
+    explore: { sent: [], seenThrough: null },
     habits,
     removed: [],
     log: {},

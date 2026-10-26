@@ -9,10 +9,11 @@ import type { DateKey } from '@/rules/dates';
 import type { Habit, LogCounts, Weekday } from '@/rules/habits';
 import { dayResult, allHabits, type LockState, type LockedDay } from '@/rules/locking';
 import { adjustFor } from '@/rules/petStats';
+import { START_EXPLORE } from '@/rules/explore';
 import { START_QUESTS } from '@/rules/quest';
 import type { TrackerState } from './state';
 
-export const CURRENT_VERSION = 14;
+export const CURRENT_VERSION = 15;
 
 /** Before v9 (Prototype 1 and P2-07): a check-in was a star level per habit per day. */
 type OldCheckIn = 'NotToday' | 'Started' | 'OnTrack' | 'NailedIt';
@@ -58,7 +59,7 @@ function isV4(v: Record<string, unknown>): v is SaveV4 & Record<string, unknown>
 
 function isV5Shape(
   v: Record<string, unknown>,
-  version: 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14,
+  version: 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15,
 ): boolean {
   return (
     v.version === version &&
@@ -113,8 +114,13 @@ const isV13 = (v: Record<string, unknown>) =>
   isObject(v.slips) &&
   isObject(v.skips) &&
   isObject(v.designTallies);
-const isV14 = (v: Record<string, unknown>): v is TrackerState & Record<string, unknown> =>
+const isV14 = (v: Record<string, unknown>) =>
   isV13({ ...v, version: 13 }) && v.version === 14 && isObject(v.quests) && isObject(v.quests.heal);
+const isV15 = (v: Record<string, unknown>): v is TrackerState & Record<string, unknown> =>
+  isV14({ ...v, version: 14 }) &&
+  v.version === 15 &&
+  isObject(v.explore) &&
+  Array.isArray(v.explore.sent);
 
 /** v9: a weekly goal becomes a schedule (when it's due), and every habit starts at 1 time a day. */
 function upgradeHabit(old: OldHabit): Habit {
@@ -235,6 +241,11 @@ const UPGRADES: Record<number, (save: Record<string, unknown>) => Record<string,
     if (!isV13(save)) throw new Error('Not a valid v13 save');
     return { ...save, version: 14, quests: START_QUESTS };
   },
+  // v14 to v15 (P2-16): adds Explore, nothing sent yet. Everything else is copied as it was.
+  14: (save) => {
+    if (!isV14(save)) throw new Error('Not a valid v14 save');
+    return { ...save, version: 15, explore: START_EXPLORE };
+  },
 };
 
 export type LoadResult =
@@ -272,7 +283,7 @@ export function loadSave(raw: string | null): LoadResult {
     return { kind: 'unreadable', raw };
   }
 
-  if (!isV14(save)) return { kind: 'unreadable', raw };
+  if (!isV15(save)) return { kind: 'unreadable', raw };
   return { kind: 'loaded', state: save, upgradedFrom: from === CURRENT_VERSION ? null : from };
 }
 

@@ -136,6 +136,23 @@ describe('Heal quest tools (Test only, P2-15)', () => {
   });
 });
 
+describe('Explore tool (Test only, P2-16)', () => {
+  const sendNow: AppAction = { type: 'sendTestExploring', realDate: REAL };
+
+  it('sends the Test pet out and leaves Real alone', () => {
+    const start = inTest();
+    const { app, keys } = run(start, sendNow);
+    expect(app.test.state.explore.sent).toHaveLength(1);
+    expect(app.real).toBe(start.real);
+    expect(keys).toEqual([TEST_KEY]);
+  });
+
+  it('does nothing in Real', () => {
+    const start = createAppState();
+    expect(appReducer(start, sendNow)).toBe(start);
+  });
+});
+
 describe('Prototype 1 saves carry into Prototype 2', () => {
   it('a v7 save gains the pet, and its stars become logs', () => {
     const { pet: _pet, targets: _targets, habits, ...rest } = createInitialState();

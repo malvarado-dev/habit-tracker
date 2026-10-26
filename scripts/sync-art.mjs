@@ -33,6 +33,10 @@ const FILES = [
   ['pet/tabby-grayreal/sleep.png', 'pet.png'],
   ['pet/accessories/bandage-tail.png', 'clear.png'],
   ['pet/accessories/bandage-leg.png', 'clear.png'],
+  // Explore neighborhood layers (P2-16): saved as neighborhood-near.png and so on.
+  ['explore/neighborhood-near.png', 'clear.png'],
+  ['explore/neighborhood-mid.png', 'clear.png'],
+  ['explore/neighborhood-far.png', 'clear.png'],
   ['icons/icon-food-bowl@1x.png', 'clear.png'],
   ['icons/icon-food-bowl@2x.png', 'clear.png'],
   ['icons/icon-food-bowl@3x.png', 'clear.png'],

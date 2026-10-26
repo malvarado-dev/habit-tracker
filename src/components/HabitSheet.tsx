@@ -22,11 +22,16 @@ import { slipCount, trayHabits, type BadHabit } from '@/rules/badHabits';
 import { type Habit } from '@/rules/habits';
 import { dayLogs, linkedBadHabit } from '@/rules/linked';
 import { allHabits, barLog } from '@/rules/locking';
+import { canExplore } from '@/rules/explore';
 import { finishedCount } from '@/rules/payoff';
 import { healCheckIns, healStatus } from '@/rules/quest';
-import { requestPetMoment } from '@/scene/petMoments';
+import { announce, requestPetMoment } from '@/scene/petMoments';
+
 import { groupHabits } from '@/rules/sheet';
 import { space } from '@/theme';
+
+/** Narrator line once the pet heads out (P2-16). Placeholder words. */
+const EXPLORE_LINE = 'Neko is off to explore. Check back tomorrow to see what Neko finds.';
 
 // Main Quest stand-in until P2-15 (#86) gives the sheet the real quest.
 
@@ -134,6 +139,19 @@ export function HabitSheet({ bottomPadding }: { bottomPadding: number }) {
         activityIcons
         finished={finishedCount(allHabits(state), log, today)}
       />
+      {canExplore(state.explore, today, bar.isFull) ? (
+        <Pressable
+          onPress={() => {
+            dispatch({ type: 'sendExploring', date: today });
+            announce(EXPLORE_LINE);
+          }}
+          style={[styles.explore, { backgroundColor: c.primary }]}
+          testID="explore-button"
+          accessibilityRole="button"
+        >
+          <Text style={[textStyle('label', '700'), { color: c.onPrimary }]}>Explore</Text>
+        </Pressable>
+      ) : null}
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[styles.content, { paddingBottom: bottomPadding }]}
@@ -226,4 +244,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   historyText: { textDecorationLine: 'underline' },
+  // explore-button in design-system.md: primary fill, full rounding, 52 pt tall.
+  explore: {
+    height: 52,
+    borderRadius: 9999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: space.sm,
+  },
 });

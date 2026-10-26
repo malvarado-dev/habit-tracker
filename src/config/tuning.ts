@@ -26,6 +26,32 @@ export const tuning = {
     menuButton: 'rgba(255, 255, 255, 0.45)',
   },
 
+  /** Explore (P2-16, #87, rules/explore.ts). Starting values for testing. */
+  explore: {
+    /** Coins found per exploring day: random in this range, fixed for each date. */
+    coinsMin: 5,
+    coinsMax: 15,
+    /** Neighborhood layers, in the art's own pixels (2172 x 724 each). The far layer sits this
+     * much higher so the skyline shows above the town. */
+    layerSize: [2172, 724] as const,
+    farRaise: 230,
+    /** Where the pet's paws touch the path, from the top of the near layer. */
+    pathY: 600,
+    /** The pet's width as a share of the screen width while exploring. */
+    petWidthShare: 0.42,
+    /** Scroll speed of each layer, in points per second: near fastest, far slowest. */
+    speeds: { near: 60, mid: 30, far: 10 },
+    /** Step bob: how far the pet rises, and one step's length. */
+    bobHeight: 3,
+    bobMs: 380,
+    /** Layer tint over the art by time of day, so daylight art matches the sky. */
+    tint: {
+      day: { color: '#1E2856', opacity: 0 },
+      dusk: { color: '#4A3A6A', opacity: 0.2 },
+      night: { color: '#1E2856', opacity: 0.35 },
+    },
+  },
+
   /** Quests (P2-15, #86, PRD-14). Starting values for testing. */
   quest: {
     heal: {

@@ -43,3 +43,10 @@ export const accessoryArt = {
   bandageTail: require('../../assets/private/accessories-bandage-tail.png'),
   bandageLeg: require('../../assets/private/accessories-bandage-leg.png'),
 };
+
+/** Explore neighborhood layers (P2-16): near (path), middle (town), far (city). */
+export const exploreArt = {
+  near: require('../../assets/private/neighborhood-near.png'),
+  mid: require('../../assets/private/neighborhood-mid.png'),
+  far: require('../../assets/private/neighborhood-far.png'),
+};
