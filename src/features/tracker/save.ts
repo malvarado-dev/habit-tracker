@@ -10,7 +10,7 @@ import type { Habit, LogCounts, Weekday } from '@/rules/habits';
 import { dayResult, allHabits, type LockedDay } from '@/rules/locking';
 import type { TrackerState } from './state';
 
-export const CURRENT_VERSION = 10;
+export const CURRENT_VERSION = 11;
 
 /** Before v9 (Prototype 1 and P2-07): a check-in was a star level per habit per day. */
 type OldCheckIn = 'NotToday' | 'Started' | 'OnTrack' | 'NailedIt';
@@ -54,7 +54,7 @@ function isV4(v: Record<string, unknown>): v is SaveV4 & Record<string, unknown>
   );
 }
 
-function isV5Shape(v: Record<string, unknown>, version: 5 | 6 | 7 | 8 | 9 | 10): boolean {
+function isV5Shape(v: Record<string, unknown>, version: 5 | 6 | 7 | 8 | 9 | 10 | 11): boolean {
   return (
     v.version === version &&
     Array.isArray(v.habits) &&
@@ -78,7 +78,7 @@ const isV9 = (v: Record<string, unknown>) =>
   isObject(v.pet) &&
   typeof v.pet.confidence === 'number' &&
   isObject(v.targets);
-const isV10 = (v: Record<string, unknown>): v is TrackerState & Record<string, unknown> =>
+const isV10 = (v: Record<string, unknown>) =>
   isV5Shape(v, 10) &&
   Array.isArray(v.removed) &&
   isObject(v.pet) &&
@@ -86,6 +86,15 @@ const isV10 = (v: Record<string, unknown>): v is TrackerState & Record<string, u
   isObject(v.targets) &&
   Array.isArray(v.badHabits) &&
   isObject(v.slips);
+const isV11 = (v: Record<string, unknown>): v is TrackerState & Record<string, unknown> =>
+  isV5Shape(v, 11) &&
+  Array.isArray(v.removed) &&
+  isObject(v.pet) &&
+  typeof v.pet.confidence === 'number' &&
+  isObject(v.targets) &&
+  Array.isArray(v.badHabits) &&
+  isObject(v.slips) &&
+  isObject(v.skips);
 
 /** v9: a weekly goal becomes a schedule (when it's due), and every habit starts at 1 time a day. */
 function upgradeHabit(old: OldHabit): Habit {
@@ -177,6 +186,11 @@ const UPGRADES: Record<number, (save: Record<string, unknown>) => Record<string,
     if (!isV9(save)) throw new Error('Not a valid v9 save');
     return { ...save, version: 10, badHabits: [], slips: {} };
   },
+  // v10 to v11 (P2-08b): adds skipped habits, empty. Everything else is copied as it was.
+  10: (save) => {
+    if (!isV10(save)) throw new Error('Not a valid v10 save');
+    return { ...save, version: 11, skips: {} };
+  },
 };
 
 export type LoadResult =
@@ -214,7 +228,7 @@ export function loadSave(raw: string | null): LoadResult {
     return { kind: 'unreadable', raw };
   }
 
-  if (!isV10(save)) return { kind: 'unreadable', raw };
+  if (!isV11(save)) return { kind: 'unreadable', raw };
   return { kind: 'loaded', state: save, upgradedFrom: from === CURRENT_VERSION ? null : from };
 }
 

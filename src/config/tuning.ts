@@ -38,12 +38,18 @@ export const tuning = {
     /** Press feedback on a log: the card shrinks a little, then springs back. */
     pressScale: 0.96,
     pressMs: 90,
+    /** Sideways drag before a card starts sliding, so vertical scrolls win (T6). */
+    slideStartOffset: 16,
+    /** How long to hold a card before its menu opens. */
+    longPressMs: 450,
   },
 
   /** The segmented ring around a frequency habit's icon (PRD-15). */
   ring: {
     /** Good log fill and the empty track. Fixed colors from the ticket, same in both themes. */
     gold: '#D97706',
+    /** Linked bad logs fill after the gold ones (design-system.md ring-bad). */
+    slate: '#475569',
     track: '#E6E2D9',
     /** Degrees of empty space between segments. */
     gapDegrees: 10,

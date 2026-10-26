@@ -1,11 +1,13 @@
 // Which habits the habit sheet shows, and in which section (P2-07). Plain TypeScript so it can be
 // unit tested without rendering.
 //
-// Finished cards leave the list (P2-08a): a habit is finished once today's logs reach its times
-// per day. History is where finished habits can still be seen and changed.
+// Finished cards leave the list (P2-08a): a habit is finished once today's logs, gold plus linked
+// slips (P2-08b), reach its times per day. Skipped habits leave it too, for that day only.
+// History is where they can still be seen and changed.
 
 import type { DateKey } from './dates';
 import { logCount, timesPerDay, type Habit, type HabitSection, type LogCounts } from './habits';
+import { isSkipped, type Skips } from './linked';
 
 /** True once today's logs reach the habit's times per day. */
 export function isFinishedToday(habit: Habit, count: number): boolean {
@@ -19,11 +21,20 @@ export function sectionOf(habit: Habit): HabitSection {
 
 export type SheetSections = { today: Habit[]; anytime: Habit[] };
 
-/** Unfinished habits split into Today and Anytime, each kept in the saved order. */
-export function groupHabits(habits: Habit[], log: LogCounts, date: DateKey): SheetSections {
+/**
+ * Unfinished, unskipped habits split into Today and Anytime, each kept in the saved order. `log`
+ * includes linked slips (withLinkedSlips).
+ */
+export function groupHabits(
+  habits: Habit[],
+  log: LogCounts,
+  date: DateKey,
+  skips: Skips = {},
+): SheetSections {
   const out: SheetSections = { today: [], anytime: [] };
   for (const habit of habits) {
     if (isFinishedToday(habit, logCount(log, date, habit.id))) continue;
+    if (isSkipped(skips, date, habit.id)) continue;
     out[sectionOf(habit)].push(habit);
   }
   return out;

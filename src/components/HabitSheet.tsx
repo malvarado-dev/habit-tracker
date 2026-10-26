@@ -18,8 +18,9 @@ import { useSettings } from '@/features/settings/SettingsProvider';
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import { getActivityBar } from '@/rules/activityBar';
 import { slipCount, trayHabits, type BadHabit } from '@/rules/badHabits';
-import { logCount, type Habit } from '@/rules/habits';
-import { allHabits } from '@/rules/locking';
+import { type Habit } from '@/rules/habits';
+import { dayLogs, linkedBadHabit } from '@/rules/linked';
+import { allHabits, barLog } from '@/rules/locking';
 import { groupHabits } from '@/rules/sheet';
 import { space } from '@/theme';
 
@@ -30,13 +31,18 @@ export function HabitSheet({ bottomPadding }: { bottomPadding: number }) {
   const { state, dispatch, today } = useTracker();
   const { colors: c } = useTheme();
   const { badHabitDesign } = useSettings();
-  const bar = getActivityBar(allHabits(state), state.log, today, state.targets[today]);
-  const sections = groupHabits(state.habits, state.log, today);
+  const log = barLog(state);
+  const bar = getActivityBar(allHabits(state), log, today, state.targets[today]);
+  const sections = groupHabits(state.habits, log, today, state.skips);
+  // Design 2 has no pairing (PRD-15), so its cards slide to Skip only.
+  const linkedOf = (habit: Habit) =>
+    badHabitDesign === 'design1' ? linkedBadHabit(habit, state.badHabits) : undefined;
   const tray = trayHabits(state.badHabits, state.habits, badHabitDesign);
   // The last change, so Undo can take it back. `id` changes every time to restart the timer.
   // A slip remembers the count before it, so Undo after a stepper change puts it back exactly.
   const [undo, setUndo] = useState<
     | { kind: 'log'; habit: Habit; id: number }
+    | { kind: 'skip'; habit: Habit; id: number }
     | { kind: 'slip'; bad: BadHabit; before: number; after: number; id: number }
     | null
   >(null);
@@ -47,9 +53,14 @@ export function HabitSheet({ bottomPadding }: { bottomPadding: number }) {
     return () => clearTimeout(timer);
   }, [undo]);
 
-  const log = (habit: Habit) => {
+  const logHabit = (habit: Habit) => {
     dispatch({ type: 'logHabit', date: today, habitId: habit.id });
     setUndo((u) => ({ kind: 'log', habit, id: (u?.id ?? 0) + 1 }));
+  };
+
+  const skip = (habit: Habit) => {
+    dispatch({ type: 'skipHabit', date: today, habitId: habit.id });
+    setUndo((u) => ({ kind: 'skip', habit, id: (u?.id ?? 0) + 1 }));
   };
 
   const slips = (id: string) => slipCount(state.slips, today, id);
@@ -64,18 +75,29 @@ export function HabitSheet({ bottomPadding }: { bottomPadding: number }) {
   const undoLast = () => {
     if (!undo) return;
     if (undo.kind === 'log') dispatch({ type: 'undoLog', date: today, habitId: undo.habit.id });
+    else if (undo.kind === 'skip')
+      dispatch({ type: 'unskipHabit', date: today, habitId: undo.habit.id });
     else dispatch({ type: 'setSlips', date: today, badHabitId: undo.bad.id, count: undo.before });
     setUndo(null);
   };
 
-  const card = (habit: Habit) => (
-    <HabitCard
-      key={habit.id}
-      habit={habit}
-      count={logCount(state.log, today, habit.id)}
-      onLog={() => log(habit)}
-    />
-  );
+  const card = (habit: Habit) => {
+    const { gold, slate } = dayLogs(habit, state.log, state.slips, state.badHabits, today);
+    const linked = linkedOf(habit);
+    return (
+      <HabitCard
+        key={habit.id}
+        habit={habit}
+        count={gold}
+        slate={linked ? slate : 0}
+        linked={linked ? { name: linked.name, count: slips(linked.id) } : undefined}
+        onLog={() => logHabit(habit)}
+        onSkip={() => skip(habit)}
+        onSlip={linked ? () => setSlips(linked, slips(linked.id) + 1) : undefined}
+        onEdit={() => router.push({ pathname: '/habit/[id]', params: { id: habit.id } })}
+      />
+    );
+  };
 
   const section = (id: string, title: string, habits: Habit[]) =>
     habits.length === 0 ? null : (
@@ -137,7 +159,9 @@ export function HabitSheet({ bottomPadding }: { bottomPadding: number }) {
           undoLabel={
             undo.kind === 'log'
               ? `Undo, take back the last ${undo.habit.name || 'habit'} log`
-              : `Undo, put ${undo.bad.name || 'the bad habit'} back to ${undo.before}`
+              : undo.kind === 'skip'
+                ? `Undo, bring back ${undo.habit.name || 'the habit'}`
+                : `Undo, put ${undo.bad.name || 'the bad habit'} back to ${undo.before}`
           }
           onUndo={undoLast}
         />
@@ -146,12 +170,15 @@ export function HabitSheet({ bottomPadding }: { bottomPadding: number }) {
   );
 }
 
-/** What the Undo bar says: "Sleep logged", "Soda counted" (a tap or plus), or "Soda set to 0". */
+/** What the Undo bar says: "Sleep logged", "Sleep skipped today", "Soda counted", or "Soda set to 0". */
 function undoText(
   undo:
-    { kind: 'log'; habit: Habit } | { kind: 'slip'; bad: BadHabit; before: number; after: number },
+    | { kind: 'log' | 'skip'; habit: Habit }
+    | { kind: 'slip'; bad: BadHabit; before: number; after: number },
 ): string {
-  if (undo.kind === 'log') return `${undo.habit.name || 'Habit'} logged`;
+  if (undo.kind !== 'slip') {
+    return `${undo.habit.name || 'Habit'} ${undo.kind === 'log' ? 'logged' : 'skipped today'}`;
+  }
   const name = undo.bad.name || 'Bad habit';
   return undo.after === undo.before + 1 ? `${name} counted` : `${name} set to ${undo.after}`;
 }

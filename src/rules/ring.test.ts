@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { arcLength, arcPath, ringFor, segmentArcs } from './ring';
+import { arcLength, arcPath, ringFor, segmentArcs, segmentFills } from './ring';
 
 describe('segmented ring (PRD-15 Frequency)', () => {
   it('once-a-day habits have no ring or count', () => {
@@ -9,8 +9,17 @@ describe('segmented ring (PRD-15 Frequency)', () => {
   });
 
   it('one segment per time, filled up to the count, with a "3/8" label', () => {
-    expect(ringFor(8, 3)).toEqual({ segments: 8, filled: 3, label: '3/8' });
-    expect(ringFor(3, 0)).toEqual({ segments: 3, filled: 0, label: '0/3' });
+    expect(ringFor(8, 3)).toEqual({ segments: 8, filled: 3, gold: 3, slate: 0, label: '3/8' });
+    expect(ringFor(3, 0)).toEqual({ segments: 3, filled: 0, gold: 0, slate: 0, label: '0/3' });
+  });
+
+  it('gold segments come first, then slate, then empty (P2-08b)', () => {
+    const ring = ringFor(5, 2, 2)!;
+    expect(ring).toMatchObject({ filled: 4, gold: 2, slate: 2, label: '4/5' });
+    expect(segmentFills(ring)).toEqual(['gold', 'gold', 'slate', 'slate', 'empty']);
+    // Slate never runs past the last segment.
+    expect(segmentFills(ringFor(3, 2, 5)!)).toEqual(['gold', 'gold', 'slate']);
+    expect(segmentFills(ringFor(3, 0, 1)!)).toEqual(['slate', 'empty', 'empty']);
   });
 
   it('never fills past the last segment or below zero', () => {
