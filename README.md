@@ -21,6 +21,8 @@ npm start          # dev server; press w for web
 npm run check      # lint, format, types, and tests
 ```
 
+The pet and room art is private and not in this repo. Without it, the app runs with plain placeholder images. With access, clone the art repo next to this one (or set `ART_DIR`), then run `npm run art:sync`.
+
 ## Contributing
 
 This is a personal portfolio project. Outside contributions are not accepted, and pull requests from other accounts are closed automatically. See [CONTRIBUTING.md](CONTRIBUTING.md).

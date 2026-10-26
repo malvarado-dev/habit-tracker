@@ -38,19 +38,21 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web",
+    "start": "node scripts/sync-art.mjs && expo start",
+    "android": "node scripts/sync-art.mjs && expo start --android",
+    "ios": "node scripts/sync-art.mjs && expo start --ios",
+    "web": "node scripts/sync-art.mjs && expo start --web",
     "lint": "expo lint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:ci": "jest --ci --coverage",
-    "export:web": "expo export -p web",
+    "export:web": "node scripts/sync-art.mjs && expo export -p web",
     "check": "npm run lint && npm run format:check && npm run typecheck && npm test",
-    "prepare": "husky"
+    "prepare": "husky",
+    "art:sync": "node scripts/sync-art.mjs",
+    "postinstall": "node scripts/sync-art.mjs"
   },
   "private": true,
   "jest": {
