@@ -1,7 +1,6 @@
-// The scene layout shared by Today and the Day screen (T23). Phone and tablet portrait: the
-// Background fills the whole screen with the critter standing near the top, and the habit sheet
-// sits fixed over the lower part; cards scroll inside it while the Background stays put. A corner
-// button (Menu on Today, Back on the Day screen) sits top left on the sky. Wide (T10, desktop web
+// The Today layout (T23). Phone and tablet portrait (#133): the living room fills the whole screen
+// and the habit list floats over it with no sheet (HabitSheet's floating mode). A corner button
+// (Menu) sits top left. Wide (T10, desktop web
 // and iPad landscape): the page is the sheet color, with the sheet on the left and, on the right,
 // the Background as a rounded card with the critter above History (T16).
 
@@ -14,14 +13,15 @@ import { Background } from '@/components/Background';
 import { Critter } from '@/components/Critter';
 import { ExploreScene } from '@/components/ExploreScene';
 import { RoomScene } from '@/components/RoomScene';
+import type { FloatingLayout } from '@/components/HabitSheet';
 import { roomGeometry } from '@/scene/roomGeometry';
 import type { PetPlace } from '@/rules/petPlace';
 import { HistoryEditScope } from '@/components/history/HistoryEditScope';
 import { HistoryView } from '@/components/history/HistoryView';
 import { layoutMode, wideSizes } from '@/components/todayLayoutMode';
 import { useTheme } from '@/design/theme/ThemeProvider';
-import { todayLayout, wideLayout as wide, type ThemeColors } from '@/design/tokens';
-import { space } from '@/theme';
+import { wideLayout as wide, type ThemeColors } from '@/design/tokens';
+import { MIN_TAP_SIZE, space } from '@/theme';
 
 const CRITTER_ASPECT = 260 / 360;
 
@@ -37,8 +37,11 @@ type Props = {
   exploring?: boolean;
   /** The top-left button. `onPage` is true on wide, where it sits on the sheet color. */
   corner: (onPage: boolean) => ReactNode;
-  /** The sheet's contents. `bottomPadding` keeps the last card clear of the home indicator. */
-  sheet: (bottomPadding: number) => ReactNode;
+  /**
+   * The habit list. `bottomPadding` keeps the last card clear of the home indicator. On phone and
+   * tablet portrait `floating` says where the list floats over the room (#133); wide leaves it out.
+   */
+  sheet: (layout: { bottomPadding: number; floating?: FloatingLayout }) => ReactNode;
   /** Drawn last, over everything (the side menu). */
   overlay?: ReactNode;
 };
@@ -66,7 +69,7 @@ export function SceneLayout({
         <View style={styles.widePage} testID="wide-page">
           <View style={styles.leftColumn} testID="habit-sheet">
             {corner(true)}
-            {sheet(space.xl)}
+            {sheet({ bottomPadding: space.xl })}
           </View>
           <View style={styles.rightColumn} testID="wide-right-column">
             <View style={[styles.scene, { height: sceneHeight }]} testID="background-card">
@@ -94,26 +97,37 @@ export function SceneLayout({
     );
   }
 
-  // Phone and iPad portrait: the living room fills the screen behind the sheet (P2-06).
+  // Phone and iPad portrait (#133): the living room fills the screen and the habit list floats over
+  // it, with no sheet. The Menu button is drawn last so the list's strip never covers it.
   const room = roomGeometry(width, height, insets.top);
-  const sheetTop = room.sheetTop;
+  const cornerTop = insets.top + space.sm;
+  const cornerLeft = insets.left + space.lg;
 
   return (
     <View style={styles.screen} testID={testID}>
       {/* The room never scrolls; it sits behind everything. */}
       {exploring ? (
-        <ExploreScene width={width} sceneHeight={sheetTop} time={time} />
+        <ExploreScene width={width} sceneHeight={room.listTop} time={time} />
       ) : (
         <RoomScene geometry={room} pet={pet} />
       )}
 
-      <View style={[styles.corner, { top: insets.top + space.sm, left: insets.left + space.lg }]}>
-        {corner(false)}
+      <View style={StyleSheet.absoluteFill} pointerEvents="box-none" testID="habit-sheet">
+        {sheet({
+          bottomPadding: insets.bottom + space.xl,
+          floating: {
+            listTop: room.listTop,
+            stuckTop: room.stuckTop,
+            topBarTop: cornerTop,
+            questLeft: cornerLeft + MIN_TAP_SIZE + space.sm,
+            left: insets.left + space.lg,
+            right: insets.right + space.lg,
+            screenHeight: height,
+          },
+        })}
       </View>
 
-      <View style={[styles.sheet, { top: sheetTop }]} testID="habit-sheet">
-        <View style={styles.sheetInner}>{sheet(insets.bottom + space.xl)}</View>
-      </View>
+      <View style={[styles.corner, { top: cornerTop, left: cornerLeft }]}>{corner(false)}</View>
       {overlay}
     </View>
   );
@@ -124,24 +138,11 @@ function useStyles() {
   return useMemo(() => makeStyles(colors), [colors]);
 }
 
-// habit-sheet in design-system.md: solid sheet color, 28 pt top corners, 16 pt padding.
 const makeStyles = (c: ThemeColors) =>
   StyleSheet.create({
     screen: { flex: 1, overflow: 'hidden' },
     critter: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
     corner: { position: 'absolute' },
-    sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, alignItems: 'center' },
-    sheetInner: {
-      flex: 1,
-      width: '100%',
-      maxWidth: todayLayout.sheetMaxWidth,
-      backgroundColor: c.surfaceSheet,
-      borderTopLeftRadius: 28,
-      borderTopRightRadius: 28,
-      paddingTop: space.lg,
-      paddingHorizontal: space.lg,
-      gap: space.md,
-    },
     wideScreen: { backgroundColor: c.surfaceSheet, alignItems: 'center' },
     widePage: {
       flex: 1,

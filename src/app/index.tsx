@@ -1,5 +1,5 @@
-// Today (SPEC-00). The Background and critter fill the screen with the habit sheet over the lower
-// part on phone and tablet portrait; on wide, the sheet is on the left and the Background card
+// Today (SPEC-00). The living room fills the screen with the habit list floating over it on phone
+// and tablet portrait (#133); on wide, the sheet is on the left and the Background card
 // sits above History on the right. The layout is shared with the Day screen (SceneLayout, T23).
 // No header; the subtle menu button sits top left.
 
@@ -55,7 +55,7 @@ export default function HomeScreen() {
       corner={(onPage) => (
         <MenuButton time={skyTime} onPage={onPage} onPress={() => setMenuOpen(true)} />
       )}
-      sheet={(bottomPadding) => <HabitSheet bottomPadding={bottomPadding} />}
+      sheet={(layout) => <HabitSheet {...layout} />}
       overlay={<SideMenu open={menuOpen} onClose={() => setMenuOpen(false)} />}
     />
   );

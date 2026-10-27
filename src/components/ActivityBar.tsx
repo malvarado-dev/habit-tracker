@@ -44,6 +44,11 @@ type Props = {
    * label row is left out. The icons rise above the track without adding height.
    */
   activityIcons?: boolean;
+  /**
+   * Draws the food, toy, and pet icons on the notches (Today only). Home without the sheet (#133)
+   * turns them off; the moments and caption still play.
+   */
+  notchIcons?: boolean;
   /** Habits finished today, for the full-bar caption (P2-14). Today only. */
   finished?: number;
 };
@@ -56,7 +61,16 @@ const ACTIVITY_ICONS = [
 ] as const;
 
 export function ActivityBar(props: Props) {
-  const { fill, logs, target, isRestDay, label, activityIcons = false, finished = 0 } = props;
+  const {
+    fill,
+    logs,
+    target,
+    isRestDay,
+    label,
+    activityIcons = false,
+    notchIcons = true,
+    finished = 0,
+  } = props;
   const { colors } = useTheme();
   const reduceMotion = useReducedMotion();
   const fraction = clampFill(fill);
@@ -205,7 +219,7 @@ export function ActivityBar(props: Props) {
                 );
               })
             : null}
-          {activityIcons && trackWidth > 0
+          {activityIcons && notchIcons && trackWidth > 0
             ? notchPositions().map((at, i) => {
                 const [name, source] = ACTIVITY_ICONS[i] ?? ACTIVITY_ICONS[2];
                 const size = tuning.activityBar.iconSize;

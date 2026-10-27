@@ -11,13 +11,27 @@ export const tuning = {
   /** Living room scene (Prototype 2). Art-measured numbers come from room-layout.json. */
   scene: {
     ...roomLayout,
-    /** Where the habit sheet starts, as a share of the screen height. Moved lower only when the bed
-     * or pet would sit under it (tall tablets). */
-    sheetTopRatio: 0.4,
-    /** Points between the status bar and the top of the window glass. The room moves up to fit. */
-    windowGapBelowStatusBar: 6,
-    /** Points kept between the lowest of the bed or pet and the top of the sheet. */
-    sceneClearOfSheet: 12,
+    /** Points between the top bar (Menu button and quest pill) and the top of the window glass. */
+    windowGapBelowTopBar: 12,
+    /** Points kept between the lowest of the bed or pet and the Today row at rest (#133). */
+    sceneClearOfList: 12,
+    /** The Today row never starts lower than this share of the screen, so cards show on short screens. */
+    listTopMaxRatio: 0.66,
+    /** Height of the Today row (Today pill and Activity Bar). */
+    todayRowHeight: 36,
+    /** Scroll distance over which the strip behind the stuck Today row fades in. */
+    stripFadeDistance: 16,
+    /** Shadow under everything that floats over the room (cards, pills, Bad habits). */
+    floatShadow: '0px 3px 10px rgba(43, 38, 34, 0.22)',
+    /**
+     * Wall above the room art when the room moves down (#133): the art's top edge, as color bands.
+     * `from` and `to` are shares of the width.
+     */
+    wallTop: [
+      { from: 0, to: 0.2205, color: '#ADB18B' },
+      { from: 0.2205, to: 0.9501, color: '#9B9F7A' },
+      { from: 0.9501, to: 1, color: '#AEB38D' },
+    ],
     /** Room color shown under the room art if a tall screen ever runs past it (the floor). */
     floorColor: '#AD7F5A',
     /** Menu button over the room: dark ink on a see-through light circle (3:1 on the wall). Fixed,

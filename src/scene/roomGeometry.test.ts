@@ -1,5 +1,6 @@
-// Living room layout on the two test devices (P2-06, #77): the room fills the width, the window
-// sits just under the status bar, and the bed and pet stay clear of the status bar, menu and sheet.
+// Living room layout on the test devices (P2-06, #77; no sheet since #133): the room fills the
+// screen, the window sits just under the top bar, the bed and pet show in full above the Today row
+// at rest, and the Today row sticks under the top bar once scrolled.
 
 import { describe, expect, it } from '@jest/globals';
 import { tuning } from '@/config/tuning';
@@ -16,40 +17,47 @@ const MENU = { left: space.lg, size: 44 };
 
 describe.each(DEVICES)('$name', ({ width, height, statusBar }) => {
   const g = roomGeometry(width, height, statusBar);
-  const menuBottom = statusBar + space.sm + MENU.size;
+  const topBarBottom = statusBar + space.sm + MENU.size;
+  const clear = tuning.scene.sceneClearOfList;
 
-  it('the room fills the width and reaches past the top of the sheet', () => {
+  it('the room and the wall above it fill the width and reach past the Today row', () => {
     expect(g.room.left).toBe(0);
     expect(g.room.width).toBe(width);
-    expect(g.room.top).toBeLessThanOrEqual(0);
-    expect(g.room.top + g.room.height).toBeGreaterThan(g.sheetTop + 28);
+    // Nothing above the room art is left empty: the wall fills any gap.
+    expect(g.wallGap).toBeCloseTo(Math.max(0, g.room.top), 5);
+    expect(g.room.top + g.room.height).toBeGreaterThan(g.listTop + tuning.scene.todayRowHeight);
   });
 
-  it('the window glass sits just under the status bar', () => {
+  it('the window glass sits just under the top bar (Menu button and quest pill)', () => {
+    expect(g.topBarBottom).toBe(topBarBottom);
     const glassTop = tuning.scene.windowGlass.y * g.scale + g.room.top;
-    expect(glassTop).toBeCloseTo(statusBar + tuning.scene.windowGapBelowStatusBar, 5);
+    expect(glassTop).toBeCloseTo(topBarBottom + tuning.scene.windowGapBelowTopBar, 5);
   });
 
-  it('the bed is below the status bar and clear of the sheet', () => {
-    expect(g.bed.top).toBeGreaterThan(statusBar);
-    expect(g.bed.top + g.bed.height).toBeLessThanOrEqual(
-      g.sheetTop - tuning.scene.sceneClearOfSheet,
-    );
+  it('at rest, the bed shows in full below the top bar and above the Today row', () => {
+    expect(g.bed.top).toBeGreaterThan(topBarBottom);
+    expect(g.bed.top + g.bed.height).toBeLessThanOrEqual(g.listTop - clear);
   });
 
-  it.each(SPOTS)('the pet at the %s spot is clear of the status bar, menu and sheet', (spot) => {
+  it.each(SPOTS)('at rest, the pet at the %s spot shows in full', (spot) => {
     const pet = petGeometry(spot, { scale: g.scale, shift: shiftOf(g) });
     const { left, top, width: w, height: h } = pet.image;
-    expect(top).toBeGreaterThan(statusBar);
-    const besideMenu = left > MENU.left + MENU.size;
-    expect(besideMenu || top > menuBottom).toBe(true);
-    expect(top + h).toBeLessThanOrEqual(g.sheetTop - tuning.scene.sceneClearOfSheet);
+    expect(top).toBeGreaterThan(topBarBottom);
+    expect(top + h).toBeLessThanOrEqual(g.listTop - clear);
     expect(left).toBeGreaterThanOrEqual(0);
     expect(left + w).toBeLessThanOrEqual(width);
   });
 
-  it('the sheet never starts above its usual height', () => {
-    expect(g.sheetTop).toBeGreaterThanOrEqual(Math.round(height * tuning.scene.sheetTopRatio));
+  it('once scrolled, the Today row sticks just under the top bar, above where it rests', () => {
+    expect(g.stuckTop).toBe(topBarBottom + space.sm);
+    expect(g.stuckTop).toBeLessThan(g.listTop);
+  });
+});
+
+describe('Short screens', () => {
+  it('the Today row never starts lower than its cap, so cards still show', () => {
+    const g = roomGeometry(360, 560, 24);
+    expect(g.listTop).toBeLessThanOrEqual(Math.round(560 * tuning.scene.listTopMaxRatio));
   });
 });
 
@@ -77,12 +85,13 @@ describe('Menu button over the room', () => {
   const hex = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
   const [r, gr, b, a] = tuning.scene.menuButton.match(/[\d.]+/g)!.map(Number);
 
-  // The door frame behind the button, sampled from room-base.png (darkest and lightest wood).
-  it.each([
-    [130, 81, 47],
-    [181, 130, 90],
-  ])('icon has at least 3:1 contrast on wall color %i,%i,%i', (...wall) => {
-    const under = wall.map((w, i) => w * (1 - (a ?? 0)) + ([r, gr, b][i] ?? 0) * (a ?? 0));
-    expect(contrast(hex(tuning.scene.menuInk), under)).toBeGreaterThanOrEqual(3);
-  });
+  // What can sit behind the button, sampled from room-base.png: the darkest and lightest door
+  // frame wood, and the wall bands stretched above the art (#133).
+  it.each([[130, 81, 47], [181, 130, 90], ...tuning.scene.wallTop.map((band) => hex(band.color))])(
+    'icon has at least 3:1 contrast on wall color %i,%i,%i',
+    (...wall) => {
+      const under = wall.map((w, i) => w * (1 - (a ?? 0)) + ([r, gr, b][i] ?? 0) * (a ?? 0));
+      expect(contrast(hex(tuning.scene.menuInk), under)).toBeGreaterThanOrEqual(3);
+    },
+  );
 });
