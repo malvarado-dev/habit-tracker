@@ -15,6 +15,17 @@ Marco owns the project and makes every decision. He has no programming backgroun
 - **Words.** Plain, natural wording in docs, tickets and PRs; no jargon status labels. Docs stay one page. Never use em dashes. Never name the outside apps used as design references; the themes are "Light theme" and "Dark theme". Docs and code say "pet", not "cat".
 - **Commits.** Small, clear messages that say what changed and why.
 
+## Starting or resuming work
+
+Every contributor, including Codex and Claude, reads this file, `TESTING.md`, and the relevant issue and PR templates before creating or updating tickets, code, tests, or PRs. Do this again in a new chat or after a break; do not rely on chat memory or copy another ticket as the authority. Read the current issue and linked implementation decisions before continuing existing work.
+
+## Issues and pull requests
+
+- **Issue = agreed work.** Follow `.github/ISSUE_TEMPLATE/ticket.md`: risk, goal, design, scope, out of scope, numbered acceptance criteria, and planned tests mapped to those criteria. Suggest the needed Figma frame or screenshot for visual work. Record approved scope changes here before implementing them; distinguish current Prototype 2 decisions from historical Prototype 1 material.
+- **PR = implementation and evidence.** Link the issue and follow `.github/PULL_REQUEST_TEMPLATE.md`. Briefly explain the resulting behavior and relevant implementation choices, dependencies or deviations. Report tests actually run, results, regression evidence, and outstanding phone checks. Do not copy or paraphrase the full scope, acceptance criteria, or test plan into a second checklist. Refer to issue criteria by number when useful.
+- **Review once.** Keep requirements in the issue. The PR may use different wording to explain what changed, but must not introduce conflicting requirements. If implementation changes the agreement, update the issue and summarize the difference in the PR. Put detailed manual test steps in the issue once; the PR links to them and calls out anything still pending.
+- **Before posting or updating.** Check the issue and PR against these files, including Design and Tests. Keep all applicable template sections; say why a check is not applicable rather than marking unrun tests as passed. Create regular PRs, not drafts, unless Marco explicitly requests a draft. Never merge them.
+
 ## Testing
 
 Follow `TESTING.md` when writing tickets and tests. New tickets use `.github/ISSUE_TEMPLATE/ticket.md`, including its Design and Tests sections.

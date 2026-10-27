@@ -38,6 +38,8 @@ A test that fails without a real bug is fixed or removed within one ticket. Retr
 
 It lists the unit, end-to-end and manual checks, and each one maps to an acceptance criterion. The issue template asks for it.
 
+The issue owns the planned tests and detailed manual steps. The PR links to those criteria and reports actual results, including commands run, failures or skipped checks, fail-before/pass-after regression evidence, and phone QA still pending. Do not copy the test plan into a second checklist or mark manual checks complete before Marco performs them. Follow the shared issue/PR rules in `AGENTS.md` and both GitHub templates.
+
 ## Where things live
 
 - Unit tests: next to the code, `*.test.ts`.
