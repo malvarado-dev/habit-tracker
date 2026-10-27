@@ -17,14 +17,14 @@ Expo (React Native) with Expo Router, TypeScript in strict mode, Jest for unit t
 
 ```bash
 npm install
-npm start          # dev server; press w for web
+npm start -- -c    # dev server with a clean cache; press w for web
 npm run check      # lint, format, types, and tests
 npx playwright install chromium   # once, for end-to-end tests
 npm run e2e        # Playwright: builds the web app and runs e2e/web
 npm run e2e:report # open the last Playwright report
 ```
 
-The pet and room art is private and not in this repo. Without it, the app runs with plain placeholder images. With access, clone the art repo next to this one (or set `ART_DIR`), then run `npm run art:sync`.
+The pet and room art is private and not in this repo. Without it, the app runs with plain placeholder images. With access, clone the art repo next to this one (or set `ART_DIR`), then start with `npm start`: it pulls the latest art and copies it in. Don't use `npx expo start`, which skips the art.
 
 ## Contributing
 

@@ -1,9 +1,10 @@
 // Copies the private art into assets/private/ (git ignores that folder), so the public repo never
 // holds the art. Looks for the private bad-neko-art repo next to this one, or at ART_DIR.
 // Any file it can't find gets a plain placeholder instead, so CI and the public web build still
-// work without the art. Runs on install and before `npm start`; run `npm run art:sync` after
-// pulling new art.
+// work without the art. Runs on install and before `npm start`. It pulls the art repo first
+// (#129), and if the pull fails it warns and uses the art already there, so the app still starts.
 
+import { execFileSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -47,6 +48,18 @@ const FILES = [
   ['icons/icon-petting-hand@2x.png', 'clear.png'],
   ['icons/icon-petting-hand@3x.png', 'clear.png'],
 ];
+
+// Get the latest art. Skipped when there's no art repo (CI, the public web build).
+if (existsSync(join(artDir, '.git'))) {
+  try {
+    execFileSync('git', ['pull', '--ff-only', '--quiet'], { cwd: artDir, stdio: 'pipe' });
+  } catch (error) {
+    const reason = String(error.stderr ?? error.message)
+      .trim()
+      .split('\n')[0];
+    console.warn(`Art: couldn't pull ${artDir} (${reason}); using the art already there`);
+  }
+}
 
 mkdirSync(outDir, { recursive: true });
 let real = 0;
