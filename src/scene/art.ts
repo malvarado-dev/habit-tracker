@@ -49,4 +49,5 @@ export const exploreArt = {
   near: require('../../assets/private/neighborhood-near.png'),
   mid: require('../../assets/private/neighborhood-mid.png'),
   far: require('../../assets/private/neighborhood-far.png'),
+  ground: require('../../assets/private/neighborhood-ground.png'),
 };

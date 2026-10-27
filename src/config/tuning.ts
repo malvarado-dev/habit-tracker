@@ -32,6 +32,8 @@ export const tuning = {
       { from: 0.2205, to: 0.9501, color: '#9B9F7A' },
       { from: 0.9501, to: 1, color: '#AEB38D' },
     ],
+    /** Source rows of the room art (two plank rows) repeated below it to the screen's bottom. */
+    floorRepeat: [2908, 3274] as const,
     /** Room color shown under the room art if a tall screen ever runs past it (the floor). */
     floorColor: '#AD7F5A',
     /** Menu button over the room: dark ink on a see-through light circle (3:1 on the wall). Fixed,
@@ -48,6 +50,10 @@ export const tuning = {
     /** Neighborhood layers, in the art's own pixels (2172 x 724 each). The far layer sits this
      * much higher so the skyline shows above the town. */
     layerSize: [2172, 724] as const,
+    /** Ground under the near layer, down to the screen's bottom (#135): its size, and how much of
+     * its top hides behind the near layer's bushes. */
+    groundSize: [2172, 1448] as const,
+    groundOverlap: 220,
     farRaise: 230,
     /** Where the pet's paws touch the path, from the top of the near layer. */
     pathY: 600,

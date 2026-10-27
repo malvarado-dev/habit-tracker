@@ -83,7 +83,7 @@ export function ExploreScene({
 
   return (
     <View
-      style={[StyleSheet.absoluteFill, { height: sceneHeight }]}
+      style={StyleSheet.absoluteFill}
       pointerEvents="box-none"
       testID="explore-scene"
       nativeID={`pet-look-${look.id}`}
@@ -91,7 +91,31 @@ export function ExploreScene({
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
         <Background time={time} level="full" />
       </View>
-      {(['far', 'mid', 'near'] as const).map((name) => (
+      {(['far', 'mid'] as const).map((name) => (
+        <Layer
+          key={name}
+          name={name}
+          source={exploreArt[name]}
+          top={layout.top[name]}
+          height={layout.height}
+          tileWidth={layout.tileWidth}
+          copies={layout.copies}
+          loopMs={layout.loopMs[name]}
+          still={reduceMotion}
+        />
+      ))}
+      {/* Ground under the near layer, to the screen's bottom (#135). Scrolls with the near layer. */}
+      <Layer
+        name="ground"
+        source={exploreArt.ground}
+        top={layout.top.near + layout.height - x.groundOverlap * layout.scale}
+        height={x.groundSize[1] * layout.scale}
+        tileWidth={layout.tileWidth}
+        copies={layout.copies}
+        loopMs={layout.loopMs.near}
+        still={reduceMotion}
+      />
+      {(['near'] as const).map((name) => (
         <Layer
           key={name}
           name={name}
@@ -106,10 +130,7 @@ export function ExploreScene({
       ))}
       <View
         pointerEvents="none"
-        style={[
-          StyleSheet.absoluteFill,
-          { backgroundColor: tint.color, opacity: tint.opacity, height: sceneHeight },
-        ]}
+        style={[StyleSheet.absoluteFill, { backgroundColor: tint.color, opacity: tint.opacity }]}
         testID="explore-tint"
       />
       <Animated.View style={[StyleSheet.absoluteFill, bobStyle]} pointerEvents="box-none">
@@ -136,7 +157,7 @@ function Layer({
   loopMs,
   still,
 }: {
-  name: LayerName;
+  name: LayerName | 'ground';
   source: ImageSourcePropType;
   top: number;
   height: number;
