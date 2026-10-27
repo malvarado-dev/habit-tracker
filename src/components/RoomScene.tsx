@@ -3,7 +3,7 @@
 // room puts it in front of everything (P2-12). The room is art, not theme: it looks the same in Light and Dark theme. The window
 // already shows the day sky; other times of day are out of Prototype 2 scope.
 
-import { Image, StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Svg, { Defs, Ellipse, RadialGradient, Stop } from 'react-native-svg';
 
 import { PetMotion } from '@/components/PetMotion';
@@ -66,6 +66,14 @@ export function RoomScene({
   });
   const at = (b: Box) => ({ left: b.left, top: b.top, width: b.width, height: b.height });
 
+  // Floor below the art (#135): the art's bottom plank rows repeat down to the screen's bottom.
+  const { height: screenHeight } = useWindowDimensions();
+  const [bandFrom, bandTo] = tuning.scene.floorRepeat;
+  const bandHeight = (bandTo - bandFrom) * geometry.scale;
+  const roomBottom = room.top + room.height;
+  const bands =
+    bandHeight > 0 ? Math.max(0, Math.ceil((screenHeight - roomBottom) / bandHeight)) : 0;
+
   const petLayer = (
     <View
       style={StyleSheet.absoluteFill}
@@ -120,6 +128,31 @@ export function RoomScene({
         resizeMode="stretch"
         testID="room-base"
       />
+      {Array.from({ length: bands }, (_, i) => (
+        <View
+          key={i}
+          testID="floor-repeat"
+          style={[
+            styles.abs,
+            {
+              left: 0,
+              width: room.width,
+              top: roomBottom + i * bandHeight,
+              height: bandHeight + 1,
+            },
+            styles.clip,
+          ]}
+        >
+          <Image
+            source={roomArt.base}
+            resizeMode="stretch"
+            style={[
+              styles.abs,
+              { left: 0, top: -bandFrom * geometry.scale, width: room.width, height: room.height },
+            ]}
+          />
+        </View>
+      ))}
       <SoftShadow box={bedShadow} id="bed-shadow" />
       {place.layer === 'behindBed' ? petLayer : null}
       <Image
@@ -142,6 +175,7 @@ export function RoomScene({
 
 const styles = StyleSheet.create({
   abs: { position: 'absolute' },
+  clip: { overflow: 'hidden' },
   // Never seen on a normal screen; it backs the room if a tall screen runs past the art.
   floor: { backgroundColor: tuning.scene.floorColor, overflow: 'hidden' },
 });

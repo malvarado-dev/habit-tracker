@@ -11,6 +11,7 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView as GestureScrollView } from 'react-native-gesture-handler';
 import Animated, {
   Extrapolation,
   interpolate,
@@ -48,6 +49,12 @@ import { todayLayout } from '@/design/tokens';
 const EXPLORE_LINE = 'Neko is off to explore. Check back tomorrow to see what Neko finds.';
 
 // Main Quest stand-in until P2-15 (#86) gives the sheet the real quest.
+
+/**
+ * The floating list scrolls with the gesture handler's ScrollView (#135), so it works with the
+ * cards' slide gesture instead of fighting it, which made scrolling stick.
+ */
+const FloatingScroll = Animated.createAnimatedComponent(GestureScrollView);
 
 /** Where the floating list sits on a phone or tablet in portrait (#133), from SceneLayout. */
 export type FloatingLayout = {
@@ -294,7 +301,7 @@ export function HabitSheet({
     const side = { left: floating.left, right: floating.right };
     return (
       <>
-        <Animated.ScrollView
+        <FloatingScroll
           style={StyleSheet.absoluteFill}
           contentContainerStyle={[
             styles.floatContent,
@@ -317,7 +324,7 @@ export function HabitSheet({
             {tray}
             {historyLink}
           </View>
-        </Animated.ScrollView>
+        </FloatingScroll>
         {/* Behind the stuck Today row and the top bar, so cards slide under them. */}
         <Animated.View
           pointerEvents="none"
@@ -330,6 +337,8 @@ export function HabitSheet({
         />
         <Animated.View
           testID="today-row"
+          // Not a button: a drag that starts on it goes to the list under it (#135).
+          pointerEvents="none"
           style={[styles.todayRow, side, { height: rowHeight }, rowStyle]}
         >
           <View style={styles.todayRowInner}>

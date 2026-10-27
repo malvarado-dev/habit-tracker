@@ -38,6 +38,7 @@ const FILES = [
   ['explore/neighborhood-near.png', 'clear.png'],
   ['explore/neighborhood-mid.png', 'clear.png'],
   ['explore/neighborhood-far.png', 'clear.png'],
+  ['explore/neighborhood-ground.png', 'clear.png'],
   ['icons/icon-food-bowl@1x.png', 'clear.png'],
   ['icons/icon-food-bowl@2x.png', 'clear.png'],
   ['icons/icon-food-bowl@3x.png', 'clear.png'],
