@@ -1,14 +1,8 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { tuning } from '@/config/tuning';
-import { activityBarLabel, clampFill, justFilled, notchPositions } from './activityBarText';
+import { activityBarLabel, clampFill, justFilled } from './activityBarText';
 
 describe('Activity Bar text (P2-08a)', () => {
-  it('notches come from the tuning file', () => {
-    expect(notchPositions()).toEqual(tuning.activityBar.notches);
-    expect(notchPositions()).toHaveLength(3);
-  });
-
   it('screen readers hear logs against the target, full, or Rest day', () => {
     expect(activityBarLabel(3, 5, false)).toBe('Activity Bar, 3 of 5 logs today');
     expect(activityBarLabel(5, 5, false)).toBe('Activity Bar full, 5 of 5 logs today');

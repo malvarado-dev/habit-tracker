@@ -1,5 +1,5 @@
-// The Activity Bar at the top of the habit sheet (PRD-14): a dark pill with a lemon fill and 3
-// notches that darken once the fill passes them. The fill is counted logs against today's target
+// The Activity Bar (PRD-14): a dark pill with a lemon fill and
+// no visible notches or icons (#137). The fill is counted logs against today's target
 // (rules/activityBar.ts), so every log moves it the same amount. Reaching full plays the full-bar
 // celebration: a shimmer sweeps the fill, it brightens, and sparkles pop off the end. The Day
 // screen shows its date and a percent row above the bar. Reduced motion: only the brighten.
@@ -21,13 +21,12 @@ import { tuning } from '@/config/tuning';
 import { textStyle } from '@/design/fonts';
 import { useTheme } from '@/design/theme/ThemeProvider';
 import { energyBar as bar } from '@/design/tokens';
-import { activityArt } from '@/scene/art';
 
-import { MOMENT_NOTCH, momentCaption, notchesReached, pickMoment } from '@/rules/payoff';
-import { onPetMomentStart, requestPetMoment } from '@/scene/petMoments';
+import { momentCaption, pickMoment } from '@/rules/payoff';
+import { requestPetMoment } from '@/scene/petMoments';
 
-import { activityBarLabel, clampFill, justFilled, notchPositions, seeded } from './activityBarText';
-import { MomentCaption, NotchIcon } from './ActivityPayoff';
+import { activityBarLabel, clampFill, justFilled, seeded } from './activityBarText';
+import { MomentCaption } from './ActivityPayoff';
 import { fillEasing, fillMs } from './motion';
 
 type Props = {
@@ -39,38 +38,14 @@ type Props = {
   isRestDay: boolean;
   /** The Day screen's date label ("Thu, Oct 15"). Today leaves it out. */
   label?: string;
-  /**
-   * Activity Bar on the habit sheet (P2-07): food, toy, and pet icons sit on the notches, and the
-   * label row is left out. The icons rise above the track without adding height.
-   */
-  activityIcons?: boolean;
-  /**
-   * Draws the food, toy, and pet icons on the notches (Today only). Home without the sheet (#133)
-   * turns them off; the moments and caption still play.
-   */
-  notchIcons?: boolean;
+  /** Enables Today's full-bar pet moment and caption. */
+  petMoments?: boolean;
   /** Habits finished today, for the full-bar caption (P2-14). Today only. */
   finished?: number;
 };
 
-/** Activity Bar icons, one per notch, lowest notch first. */
-const ACTIVITY_ICONS = [
-  ['food', activityArt.food],
-  ['toy', activityArt.toy],
-  ['pet', activityArt.pet],
-] as const;
-
 export function ActivityBar(props: Props) {
-  const {
-    fill,
-    logs,
-    target,
-    isRestDay,
-    label,
-    activityIcons = false,
-    notchIcons = true,
-    finished = 0,
-  } = props;
+  const { fill, logs, target, isRestDay, label, petMoments = false, finished = 0 } = props;
   const { colors } = useTheme();
   const reduceMotion = useReducedMotion();
   const fraction = clampFill(fill);
@@ -94,34 +69,20 @@ export function ActivityBar(props: Props) {
   const cel = tuning.energy.celebrate;
   const [previous, setPrevious] = useState(fraction);
   const [fills, setFills] = useState(0);
-  /** Times each notch was reached on an upward move, so its icon rattles (P2-14). */
-  const [rattles, setRattles] = useState<number[]>(() => notchPositions().map(() => 0));
   if (previous !== fraction) {
     setPrevious(fraction);
     if (justFilled(previous, fraction, isRestDay)) setFills((n) => n + 1);
-    const reached = isRestDay ? [] : notchesReached(previous, fraction);
-    if (reached.length > 0) setRattles((r) => r.map((n, i) => (reached.includes(i) ? n + 1 : n)));
   }
 
   // A full bar on Today plays one pet moment, with a caption (P2-14). Visual only.
   useEffect(() => {
-    if (fills === 0 || !activityIcons) return;
+    if (fills === 0 || !petMoments) return;
     const kind = pickMoment(Math.random);
     requestPetMoment({ kind, caption: momentCaption(kind, finished) });
     // Only a new fill fires a moment; `finished` is read at that time.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fills, activityIcons]);
+  }, [fills, petMoments]);
 
-  /** The moment that's playing pops its notch icon. */
-  const [pops, setPops] = useState<number[]>(() => notchPositions().map(() => 0));
-  useEffect(() => {
-    if (!activityIcons) return;
-    return onPetMomentStart((m) => {
-      if (m.kind === 'react' || m.kind === 'celebrate' || !m.caption) return;
-      const i = MOMENT_NOTCH[m.kind];
-      setPops((p) => p.map((n, j) => (j === i ? n + 1 : n)));
-    });
-  }, [activityIcons]);
   const shimmer = useSharedValue(0);
   const flash = useSharedValue(0);
 
@@ -166,7 +127,7 @@ export function ActivityBar(props: Props) {
       accessibilityValue={isRestDay ? undefined : { min: 0, max: 100, now: percent }}
       style={styles.wrap}
     >
-      {activityIcons ? null : (
+      {petMoments ? null : (
         <View style={styles.labelRow} importantForAccessibility="no-hide-descendants">
           <Text style={[styles.labelText, { color: colors.onSurface }]} testID="activity-bar-label">
             {label ?? ''}
@@ -177,7 +138,7 @@ export function ActivityBar(props: Props) {
         </View>
       )}
       <View>
-        {activityIcons ? <MomentCaption /> : null}
+        {petMoments ? <MomentCaption /> : null}
         <View onLayout={onTrackLayout} style={[styles.track, { backgroundColor: colors.track }]}>
           <Animated.View
             testID="activity-bar-fill"
@@ -196,53 +157,6 @@ export function ActivityBar(props: Props) {
               style={[styles.flash, { backgroundColor: colors.onInverse }, flashStyle]}
             />
           </Animated.View>
-          {trackWidth > 0
-            ? notchPositions().map((at, i, all) => {
-                const top = i === all.length - 1;
-                const passed = fraction >= at;
-                return (
-                  <View
-                    key={at}
-                    pointerEvents="none"
-                    testID={`activity-bar-notch-${i + 1}`}
-                    style={[
-                      styles.tick,
-                      {
-                        left: bar.trackPadding + innerWidth * at - bar.tickWidth / 2,
-                        top: top ? -bar.topTickOverhang : bar.trackPadding,
-                        bottom: top ? -bar.topTickOverhang : bar.trackPadding,
-                        // Light on the dark track until the fill passes it, then dark on the lemon fill.
-                        backgroundColor: passed ? colors.onPrimary : colors.onInverse,
-                      },
-                    ]}
-                  />
-                );
-              })
-            : null}
-          {activityIcons && notchIcons && trackWidth > 0
-            ? notchPositions().map((at, i) => {
-                const [name, source] = ACTIVITY_ICONS[i] ?? ACTIVITY_ICONS[2];
-                const size = tuning.activityBar.iconSize;
-                return (
-                  <NotchIcon
-                    key={name}
-                    name={name}
-                    source={source}
-                    rattle={rattles[i] ?? 0}
-                    pop={pops[i] ?? 0}
-                    reduceMotion={reduceMotion}
-                    style={{
-                      position: 'absolute',
-                      width: size,
-                      height: size,
-                      left: bar.trackPadding + innerWidth * at - size / 2,
-                      // Bottom just above the track's bottom edge, so the bar keeps its height.
-                      bottom: tuning.activityBar.iconBottomInset,
-                    }}
-                  />
-                );
-              })
-            : null}
         </View>
         {fills > 0 && !reduceMotion && trackWidth > 0 ? (
           <EndSparkles
@@ -338,7 +252,7 @@ function Spark(p: {
   );
 }
 
-// energy-bar component in design-system.md: 14 pt dark pill, 3 pt padding, 8 pt fill, 3 notches.
+// energy-bar component in design-system.md: 14 pt dark pill, 3 pt padding, 8 pt fill; no visible markers.
 const TRACK_PADDING = bar.trackPadding;
 
 const styles = StyleSheet.create({
@@ -347,7 +261,6 @@ const styles = StyleSheet.create({
   labelText: { ...textStyle('habitName', '700') },
   track: { height: bar.trackHeight, padding: bar.trackPadding, borderRadius: 9999 },
   fill: { height: bar.fillHeight, borderRadius: 9999, overflow: 'hidden' },
-  tick: { position: 'absolute', width: bar.tickWidth, borderRadius: 9999 },
   shimmer: { position: 'absolute', top: 0, bottom: 0, left: 0, borderRadius: 9999 },
   flash: { ...StyleSheet.absoluteFill },
   sparkles: { ...StyleSheet.absoluteFill },

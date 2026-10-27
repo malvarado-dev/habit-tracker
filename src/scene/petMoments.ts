@@ -68,7 +68,7 @@ export function onPetMomentRequest(listener: () => void): () => void {
   };
 }
 
-/** Called when a moment starts playing (the caption and the notch icon pop listen here). */
+/** Called when a moment starts playing (the caption listens here). */
 export function onPetMomentStart(listener: Listener): () => void {
   started.add(listener);
   return () => {

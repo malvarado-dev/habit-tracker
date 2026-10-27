@@ -165,11 +165,6 @@ components:
     backgroundColor: "{colors.primary}"
     rounded: "{rounded.full}"
     height: 8px
-  activity-notch:
-    count: 3
-    placement: at one third, two thirds, and the end of the bar
-    icons: full-color food bowl, yarn ball, and petting hand, sitting on the bar at the notches with bottoms aligned
-    behavior: an icon rattles when the fill reaches its notch; when the bar is full, the chosen icon pops
   main-quest-card:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.on-surface}"
@@ -262,7 +257,7 @@ The Habit Card is a white pill: the habit icon in the habit's color and the name
 
 Bad habits live in a lilac tray under the habit cards. Each one is a dark chip with a count badge that always keeps its space: muted at 0, lemon above 0. Tap a chip to count a slip. Long-press opens a dark popover stepper (minus, count, plus) that points at the chip; tap outside to close.
 
-The Activity Bar is a dark pill with a smooth lemon fill and 3 notches. Full-color icons sit on the bar at the notches (food bowl, yarn ball, petting hand), bottoms aligned. An icon does a quick rattle when the fill reaches its notch. A full bar is the day's check-in: the chosen icon pops, its moment plays in the room, and the Explore button appears. Subtle effects only, and they reduce to a brief brighten with reduced motion.
+The Activity Bar is a dark pill with a smooth lemon fill, no visible notches, and no icons (#137, approved Oct 27). Crossing to full is the day's check-in: one random Food, Play, or Pet moment plays in the room, and the Explore button appears. The bowl and toy artwork stays in the pet events. Undo below full and refilling may replay a moment without extra rewards. Internal stat thresholds are unchanged. Subtle effects only; reduced motion replaces movement with a brief brighten.
 
 The Main Quest card sits under the Activity Bar and shows the active quest, a progress line ("3/7 Check in days"), and a bar. Tapping it opens Quests, and a dot badge shows when a new quest is available. Home has no separate Quests button. A centered "History" text link at the bottom of the sheet opens History. The menu button is a see-through round button at the top left, over the room.
 
