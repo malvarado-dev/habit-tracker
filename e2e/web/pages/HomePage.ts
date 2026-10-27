@@ -81,6 +81,25 @@ export class HomePage {
   }
 
   /** The Activity Bar's screen reader label, like "Activity Bar, 1 of 3 logs today". */
+  /** Home without the sheet (#133): the Today row (Today pill and Activity Bar) and the list. */
+  todayRow(): Locator {
+    return this.page.getByTestId('today-row');
+  }
+
+  /** Scrolls the habit list to its end, the way a finger would drag it up. */
+  async scrollListToEnd(): Promise<void> {
+    await this.page.getByTestId('habit-list').evaluate((el) => {
+      el.scrollTop = el.scrollHeight;
+    });
+  }
+
+  /** Top and bottom of an element on screen, in points. */
+  async edges(target: Locator): Promise<{ top: number; bottom: number }> {
+    const box = await target.boundingBox();
+    if (!box) throw new Error('Not on screen');
+    return { top: box.y, bottom: box.y + box.height };
+  }
+
   async expectBar(label: string): Promise<void> {
     await expect(this.activityBar).toHaveAttribute('aria-label', label);
   }

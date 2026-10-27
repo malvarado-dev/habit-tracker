@@ -95,6 +95,25 @@ export function RoomScene({
       accessible={false}
       importantForAccessibility="no-hide-descendants"
     >
+      {geometry.wallGap > 0
+        ? tuning.scene.wallTop.map((band) => (
+            <View
+              key={band.from}
+              testID="wall-top"
+              style={[
+                styles.abs,
+                {
+                  top: 0,
+                  // A point of overlap so no seam shows where the bands and the art meet.
+                  height: geometry.wallGap + 1,
+                  left: band.from * room.width,
+                  width: (band.to - band.from) * room.width + 1,
+                  backgroundColor: band.color,
+                },
+              ]}
+            />
+          ))
+        : null}
       <Image
         source={roomArt.base}
         style={[styles.abs, at(room)]}

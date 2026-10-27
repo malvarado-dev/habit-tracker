@@ -35,6 +35,8 @@ type Props = {
   tapOpensStepper?: boolean;
   /** Called when the stepper closes. */
   onStepperClose?: () => void;
+  /** Home without the sheet (#133): the tray floats over the room, so it gets a shadow. */
+  floating?: boolean;
 };
 
 type Anchor = { bad: BadHabit; x: number; y: number; width: number };
@@ -46,7 +48,10 @@ export function BadHabitsTray(props: Props) {
 
   if (badHabits.length === 0) return null;
   return (
-    <View style={styles.tray} testID="bad-habits-section">
+    <View
+      style={[styles.tray, props.floating && { boxShadow: tuning.scene.floatShadow }]}
+      testID="bad-habits-section"
+    >
       <Text style={styles.title} accessibilityRole="header" testID="bad-habits-title">
         Bad habits
       </Text>

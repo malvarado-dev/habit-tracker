@@ -4,11 +4,12 @@
 
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { tuning } from '@/config/tuning';
 import { textStyle } from '@/design/fonts';
 import { useTheme } from '@/design/theme/ThemeProvider';
 import { cardEdge } from '@/design/tokens';
 import type { HealStatus } from '@/rules/quest';
-import { space } from '@/theme';
+import { MIN_TAP_SIZE, space } from '@/theme';
 
 import { questProgressText, type QuestUnit } from './mainQuestText';
 
@@ -21,9 +22,15 @@ type Props = {
   /** Opens the quest's sheet (story, goal, reward, Accept). */
   onOpen: () => void;
   onClaim: () => void;
+  /**
+   * Home without the sheet (#133): a small one-line pill in the top bar, next to the Menu button,
+   * floating over the room. Same states and test IDs.
+   */
+  compact?: boolean;
 };
 
-export function MainQuestCard({ name, status, done, total, unit, onOpen, onClaim }: Props) {
+export function MainQuestCard(props: Props) {
+  const { name, status, done, total, unit, onOpen, onClaim, compact = false } = props;
   const { colors: c, scheme } = useTheme();
   const share = total > 0 ? Math.min(1, Math.max(0, done / total)) : 0;
   const progress = status === 'new' ? 'New quest' : questProgressText(done, total, unit);
@@ -40,17 +47,24 @@ export function MainQuestCard({ name, status, done, total, unit, onOpen, onClaim
             ? 'Claims the reward.'
             : 'Opens the quest.'
       }
-      style={[styles.card, { backgroundColor: c.surface }, cardEdge(scheme, c.border)]}
+      style={[
+        compact ? styles.pill : styles.card,
+        { backgroundColor: c.surface },
+        cardEdge(scheme, c.border),
+        compact && { boxShadow: tuning.scene.floatShadow },
+      ]}
     >
-      <View style={styles.words}>
+      <View style={compact ? styles.pillWords : styles.words}>
         <Text
-          style={[textStyle('habitName', '700'), { color: c.onSurface }]}
+          numberOfLines={1}
+          style={[textStyle(compact ? 'label' : 'habitName', '700'), { color: c.onSurface }]}
           testID="main-quest-name"
         >
           {name}
         </Text>
         <Text
-          style={[textStyle('label', '500'), { color: c.onSurfaceMuted }]}
+          numberOfLines={1}
+          style={[textStyle(compact ? 'caption' : 'label', '500'), { color: c.onSurfaceMuted }]}
           testID="main-quest-progress"
         >
           {progress}
@@ -63,11 +77,17 @@ export function MainQuestCard({ name, status, done, total, unit, onOpen, onClaim
           aria-hidden
         />
       ) : status === 'done' ? (
-        <View style={[styles.claim, { backgroundColor: c.primary }]} testID="main-quest-claim">
+        <View
+          style={[compact ? styles.pillClaim : styles.claim, { backgroundColor: c.primary }]}
+          testID="main-quest-claim"
+        >
           <Text style={[textStyle('label', '700'), { color: c.onPrimary }]}>Claim</Text>
         </View>
       ) : (
-        <View style={[styles.track, { backgroundColor: c.surfaceDim }]} testID="main-quest-bar">
+        <View
+          style={[compact ? styles.pillTrack : styles.track, { backgroundColor: c.surfaceDim }]}
+          testID="main-quest-bar"
+        >
           <View
             testID="main-quest-fill"
             style={[styles.fill, { width: `${share * 100}%`, backgroundColor: c.scoreOnTrackStar }]}
@@ -92,4 +112,15 @@ const styles = StyleSheet.create({
   fill: { height: '100%', borderRadius: 9999 },
   dot: { width: 10, height: 10, borderRadius: 5 },
   claim: { paddingHorizontal: space.xl, paddingVertical: space.sm, borderRadius: 9999 },
+  pill: {
+    minHeight: MIN_TAP_SIZE,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    borderRadius: 9999,
+    paddingHorizontal: space.md + 2,
+  },
+  pillWords: { flexShrink: 1, flexDirection: 'row', alignItems: 'baseline', gap: space.sm },
+  pillTrack: { width: 54, height: 6, borderRadius: 9999, overflow: 'hidden' },
+  pillClaim: { paddingHorizontal: space.md, paddingVertical: space.xs, borderRadius: 9999 },
 });

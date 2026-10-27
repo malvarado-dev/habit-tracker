@@ -1,10 +1,23 @@
-// The habit sheet's contents, shared by the phone and wide layouts (T10): the Activity Bar on top,
-// then the Main Quest card and the habit cards, which scroll inside. The room and pet are never
-// inside it, so they stay still while the cards scroll. Every log shows the Undo bar (P2-08a).
+// The habit list, shared by the phone and wide layouts (T10). Every log shows the Undo bar (P2-08a).
+//
+// Wide: a sheet with the Activity Bar on top, then the Main Quest card and the habit cards, which
+// scroll inside.
+//
+// Phone and tablet portrait (#133): no sheet. The room fills the screen and everything floats over
+// it. The Main Quest is a small pill next to the Menu button. The Today pill and the Activity Bar
+// (no notch icons) share a row above the cards; once the list scrolls up to it, that row sticks
+// under the top bar on a strip, and the cards slide under it.
 
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  Extrapolation,
+  interpolate,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+} from 'react-native-reanimated';
 
 import { ActivityBar } from '@/components/ActivityBar';
 import { BadHabitsTray } from '@/components/BadHabitsTray';
@@ -28,15 +41,53 @@ import { healCheckIns, healStatus } from '@/rules/quest';
 import { announce, requestPetMoment } from '@/scene/petMoments';
 
 import { groupHabits } from '@/rules/sheet';
-import { space } from '@/theme';
+import { radius, space } from '@/theme';
+import { todayLayout } from '@/design/tokens';
 
 /** Narrator line once the pet heads out (P2-16). Placeholder words. */
 const EXPLORE_LINE = 'Neko is off to explore. Check back tomorrow to see what Neko finds.';
 
 // Main Quest stand-in until P2-15 (#86) gives the sheet the real quest.
 
-export function HabitSheet({ bottomPadding }: { bottomPadding: number }) {
+/** Where the floating list sits on a phone or tablet in portrait (#133), from SceneLayout. */
+export type FloatingLayout = {
+  /** The Today row at rest, clear of the pet and the bed. */
+  listTop: number;
+  /** The Today row once it sticks under the top bar. */
+  stuckTop: number;
+  /** Top bar: its top, and where the quest pill starts (right of the Menu button). */
+  topBarTop: number;
+  questLeft: number;
+  /** Side margins, including the safe area. */
+  left: number;
+  right: number;
+  /** Screen height, so even a short list can scroll far enough for the Today row to stick. */
+  screenHeight: number;
+};
+
+export function HabitSheet({
+  bottomPadding,
+  floating,
+}: {
+  bottomPadding: number;
+  floating?: FloatingLayout;
+}) {
   const { state, dispatch, today } = useTracker();
+  // Floating list (#133): the Today row follows the list up, then sticks; the strip fades in.
+  const scrollY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler((e) => {
+    scrollY.value = e.contentOffset.y;
+  });
+  const restTop = floating?.listTop ?? 0;
+  const stuckTop = floating?.stuckTop ?? 0;
+  const travel = Math.max(0, restTop - stuckTop);
+  const fade = tuning.scene.stripFadeDistance;
+  const rowStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: Math.max(stuckTop, restTop - scrollY.value) }],
+  }));
+  const stripStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(scrollY.value, [travel - fade, travel], [0, 1], Extrapolation.CLAMP),
+  }));
   // Heal quest (P2-15): the card's state, the sheet, and Claim.
   const quest = healStatus(state, today);
   const questDone = healCheckIns(state, today);
@@ -53,7 +104,7 @@ export function HabitSheet({ bottomPadding }: { bottomPadding: number }) {
   // Design 2 has no pairing (PRD-15), so its cards slide to Skip only.
   const linkedOf = (habit: Habit) =>
     badHabitDesign === 'design1' ? linkedBadHabit(habit, state.badHabits) : undefined;
-  const tray = trayHabits(state.badHabits, state.habits, badHabitDesign);
+  const trayList = trayHabits(state.badHabits, state.habits, badHabitDesign);
   // The last change, so Undo can take it back. `id` changes every time to restart the timer.
   // A slip remembers the count before it, so Undo after a stepper change puts it back exactly.
   const [undo, setUndo] = useState<
@@ -111,85 +162,106 @@ export function HabitSheet({ bottomPadding }: { bottomPadding: number }) {
         onSkip={() => skip(habit)}
         onSlip={linked ? () => setSlips(linked, slips(linked.id) + 1) : undefined}
         onEdit={() => router.push({ pathname: '/habit/[id]', params: { id: habit.id } })}
+        floating={!!floating}
       />
     );
   };
 
-  const section = (id: string, title: string, habits: Habit[]) =>
+  /** A section title: plain on the sheet, a pill when floating over the room (#133). */
+  const sectionTitle = (id: string, title: string) => (
+    <Text
+      style={
+        floating
+          ? [
+              textStyle('label', '700'),
+              styles.pill,
+              { color: c.onSurface, backgroundColor: c.surface },
+            ]
+          : [textStyle('label', '500'), { color: c.onSurfaceMuted }]
+      }
+      accessibilityRole="header"
+      testID={`section-${id}-title`}
+    >
+      {title}
+    </Text>
+  );
+
+  const section = (id: string, title: string, habits: Habit[], showTitle = true) =>
     habits.length === 0 ? null : (
       <View style={styles.section} testID={`section-${id}`}>
-        <Text
-          style={[textStyle('label', '500'), { color: c.onSurfaceMuted }]}
-          accessibilityRole="header"
-          testID={`section-${id}-title`}
-        >
-          {title}
-        </Text>
+        {showTitle ? sectionTitle(id, title) : null}
         {habits.map(card)}
       </View>
     );
 
-  return (
-    <>
-      <ActivityBar
-        fill={bar.fill}
-        logs={bar.logs}
-        target={bar.target}
-        isRestDay={bar.isRestDay}
-        activityIcons
-        finished={finishedCount(allHabits(state), log, today)}
+  const activityBar = (
+    <ActivityBar
+      fill={bar.fill}
+      logs={bar.logs}
+      target={bar.target}
+      isRestDay={bar.isRestDay}
+      activityIcons
+      notchIcons={!floating}
+      finished={finishedCount(allHabits(state), log, today)}
+    />
+  );
+
+  const exploreButton = canExplore(state.explore, today, bar.isFull) ? (
+    <Pressable
+      onPress={() => {
+        dispatch({ type: 'sendExploring', date: today });
+        announce(EXPLORE_LINE);
+      }}
+      style={[styles.explore, { backgroundColor: c.primary }]}
+      testID="explore-button"
+      accessibilityRole="button"
+    >
+      <Text style={[textStyle('label', '700'), { color: c.onPrimary }]}>Explore</Text>
+    </Pressable>
+  ) : null;
+
+  const questCard =
+    quest !== 'claimed' ? (
+      <MainQuestCard
+        name="Heal Neko"
+        status={quest}
+        done={questDone}
+        total={tuning.quest.heal.goal}
+        unit="days"
+        onOpen={() => setQuestOpen(true)}
+        onClaim={claimQuest}
+        compact={!!floating}
       />
-      {canExplore(state.explore, today, bar.isFull) ? (
-        <Pressable
-          onPress={() => {
-            dispatch({ type: 'sendExploring', date: today });
-            announce(EXPLORE_LINE);
-          }}
-          style={[styles.explore, { backgroundColor: c.primary }]}
-          testID="explore-button"
-          accessibilityRole="button"
-        >
-          <Text style={[textStyle('label', '700'), { color: c.onPrimary }]}>Explore</Text>
-        </Pressable>
-      ) : null}
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingBottom: bottomPadding }]}
-        testID="habit-list"
-      >
-        {quest !== 'claimed' ? (
-          <MainQuestCard
-            name="Heal Neko"
-            status={quest}
-            done={questDone}
-            total={tuning.quest.heal.goal}
-            unit="days"
-            onOpen={() => setQuestOpen(true)}
-            onClaim={claimQuest}
-          />
-        ) : null}
-        {section('today', 'Today', sections.today)}
-        {section('anytime', 'Anytime', sections.anytime)}
-        <BadHabitsTray
-          badHabits={tray}
-          countOf={slips}
-          onSlip={(bad) => setSlips(bad, slips(bad.id) + 1)}
-          onSetCount={setSlips}
-        />
-        <Pressable
-          testID="history-link"
-          accessibilityRole="link"
-          accessibilityLabel="History"
-          hitSlop={space.md}
-          style={styles.historyLink}
-          // Opens History on today; Back returns to Today (#127).
-          onPress={() => router.push({ pathname: '/history', params: { from: 'today' } })}
-        >
-          <Text style={[textStyle('habitName', '700'), styles.historyText, { color: c.onSurface }]}>
-            History
-          </Text>
-        </Pressable>
-      </ScrollView>
+    ) : null;
+
+  const tray = (
+    <BadHabitsTray
+      badHabits={trayList}
+      countOf={slips}
+      onSlip={(bad) => setSlips(bad, slips(bad.id) + 1)}
+      onSetCount={setSlips}
+      floating={!!floating}
+    />
+  );
+
+  const historyLink = (
+    <Pressable
+      testID="history-link"
+      accessibilityRole="link"
+      accessibilityLabel="History"
+      hitSlop={space.md}
+      style={[styles.historyLink, floating && [styles.historyPill, { backgroundColor: c.surface }]]}
+      // Opens History on today; Back returns to Today (#127).
+      onPress={() => router.push({ pathname: '/history', params: { from: 'today' } })}
+    >
+      <Text style={[textStyle('habitName', '700'), styles.historyText, { color: c.onSurface }]}>
+        History
+      </Text>
+    </Pressable>
+  );
+
+  const overlays = (
+    <>
       {undo ? (
         <UndoBar
           key={undo.id}
@@ -214,6 +286,87 @@ export function HabitSheet({ bottomPadding }: { bottomPadding: number }) {
         }}
         onClose={() => setQuestOpen(false)}
       />
+    </>
+  );
+
+  if (floating) {
+    const rowHeight = tuning.scene.todayRowHeight;
+    const side = { left: floating.left, right: floating.right };
+    return (
+      <>
+        <Animated.ScrollView
+          style={StyleSheet.absoluteFill}
+          contentContainerStyle={[
+            styles.floatContent,
+            side.left || side.right ? { paddingLeft: side.left, paddingRight: side.right } : null,
+            {
+              paddingTop: restTop + rowHeight + space.md,
+              paddingBottom: bottomPadding,
+              minHeight: floating.screenHeight + travel,
+            },
+          ]}
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}
+          testID="habit-list"
+        >
+          <View style={styles.floatColumn}>
+            {exploreButton}
+            {section('today', 'Today', sections.today, false)}
+            {section('anytime', 'Anytime', sections.anytime)}
+            {tray}
+            {historyLink}
+          </View>
+        </Animated.ScrollView>
+        {/* Behind the stuck Today row and the top bar, so cards slide under them. */}
+        <Animated.View
+          pointerEvents="none"
+          testID="today-strip"
+          style={[
+            styles.strip,
+            { height: stuckTop + rowHeight + space.sm, backgroundColor: c.surfaceSheet },
+            stripStyle,
+          ]}
+        />
+        <Animated.View
+          testID="today-row"
+          style={[styles.todayRow, side, { height: rowHeight }, rowStyle]}
+        >
+          <View style={styles.todayRowInner}>
+            {sectionTitle('today', 'Today')}
+            <View style={styles.rowBar}>{activityBar}</View>
+          </View>
+        </Animated.View>
+        <View
+          pointerEvents="box-none"
+          style={[
+            styles.questSlot,
+            { top: floating.topBarTop, left: floating.questLeft, right: floating.right },
+          ]}
+        >
+          {questCard}
+        </View>
+        {overlays}
+      </>
+    );
+  }
+
+  return (
+    <>
+      {activityBar}
+      {exploreButton}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[styles.content, { paddingBottom: bottomPadding }]}
+        testID="habit-list"
+      >
+        {questCard}
+        {section('today', 'Today', sections.today)}
+        {section('anytime', 'Anytime', sections.anytime)}
+        {tray}
+        {historyLink}
+      </ScrollView>
+      {overlays}
     </>
   );
 }
@@ -242,6 +395,40 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   historyText: { textDecorationLine: 'underline' },
+  // Floating over the room (#133): pills and shadows so everything reads over the floor.
+  historyPill: {
+    paddingHorizontal: space.lg,
+    borderRadius: radius.pill,
+    boxShadow: tuning.scene.floatShadow,
+  },
+  pill: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: space.md,
+    paddingVertical: space.xs,
+    borderRadius: radius.pill,
+    overflow: 'hidden',
+    boxShadow: tuning.scene.floatShadow,
+  },
+  floatContent: { paddingHorizontal: space.lg, alignItems: 'center' },
+  floatColumn: { width: '100%', maxWidth: todayLayout.sheetMaxWidth, gap: space.lg },
+  strip: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    boxShadow: tuning.scene.floatShadow,
+  },
+  todayRow: { position: 'absolute', top: 0, alignItems: 'center' },
+  todayRowInner: {
+    flex: 1,
+    width: '100%',
+    maxWidth: todayLayout.sheetMaxWidth,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+  },
+  rowBar: { flex: 1 },
+  questSlot: { position: 'absolute', alignItems: 'flex-start' },
   // explore-button in design-system.md: primary fill, full rounding, 52 pt tall.
   explore: {
     height: 52,

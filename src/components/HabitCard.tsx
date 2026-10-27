@@ -55,6 +55,9 @@ import { fillEasing, fillMs } from './motion';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
+/** Floating over the room (#133). */
+const floatShadow = { boxShadow: tuning.scene.floatShadow };
+
 interface HabitCardProps {
   habit: Habit;
   /** Good logs so far on the card's day. */
@@ -75,6 +78,8 @@ interface HabitCardProps {
   readOnly?: boolean;
   /** History edits (P2-18b): controls drawn at the right end of the card. */
   trailing?: ReactNode;
+  /** Home without the sheet (#133): the card floats over the room, so it gets a stronger shadow. */
+  floating?: boolean;
 }
 
 export function HabitCard(props: HabitCardProps) {
@@ -174,7 +179,7 @@ export function HabitCard(props: HabitCardProps) {
             : []
         }
         onAccessibilityAction={(e) => (e.nativeEvent.actionName === 'slip' ? slip() : skip())}
-        style={[styles.card, { backgroundColor: c.surface }]}
+        style={[styles.card, { backgroundColor: c.surface }, props.floating && floatShadow]}
       >
         <View style={styles.row}>
           {ring ? (

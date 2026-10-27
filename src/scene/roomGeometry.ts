@@ -2,10 +2,13 @@
 // every device size is unit tested. Positions in room-layout.json are pixels on the source art;
 // this turns them into screen points.
 //
-// The room fills the screen width. It moves up so the window glass sits just under the status bar,
-// and the habit sheet starts low enough that the bed and pet are never under it.
+// The room fills the screen width (#133, no habit sheet). The window glass sits just under the top
+// bar (Menu button and quest pill); if that means moving the room down, the wall is stretched up to
+// fill the gap. The habit list starts low enough that the bed and pet show in full at rest, and its
+// Today row sticks under the top bar once scrolled.
 
 import { tuning } from '@/config/tuning';
+import { MIN_TAP_SIZE, space } from '@/theme';
 
 type Scene = typeof tuning.scene;
 export type PetPose = keyof Scene['pet']['poses'];
@@ -24,8 +27,14 @@ export interface RoomGeometry {
   room: Box;
   bed: Box;
   bedShadow: Box & { opacity: number; softness: number; color: string };
-  /** Where the habit sheet starts. */
-  sheetTop: number;
+  /** Wall stretched above the room art when the room moves down (height 0 when it doesn't). */
+  wallGap: number;
+  /** Bottom of the top bar (Menu button and quest pill). */
+  topBarBottom: number;
+  /** Where the Today row sits at rest, with the habit list under it. */
+  listTop: number;
+  /** Where the Today row sticks once the list is scrolled. */
+  stuckTop: number;
 }
 
 export interface PetGeometry {
@@ -43,8 +52,9 @@ export function roomGeometry(
   const [sourceWidth = 1, sourceHeight = 1] = scene.sourceSize;
   const scale = screenWidth / sourceWidth;
   const glassTop = scene.windowGlass.y * scale;
-  // Up so the glass sits just under the status bar, never down (that would leave a gap on top).
-  const shift = Math.max(0, glassTop - (statusBarHeight + scene.windowGapBelowStatusBar));
+  const topBarBottom = statusBarHeight + space.sm + MIN_TAP_SIZE;
+  // Moves up (or down) so the glass sits just under the top bar.
+  const shift = glassTop - (topBarBottom + scene.windowGapBelowTopBar);
   const room = { left: 0, top: -shift, width: screenWidth, height: sourceHeight * scale };
 
   const y = (sourceY: number) => sourceY * scale - shift;
@@ -70,7 +80,7 @@ export function roomGeometry(
     color: s.color,
   };
 
-  // The lowest thing in the scene decides how high the sheet may start.
+  // The lowest thing in the scene decides how high the list may start at rest.
   const lowest = Math.max(
     bed.top + bed.height,
     ...Object.keys(scene.pet.spots).map((spot) => {
@@ -78,12 +88,23 @@ export function roomGeometry(
       return pet.image.top + pet.image.height;
     }),
   );
-  const sheetTop = Math.max(
-    Math.round(screenHeight * scene.sheetTopRatio),
-    Math.ceil(lowest + scene.sceneClearOfSheet),
+  // Short screens cap it, so some cards always show without scrolling.
+  const listTop = Math.min(
+    Math.ceil(lowest + scene.sceneClearOfList),
+    Math.round(screenHeight * scene.listTopMaxRatio),
   );
+  const stuckTop = topBarBottom + space.sm;
 
-  return { scale, room, bed, bedShadow, sheetTop };
+  return {
+    scale,
+    room,
+    bed,
+    bedShadow,
+    wallGap: Math.max(0, -shift),
+    topBarBottom,
+    listTop,
+    stuckTop,
+  };
 }
 
 /** The parts of a pet look (petLooks.ts) that size and place it. */
