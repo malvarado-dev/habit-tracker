@@ -30,3 +30,29 @@ test.describe('Activity Bar payoff (P2-14)', () => {
     await expect(home.card('walk')).toHaveCount(0);
   });
 });
+
+// #137: both layouts keep a smooth bar. Log first so the bar has measured its track.
+for (const viewport of [
+  { width: 393, height: 851 },
+  { width: 1100, height: 800 },
+]) {
+  test(`no bar markers at ${viewport.width}pt, before and after filling`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await openWithSave(page, saveWith(HABITS));
+    const home = new HomePage(page);
+    await home.waitUntilReady();
+
+    await home.tapHabit('sleep');
+    await expect(home.activityBar).toHaveAttribute('aria-label', 'Activity Bar, 1 of 2 logs today');
+    await expect(page.getByTestId(/^activity-bar-notch-/)).toHaveCount(0);
+    await expect(page.getByTestId(/^activity-icon-/)).toHaveCount(0);
+
+    await home.tapHabit('read');
+    await expect(home.activityBar).toHaveAttribute(
+      'aria-label',
+      'Activity Bar full, 2 of 2 logs today',
+    );
+    await expect(page.getByTestId(/^activity-bar-notch-/)).toHaveCount(0);
+    await expect(page.getByTestId(/^activity-icon-/)).toHaveCount(0);
+  });
+}

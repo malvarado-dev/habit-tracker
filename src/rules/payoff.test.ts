@@ -6,31 +6,10 @@ import { describe, expect, it } from '@jest/globals';
 import { tuning } from '@/config/tuning';
 import { justFilled } from '@/components/activityBarText';
 import { EVERY_DAY, type Habit } from './habits';
-import {
-  affectionDue,
-  finishedCount,
-  momentCaption,
-  momentPlan,
-  notchesReached,
-  pickMoment,
-} from './payoff';
+import { affectionDue, finishedCount, momentCaption, momentPlan, pickMoment } from './payoff';
 
 const m = tuning.pet.moments;
 const HOP = 1000;
-
-describe('notches reached (AC 1)', () => {
-  it('each notch once, on the way up', () => {
-    expect(notchesReached(0, 1 / 3)).toEqual([0]);
-    expect(notchesReached(1 / 3, 2 / 3)).toEqual([1]);
-    expect(notchesReached(0.5, 1)).toEqual([1, 2]);
-  });
-
-  it('moving within a notch, or down, reaches nothing', () => {
-    expect(notchesReached(0.4, 0.5)).toEqual([]);
-    expect(notchesReached(1, 0.5)).toEqual([]);
-    expect(notchesReached(1, 1)).toEqual([]);
-  });
-});
 
 describe('when a full bar fires a moment (AC 2)', () => {
   it('only on an upward move to full', () => {

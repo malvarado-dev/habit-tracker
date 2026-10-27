@@ -15,23 +15,10 @@ export const MOMENT_KINDS: readonly MomentKind[] = ['eat', 'pounce', 'purr'];
 /** Every pet moment with a timeline: the bar's three, plus a quest's claim celebration (P2-15). */
 export type PetMomentKind = MomentKind | 'celebrate';
 
-/** Which notch icon each moment pops: food, toy, petting. */
-export const MOMENT_NOTCH: Record<MomentKind, number> = { eat: 0, pounce: 1, purr: 2 };
-
 /** Returns a number from 0 up to (not including) 1, like Math.random. */
 export type Rand = () => number;
 
 type Moments = typeof tuning.pet.moments;
-
-/** Notches (by index) the fill just reached on an upward move. Moving down reaches nothing. */
-export function notchesReached(
-  previous: number,
-  next: number,
-  notches: readonly number[] = tuning.activityBar.notches,
-): number[] {
-  const eps = 1e-9;
-  return notches.flatMap((at, i) => (previous < at - eps && next >= at - eps ? [i] : []));
-}
 
 /** One of the three moments, evenly. */
 export function pickMoment(rand: Rand): MomentKind {

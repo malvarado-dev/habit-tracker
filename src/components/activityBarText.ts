@@ -1,13 +1,6 @@
 // Activity Bar words and math, kept apart from the component so they can be tested without
-// rendering. The bar shows counted logs against today's target (rules/activityBar.ts), with 3
-// notches. The full-bar celebration plays once each time the fill reaches the end.
-
-import { tuning } from '@/config/tuning';
-
-/** Where the notches stand, 0 to 1, lowest first. */
-export function notchPositions(): readonly number[] {
-  return tuning.activityBar.notches;
-}
+// rendering. The smooth bar shows counted logs against today's target (rules/activityBar.ts).
+// The full-bar celebration plays once each time the fill reaches the end.
 
 /** Clamp a fill value to the bar. */
 export function clampFill(fill: number): number {

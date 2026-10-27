@@ -149,13 +149,6 @@ export const tuning = {
       /** Full-bar caption above the bar. */
       captionMs: 3000,
       captionFadeMs: 300,
-      /** Notch icon: rattle when reached, pop when its moment plays. */
-      rattleDegrees: 18,
-      rattleMs: 450,
-      popScale: 1.45,
-      popMs: 400,
-      /** Reduced motion: the notch icon brightens instead. */
-      brightenOpacity: 0.45,
     },
     /** Spots (P2-12, PRD-09): under hideBelow the pet hides behind the bed; up to restUpTo it
      * rests on the bed once awake; above that it sits in the middle of the room. */
@@ -287,12 +280,8 @@ export const tuning = {
     maxToFill: 12,
     /** Highest times per day a habit can be set to. */
     timesPerDayMax: 12,
-    /** Where the 3 notches sit on the bar (0 to 1), lowest first. */
+    /** Internal Love/Confidence thresholds (0 to 1). No visible bar markers (#137). */
     notches: [1 / 3, 2 / 3, 1] as const,
-    /** Food, toy, and pet icons on the notches (P2-07), in points. */
-    iconSize: 30,
-    /** Points from the track's bottom edge to the icons' bottoms. */
-    iconBottomInset: 2,
   },
   energy: {
     /** Energy bar fill glides to its new width this fast. Reduced motion jumps instead. */

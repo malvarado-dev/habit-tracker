@@ -207,8 +207,7 @@ export function HabitSheet({
       logs={bar.logs}
       target={bar.target}
       isRestDay={bar.isRestDay}
-      activityIcons
-      notchIcons={!floating}
+      petMoments
       finished={finishedCount(allHabits(state), log, today)}
     />
   );
