@@ -1,5 +1,20 @@
 This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
 
+## How we work (any AI tool or person)
+
+Marco owns the project and makes every decision. He has no programming background: explain in plain words, and ask questions instead of guessing.
+
+- **Plan first.** Before writing code, show a short plan and rate each decision Good, Risky or Bad. Wait for Marco's go-ahead. Ask any questions before building.
+- **Do only what's asked.** No extra fixes, refactors or reviews unless asked. Raise them as suggestions instead.
+- **Tickets.** Show Marco each new ticket before posting it to GitHub. Every ticket carries its design reference (Figma link or screenshot) and a Tests section (`.github/ISSUE_TEMPLATE/ticket.md`).
+- **Branches and PRs.** One ticket, one branch, one PR against `main`. Fill in `.github/PULL_REQUEST_TEMPLATE.md`. Never merge, never push to `main`, never force-push. Marco merges.
+- **Done means checked.** `npm run check` and `npm run e2e` pass, and new tests cover the ticket's risks (`TESTING.md`). Tests must fail without the fix.
+- **Art stays private.** Pet, room, Explore and icon art lives in the private `bad-neko-art` repo and is copied in by `scripts/sync-art.mjs` (git ignores `assets/private/`). Never commit art, screenshots of it, or paths to it into this public repo. Without the art repo the app shows plain placeholders; for visual bugs, rely on Marco's screenshots and ask him to check on his phone.
+- **Numbers live in one place.** Timings, effects, sizes, colors and positions go in `src/config/tuning.ts` (art-measured positions in `src/scene/room-layout.json`). No hardcoded colors or timings in screens; a test enforces it.
+- **The pet is separate from the theme.** Room, pet and Explore art never change with Light or Dark theme.
+- **Words.** Plain, natural wording in docs, tickets and PRs; no jargon status labels. Docs stay one page. Never use em dashes. Never name the outside apps used as design references; the themes are "Light theme" and "Dark theme". Docs and code say "pet", not "cat".
+- **Commits.** Small, clear messages that say what changed and why.
+
 ## Testing
 
 Follow `TESTING.md` when writing tickets and tests. New tickets use `.github/ISSUE_TEMPLATE/ticket.md`, including its Design and Tests sections.
