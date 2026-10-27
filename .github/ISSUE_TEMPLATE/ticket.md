@@ -13,6 +13,10 @@ What this changes for the user, in a sentence or two.
 **Design**
 Figma frame links and screenshots. "None" only for non-visual work.
 
+<!-- For requirement/UI changes, name the affected Notion spec and Figma frames or
+catch-up tracker. Include scoped update tasks below and mark pending until done.
+If either is not applicable, explain why. Track design preparation/approval when needed. -->
+
 **Scope**
 
 - [ ]
