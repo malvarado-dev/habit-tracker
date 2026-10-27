@@ -28,3 +28,7 @@ Figma frame links and screenshots. "None" only for non-visual work.
 - Unit:
 - End to end:
 - Manual:
+
+<!-- For visual or interactive work, include numbered manual test steps here:
+setup/start state, action, and expected result, mapped to acceptance criteria.
+Follow TESTING.md section 9. Keep the detailed procedure here so the PR can link to it. -->

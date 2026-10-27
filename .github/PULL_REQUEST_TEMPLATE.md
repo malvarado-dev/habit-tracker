@@ -21,5 +21,7 @@ State failures, skipped checks, and limits honestly. Keep the planned test cases
 ## To check on a phone
 
 <!-- Link to the issue's manual steps and identify the checks still awaiting Marco.
+Include the exact branch and copyable setup/run commands, starting with cd to the
+project folder, and explain how to open the unmerged app (TESTING.md section 9).
 Do not duplicate the full test plan. If none are needed, explain why.
 Add a short For review section only when there are specific open decisions or limitations. -->
