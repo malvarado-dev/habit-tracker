@@ -41,6 +41,7 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
+    "privacy:check": "node scripts/privacy-check.mjs",
     "start": "node scripts/sync-art.mjs && expo start",
     "android": "node scripts/sync-art.mjs && expo start --android",
     "ios": "node scripts/sync-art.mjs && expo start --ios",

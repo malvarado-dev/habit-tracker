@@ -38,17 +38,17 @@ A test that fails without a real bug is fixed or removed within one ticket. Retr
 
 It lists the unit, end-to-end and manual checks, and each one maps to an acceptance criterion. The issue template asks for it.
 
-The issue owns the planned tests and detailed manual steps. The PR links to those criteria and reports actual results, including commands run, failures or skipped checks, fail-before/pass-after regression evidence, and phone QA still pending. Do not copy the test plan into a second checklist or mark manual checks complete before Marco performs them. Follow the shared issue/PR rules in `AGENTS.md` and both GitHub templates.
+The issue owns the planned tests and detailed manual steps. The PR links to those criteria and reports actual results, including commands run, failures or skipped checks, fail-before/pass-after regression evidence, and phone QA still pending. Do not copy the test plan into a second checklist or mark manual checks complete before the project owner performs them. Follow the shared issue/PR rules in `AGENTS.md` and both GitHub templates.
 
 ## 9. Manual testing instructions must be executable
 
-Keep clear, step-by-step manual testing instructions. Marco is a manual QA engineer; do not assume programming or Git knowledge. Store the detailed procedure in the issue's Tests section and link to it from the PR.
+Keep clear, step-by-step manual testing instructions. the project owner is a manual QA engineer; do not assume programming or Git knowledge. Store the detailed procedure in the issue's Tests section and link to it from the PR.
 
 - State the setup: test data or starting state, device, theme, and prototype design when relevant. Say whether to use Test mode and how to reach it.
 - Number the actions in order, naming the screens, buttons, and values. Give the expected result for each step, including what must remain unchanged or saved after reopening.
 - Cover the ticket's risks and link steps to acceptance criteria. Include relevant limits, both themes, persistence, and regression checks without adding unrelated test cases.
 - In the PR, include the exact branch and copyable commands needed to run the unmerged change. Start terminal commands with `cd` to the project folder. Explain how to open the app and which issue procedure to follow. Do not require merging to test.
-- Record what was actually checked and what is still pending. Automated checks do not replace Marco's phone QA or sign-off.
+- Record what was actually checked and what is still pending. Automated checks do not replace the project owner's phone QA or sign-off.
 
 ## Where things live
 

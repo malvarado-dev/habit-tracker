@@ -2,18 +2,24 @@ This is an Expo/React Native mobile application. Prioritize mobile-first pattern
 
 ## How we work (any AI tool or person)
 
-Marco owns the project and makes every decision. He has no programming background: explain in plain words, and ask questions instead of guessing.
+the project owner owns the project and makes every decision. He has no programming background: explain in plain words, and ask questions instead of guessing.
 
-- **Plan first.** Before writing code, show a short plan and rate each decision Good, Risky or Bad. Wait for Marco's go-ahead. Ask any questions before building.
+- **Plan first.** Before writing code, show a short plan and rate each decision Good, Risky or Bad. Wait for the project owner's go-ahead. Ask any questions before building.
 - **Do only what's asked.** No extra fixes, refactors or reviews unless asked. Raise them as suggestions instead.
-- **Tickets.** Show Marco each new ticket before posting it to GitHub. Every ticket carries its design reference (Figma link or screenshot) and a Tests section (`.github/ISSUE_TEMPLATE/ticket.md`).
-- **Branches and PRs.** One ticket, one branch, one PR against `main`. Fill in `.github/PULL_REQUEST_TEMPLATE.md`. Never merge, never push to `main`, never force-push. Marco merges.
+- **Tickets.** Show the project owner each new ticket before posting it to GitHub. Every ticket carries its design reference (Figma link or screenshot) and a Tests section (`.github/ISSUE_TEMPLATE/ticket.md`).
+- **Branches and PRs.** One ticket, one branch, one PR against `main`. Fill in `.github/PULL_REQUEST_TEMPLATE.md`. Never merge, never push to `main`, never force-push. the project owner merges.
 - **Done means checked.** `npm run check` and `npm run e2e` pass, and new tests cover the ticket's risks (`TESTING.md`). Tests must fail without the fix.
-- **Art stays private.** Pet, room, Explore and icon art lives in the private `bad-neko-art` repo and is copied in by `scripts/sync-art.mjs` (git ignores `assets/private/`). Never commit art, screenshots of it, or paths to it into this public repo. Without the art repo the app shows plain placeholders; for visual bugs, rely on Marco's screenshots and ask him to check on his phone.
+- **Art stays private.** Pet, room, Explore and icon art lives in the private `bad-neko-art` repo and is copied in by `scripts/sync-art.mjs` (git ignores `assets/private/`). Never commit art, screenshots of it, or paths to it into this public repo. Without the art repo the app shows plain placeholders; for visual bugs, rely on the project owner's screenshots and ask him to check on his phone.
 - **Numbers live in one place.** Timings, effects, sizes, colors and positions go in `src/config/tuning.ts` (art-measured positions in `src/scene/room-layout.json`). No hardcoded colors or timings in screens; a test enforces it.
 - **The pet is separate from the theme.** Room, pet and Explore art never change with Light or Dark theme.
 - **Words.** Plain, natural wording in docs, tickets and PRs; no jargon status labels. Docs stay one page. Never use em dashes. Never name the outside apps used as design references; the themes are "Light theme" and "Dark theme". Docs and code say "pet", not "cat".
 - **Commits.** Small, clear messages that say what changed and why.
+
+## Public identity and privacy
+
+Use the public handle or "the project owner" in public files, tickets, PRs, comments, and test reports. Do not publish personal names, personal email addresses, workplace details, or local account names. Keep private background in local, untracked notes instead. Use `$HOME` or placeholders for user-specific paths in public instructions; do not paste absolute paths from this machine.
+
+Before committing, verify the Git author and committer use the approved public handle and GitHub-provided `noreply` email. Never copy an identity from old commits or override it with a personal email. Check public descriptions and screenshots before posting. Run `npm run privacy:check` before publishing tracked changes. This check detects personal email domains and local home paths; reviewing names and screenshot contents remains a manual check. Changing account settings does not remove old commit metadata. Never rewrite history or force-push without separate explicit approval.
 
 ## Starting or resuming work
 
@@ -24,7 +30,7 @@ Every contributor, including Codex and Claude, reads this file, `TESTING.md`, an
 - **Issue = agreed work.** Follow `.github/ISSUE_TEMPLATE/ticket.md`: risk, goal, design, scope, out of scope, numbered acceptance criteria, and planned tests mapped to those criteria. Suggest the needed Figma frame or screenshot for visual work. Record approved scope changes here before implementing them; distinguish current Prototype 2 decisions from historical Prototype 1 material.
 - **PR = implementation and evidence.** Link the issue and follow `.github/PULL_REQUEST_TEMPLATE.md`. Briefly explain the resulting behavior and relevant implementation choices, dependencies or deviations. Report tests actually run, results, regression evidence, and outstanding phone checks. Do not copy or paraphrase the full scope, acceptance criteria, or test plan into a second checklist. Refer to issue criteria by number when useful.
 - **Review once.** Keep requirements in the issue. The PR may use different wording to explain what changed, but must not introduce conflicting requirements. If implementation changes the agreement, update the issue and summarize the difference in the PR. Put detailed manual test steps in the issue once; the PR links to them and calls out anything still pending.
-- **Before posting or updating.** Check the issue and PR against these files, including Design and Tests. Keep all applicable template sections; say why a check is not applicable rather than marking unrun tests as passed. Create regular PRs, not drafts, unless Marco explicitly requests a draft. Never merge them.
+- **Before posting or updating.** Check the issue and PR against these files, including Design and Tests. Keep all applicable template sections; say why a check is not applicable rather than marking unrun tests as passed. Create regular PRs, not drafts, unless the project owner explicitly requests a draft. Never merge them.
 
 ## Testing
 
