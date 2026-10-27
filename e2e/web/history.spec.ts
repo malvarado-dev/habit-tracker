@@ -34,6 +34,16 @@ async function openHistory(page: import('@playwright/test').Page): Promise<Histo
 }
 
 test.describe('History (P2-18a)', () => {
+  test('the History link on Today opens History, and Back returns to Today', async ({ page }) => {
+    await openWithSave(page, save());
+    await page.getByTestId('history-link').click();
+    const history = new HistoryPage(page);
+    await history.waitUntilReady();
+    await expect(history.dayTitle).toHaveText('Today, Sun Oct 25');
+    await page.getByTestId('history-back').click();
+    await expect(page.getByTestId('today-screen')).toBeVisible();
+  });
+
   test('opens on today with streaks and the edit window', async ({ page }) => {
     const history = await openHistory(page);
     await expect(history.month).toHaveText('October 2026');

@@ -182,10 +182,8 @@ export function HabitSheet({ bottomPadding }: { bottomPadding: number }) {
           accessibilityLabel="History"
           hitSlop={space.md}
           style={styles.historyLink}
-          // Opens the Day view for today until History's calendar lands (P2-18, #89).
-          onPress={() =>
-            router.push({ pathname: '/day/[date]', params: { date: today, from: 'today' } })
-          }
+          // Opens History on today; Back returns to Today (#127).
+          onPress={() => router.push({ pathname: '/history', params: { from: 'today' } })}
         >
           <Text style={[textStyle('habitName', '700'), styles.historyText, { color: c.onSurface }]}>
             History
