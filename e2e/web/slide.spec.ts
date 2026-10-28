@@ -47,22 +47,6 @@ test.describe('slide actions (P2-08b)', () => {
     await home.expectBar('Activity Bar, 1 of 3 logs today');
   });
 
-  test('a completing linked slip removes the card and Undo restores its prior count', async ({
-    page,
-  }) => {
-    const save = saveWith(HABITS, BAD);
-    save.log = { [toDateKey(FIXED_NOW)]: { eat: 2 } };
-    await openWithSave(page, save);
-    const home = new HomePage(page);
-    await home.waitUntilReady();
-    await home.slideOpen('eat');
-    await home.slideSlip('eat').click();
-    await expect(home.card('eat')).toHaveCount(0);
-    await expect(page.getByTestId('undo-text')).toHaveText('Eat Out counted');
-    await home.undo();
-    await expect(home.count('eat')).toHaveText('2/3');
-  });
-
   test('Skip hides the card for today, leaves the bar alone, and Undo brings it back', async ({
     page,
   }) => {

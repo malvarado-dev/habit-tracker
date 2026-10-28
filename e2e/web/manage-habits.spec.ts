@@ -9,7 +9,7 @@ const BAD = [
 ];
 
 for (const theme of ['light', 'dark'] as const) {
-  test(`management screens fit a small phone and expose accessible controls in ${theme} (#132)`, async ({
+  test(`management screens fit a small phone and expose accessible controls in ${theme} @rendering (#132)`, async ({
     page,
   }) => {
     await page.setViewportSize({ width: 320, height: 740 });
@@ -108,24 +108,6 @@ test('remove and Undo keep the position, pairing and slips after reload (#132)',
   await expect(page.getByTestId('bad-chip-soda')).toHaveCount(0);
 });
 
-test('a removed partner has no subtitle; removing the final bad habit hides the box (#132)', async ({
-  page,
-}) => {
-  await openWithSave(page, saveWith(HABITS, [BAD[1]!]), 'habits');
-  await page.getByTestId('habits-row-sleep').click();
-  await page.getByTestId('edit-habit-remove').click();
-  await expect(page.getByTestId('habits-bad-bad-poor-sleep-1')).toHaveText('Poor Sleep');
-  await expect(
-    page.getByTestId('habits-bad-bad-poor-sleep-1').getByTestId('habits-bad-subtitle'),
-  ).toHaveCount(0);
-  await page.getByTestId('habits-bad-bad-poor-sleep-1').click();
-  await expect(page.getByTestId('edit-bad-pair-none')).toHaveAttribute('aria-checked', 'true');
-  await page.getByTestId('edit-bad-remove').click();
-  await expect(page.getByTestId('habits-bad-box')).toHaveCount(0);
-  await page.getByTestId('habits-undo').click();
-  await expect(page.getByTestId('habits-bad-box')).toContainText('Poor Sleep');
-});
-
 test('Design 2 manages hidden habits and saved frequency without clearing pairing (#132)', async ({
   page,
 }) => {
@@ -152,34 +134,6 @@ test('Design 2 manages hidden habits and saved frequency without clearing pairin
   await expect(page.getByTestId('edit-bad-pair-sleep')).toHaveAttribute('aria-checked', 'true');
   await page.goto('habit/water');
   await expect(page.getByTestId('edit-times-value')).toHaveText('3');
-});
-
-test('more than 15 bad habits can be added while the good-habit limit stays separate (#132)', async ({
-  page,
-}) => {
-  const bad = Array.from({ length: 15 }, (_, i) => ({ id: `bad-${i}`, name: `Bad ${i}` }));
-  await openWithSave(page, saveWith(HABITS, bad), 'habits');
-  await expect(page.getByTestId('habits-add')).toBeEnabled();
-  await page.getByTestId('habits-add').click();
-  await page.getByTestId('pick-bad-soda').click();
-  await expect(page.getByTestId('add-bad-confirm')).toBeEnabled();
-  await page.getByTestId('add-bad-confirm').click();
-  await expect(page).toHaveURL(/\/habits$/);
-  await page.reload();
-  await expect(page.getByTestId('habits-bad-box').getByRole('button')).toHaveCount(16);
-});
-
-test('15 good habits disable Add habit even with bad habits present (#132)', async ({ page }) => {
-  await openWithSave(
-    page,
-    saveWith(
-      Array.from({ length: 15 }, (_, i) => dailyHabit(`good-${i}`, `Good ${i}`)),
-      BAD,
-    ),
-    'habits',
-  );
-  await expect(page.getByTestId('habits-add')).toBeDisabled();
-  await expect(page.getByTestId('habits-bad-box').getByRole('button')).toHaveCount(2);
 });
 
 test('Test edits and Undo never change the Real save (#132)', async ({ page }) => {

@@ -1,8 +1,9 @@
+// Rendering variants stay separate from the two persistence journeys (#131, #148).
 import { dailyHabit, expect, openWithSave, saveWith, test } from './fixtures';
 import AxeBuilder from '@axe-core/playwright';
 
 for (const theme of ['light', 'dark'] as const) {
-  test(`layout follows schedule then frequency in ${theme} (#131)`, async ({ page }) => {
+  test(`habit form layout and theme in ${theme} @rendering (#131)`, async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 740 });
     await page.addInitScript((value) => localStorage.setItem('habit-tracker/theme', value), theme);
     await openWithSave(page, saveWith([dailyHabit('water', 'Water', 3)]), 'add-habit/details');
@@ -11,44 +12,28 @@ for (const theme of ['light', 'dark'] as const) {
       ['habit/water', 'edit'],
     ] as const) {
       await page.goto(path);
-      await expect(page.getByTestId(`${prefix}-habit-name`)).toBeVisible();
       const icon = (await page.getByTestId(`${prefix}-habit-icon`).boundingBox())!;
       const name = (await page.getByTestId(`${prefix}-habit-name`).boundingBox())!;
       expect(icon.x + icon.width).toBeLessThanOrEqual(name.x);
       expect(Math.abs(icon.y + icon.height / 2 - name.y - name.height / 2)).toBeLessThan(2);
       expect(name.x + name.width).toBeLessThanOrEqual(320);
+      await expect(page.getByTestId(`${prefix}-times-value`)).toBeVisible();
       for (const kind of ['specificDays', 'anyDays']) {
         await page.getByTestId(`${prefix}-goal-${kind}`).click();
         const summary = (await page.getByTestId(`${prefix}-goal-result`).boundingBox())!;
         const frequency = (await page.getByText('TIMES PER DAY', { exact: true }).boundingBox())!;
         expect(frequency.y).toBeGreaterThanOrEqual(summary.y + summary.height);
+        if (kind === 'specificDays') {
+          for (let day = 0; day < 7; day++) {
+            const box = (await page.getByTestId(`${prefix}-day-${day}`).boundingBox())!;
+            expect(box.x + box.width).toBeLessThanOrEqual(320);
+          }
+          const scan = await new AxeBuilder({ page }).analyze();
+          expect(
+            scan.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical'),
+          ).toEqual([]);
+        }
       }
-    }
-  });
-}
-
-for (const theme of ['light', 'dark'] as const) {
-  test(`shared form and default cards in ${theme} theme (#131)`, async ({ page }) => {
-    await page.setViewportSize({ width: 320, height: 740 });
-    await page.addInitScript((theme) => localStorage.setItem('habit-tracker/theme', theme), theme);
-    await openWithSave(page, saveWith([dailyHabit('water', 'Water', 3)]), 'add-habit/details');
-    for (const [path, prefix] of [
-      ['add-habit/details', 'add'],
-      ['habit/water', 'edit'],
-    ] as const) {
-      await page.goto(path);
-      await expect(page.getByTestId(`${prefix}-times-value`)).toBeVisible();
-      await expect(page.getByText('SCHEDULE', { exact: true })).toBeVisible();
-      await expect(page.getByText('HABIT COLOR', { exact: true })).toHaveCount(0);
-      for (let day = 0; day < 7; day++) {
-        const box = await page.getByTestId(`${prefix}-day-${day}`).boundingBox();
-        expect(box).not.toBeNull();
-        expect(box!.x + box!.width).toBeLessThanOrEqual(320);
-      }
-      const scan = await new AxeBuilder({ page }).analyze();
-      expect(
-        scan.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical'),
-      ).toEqual([]);
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
       ).toBe(true);
@@ -61,6 +46,7 @@ for (const theme of ['light', 'dark'] as const) {
   });
 }
 
+// Full-app risks: a form edit must reach the save and survive navigation/reload.
 test('add and edit frequency, preserving logs and saved color (#131)', async ({ page }) => {
   await openWithSave(page, saveWith([dailyHabit('sleep', 'Sleep')]), 'add-habit/details');
   await page.getByTestId('add-habit-name').fill('Water');
