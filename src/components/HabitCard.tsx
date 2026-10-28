@@ -192,16 +192,49 @@ export function HabitCard(props: HabitCardProps) {
             </View>
           )}
 
-          <Text
-            style={[styles.name, completed && styles.completedName]}
-            numberOfLines={1}
-            testID={`habit-name-${id}`}
-            accessibilityLabel={
-              readOnly ? `${name}, ${completed ? 'completed' : 'in progress'}` : undefined
-            }
-          >
-            {name}
-          </Text>
+          <View style={styles.nameSlot}>
+            <View style={styles.nameTextWrap}>
+              <Text
+                style={styles.name}
+                numberOfLines={1}
+                testID={`habit-name-${id}`}
+                accessibilityLabel={
+                  readOnly ? `${name}, ${completed ? 'completed' : 'in progress'}` : undefined
+                }
+              >
+                {name}
+              </Text>
+              {completed ? (
+                <View
+                  style={styles.completedLine}
+                  testID={`habit-strike-${id}`}
+                  pointerEvents="none"
+                  importantForAccessibility="no-hide-descendants"
+                  accessibilityElementsHidden
+                />
+              ) : null}
+            </View>
+            {completed ? (
+              <Svg
+                width={tuning.history.completedCheckSize}
+                height={tuning.history.completedCheckSize}
+                viewBox="0 0 24 24"
+                style={styles.completedCheck}
+                testID={`habit-check-${id}`}
+                aria-hidden
+                accessible={false}
+              >
+                <Path
+                  d="m20 6-11 11-5-5"
+                  fill="none"
+                  stroke={c.onSurface}
+                  strokeWidth={tuning.history.completedCheckStroke}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </Svg>
+            ) : null}
+          </View>
 
           {onceText ? (
             <Text
@@ -461,8 +494,20 @@ const makeStyles = (c: ThemeColors, scheme: 'light' | 'dark') =>
       justifyContent: 'center',
     },
     iconLetter: textStyle('habitName', '700'),
-    name: { ...textStyle('habitName'), color: c.onSurface, flex: 1 },
-    completedName: { textDecorationLine: 'line-through' },
+    nameSlot: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.sm, minWidth: 0 },
+    nameTextWrap: { flexShrink: 1, minWidth: 0 },
+    name: { ...textStyle('habitName'), color: c.onSurface },
+    completedCheck: { flexShrink: 0 },
+    // Native line-through thickness cannot be set on Android. Draw it over the name only.
+    completedLine: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: '50%',
+      height: tuning.history.completedLineHeight,
+      marginTop: -tuning.history.completedLineHeight / 2,
+      backgroundColor: c.onSurface,
+    },
     count: { ...textStyle('label', '700'), color: c.onSurfaceMuted },
     // Option D: Skip circle first, then the dark bad habit chip.
     actions: {

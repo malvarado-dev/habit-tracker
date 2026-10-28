@@ -70,10 +70,8 @@ test.describe('History edits (P2-18b)', () => {
     await history.missedToggle.click();
     await history.missedList.getByTestId('habit-card-stretch').click();
     await expect(history.missedList.getByTestId('habit-card-stretch')).toHaveCount(0);
-    await expect(history.card('stretch').getByTestId('habit-name-stretch')).toHaveCSS(
-      'text-decoration-line',
-      'line-through',
-    );
+    await expect(history.card('stretch').getByTestId('habit-strike-stretch')).toBeVisible();
+    await expect(history.card('stretch').getByTestId('habit-check-stretch')).toBeVisible();
   });
 
   test('filling a past day adds it to the band and the streak', async ({ page }) => {
