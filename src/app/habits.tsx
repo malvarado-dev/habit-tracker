@@ -13,11 +13,13 @@ import { tuning } from '@/config/tuning';
 import { textStyle } from '@/design/fonts';
 import { withAlpha } from '@/design/theme/theme';
 import { useTheme } from '@/design/theme/ThemeProvider';
-import { tints, type ThemeColors } from '@/design/tokens';
+import { badHabitColors as bad, tints, type ThemeColors } from '@/design/tokens';
+import { pairingLine } from '@/rules/badHabits';
+import { timesPerDay } from '@/rules/habits';
 import { setRemoved, useRemovedHabit } from '@/features/habits/undoRemove';
 import { listLine } from '@/features/habits/schedule';
 import { MAX_HABITS } from '@/features/tracker/state';
-import { useTracker } from '@/features/tracker/TrackerProvider';
+import { useManageTracker } from '@/features/tracker/TrackerProvider';
 import { MIN_TAP_SIZE, radius, space } from '@/theme';
 import type { Metadata } from 'expo-router/server';
 
@@ -36,8 +38,9 @@ export function generateMetadata(): Metadata {
 export default function HabitsScreen() {
   const styles = useStyles();
   const { colors: c } = useTheme();
-  const { state, dispatch } = useTracker();
-  const removed = useRemovedHabit();
+  const { state, dispatch, mode } = useManageTracker();
+  const pending = useRemovedHabit();
+  const removed = pending?.mode === mode ? pending : null;
   const params = useLocalSearchParams<{ from?: string }>();
   // Where Habits was opened from. Anything else falls back to Today.
   const back = BACK[params.from === 'profile' ? 'profile' : 'today'];
@@ -58,7 +61,11 @@ export default function HabitsScreen() {
 
   const undo = () => {
     if (!removed) return;
-    dispatch({ type: 'restoreHabit', habit: removed.habit, index: removed.index });
+    if (removed.kind === 'bad') {
+      dispatch({ type: 'restoreBadHabit', habit: removed.habit, index: removed.index });
+    } else {
+      dispatch({ type: 'restoreHabit', habit: removed.habit, index: removed.index });
+    }
     setRemoved(null);
   };
 
@@ -76,13 +83,13 @@ export default function HabitsScreen() {
         </Pressable>
 
         <Text style={styles.title} accessibilityRole="header">
-          Habits
+          Manage habits
         </Text>
 
         <View style={styles.list}>
           {state.habits.map((habit) => {
             const color = c[habit.color];
-            const line = listLine(habit.schedule);
+            const line = listLine(habit.schedule, timesPerDay(habit));
             const name = habit.name || 'Unnamed habit';
             return (
               <Pressable
@@ -108,6 +115,35 @@ export default function HabitsScreen() {
             );
           })}
         </View>
+
+        {state.badHabits.length > 0 ? (
+          <View style={styles.badBox} testID="habits-bad-box">
+            <Text style={styles.badTitle} accessibilityRole="header">
+              Bad habits
+            </Text>
+            <View style={styles.badChips}>
+              {state.badHabits.map((habit) => {
+                const line = pairingLine(habit, state.habits);
+                return (
+                  <Pressable
+                    key={habit.id}
+                    onPress={() =>
+                      router.push({ pathname: '/bad-habit/[id]', params: { id: habit.id } })
+                    }
+                    style={({ pressed }) => [styles.badChip, pressed && styles.pressed]}
+                    testID={`habits-bad-${habit.id}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${habit.name} ${line}`}
+                    accessibilityHint="Edit this bad habit"
+                  >
+                    <Text style={styles.badName}>{habit.name} </Text>
+                    <Text style={styles.badLine}>{line}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        ) : null}
 
         <Pressable
           onPress={() => {
@@ -177,6 +213,25 @@ const makeStyles = (c: ThemeColors) =>
     backText: { ...textStyle('habitName'), color: c.onSurface },
     title: { ...textStyle('display'), color: c.onSurface, marginBottom: space.sm },
     list: { gap: space.md },
+    badBox: {
+      backgroundColor: bad.tray,
+      borderRadius: radius.lg,
+      padding: space.lg,
+      gap: space.sm,
+    },
+    badTitle: { ...textStyle('label', '700'), color: bad.onTray },
+    badChips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+    badChip: {
+      minHeight: MIN_TAP_SIZE,
+      maxWidth: '100%',
+      paddingHorizontal: space.lg,
+      paddingVertical: space.sm,
+      borderRadius: radius.lg,
+      backgroundColor: bad.chip,
+      justifyContent: 'center',
+    },
+    badName: { ...textStyle('label'), color: bad.onChip },
+    badLine: { ...textStyle('caption'), color: bad.onChipMuted },
     row: {
       minHeight: MIN_TAP_SIZE + space.md,
       flexDirection: 'row',
@@ -190,7 +245,7 @@ const makeStyles = (c: ThemeColors) =>
       borderWidth: 1,
       borderColor: c.border,
     },
-    pressed: { opacity: 0.7 },
+    pressed: { opacity: tuning.habits.pressedOpacity },
     icon: {
       width: ICON,
       height: ICON,

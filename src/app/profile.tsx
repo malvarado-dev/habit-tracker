@@ -61,7 +61,7 @@ export default function ProfileScreen() {
         </View>
 
         <Row
-          label="Habits"
+          label="Manage habits"
           onPress={() => router.push({ pathname: '/habits', params: { from: 'profile' } })}
           testID="profile-habits"
         />

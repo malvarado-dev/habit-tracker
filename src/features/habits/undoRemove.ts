@@ -4,12 +4,14 @@
 import { useSyncExternalStore } from 'react';
 
 import type { Habit } from '@/rules/habits';
+import type { BadHabit } from '@/rules/badHabits';
+import type { Mode } from '@/features/tracker/modes';
 
-export interface RemovedHabit {
-  habit: Habit;
+export type RemovedHabit = ({ kind?: 'good'; habit: Habit } | { kind: 'bad'; habit: BadHabit }) & {
+  mode: Mode;
   /** Where it was on the list, so Undo puts it back in the same spot. */
   index: number;
-}
+};
 
 let current: RemovedHabit | null = null;
 const listeners = new Set<() => void>();

@@ -136,9 +136,6 @@ export function createInitialState(addedOn?: DateKey): TrackerState {
   };
 }
 
-/** At most this many bad habits, the same cap as good habits. */
-export const MAX_BAD_HABITS = 15;
-
 export type TrackerAction =
   /** One tap on a card: one more log, up to the habit's times per day. */
   | { type: 'logHabit'; date: DateKey; habitId: string }
@@ -175,6 +172,10 @@ export type TrackerAction =
   | { type: 'markExploreSeen'; date: DateKey }
   /** Add habit (P2-09): a bad habit, standalone or paired with one good habit. */
   | { type: 'addBadHabit'; id: string; name: string; pairedWith?: string; date: DateKey }
+  | { type: 'renameBadHabit'; badHabitId: string; name: string }
+  | { type: 'pairBadHabit'; badHabitId: string; pairedWith?: string }
+  | { type: 'removeBadHabit'; badHabitId: string }
+  | { type: 'restoreBadHabit'; habit: BadHabit; index: number }
   /** Tray tap: one more slip. */
   | { type: 'logSlip'; date: DateKey; badHabitId: string }
   /** Tray stepper and Undo: sets the day's count (never below 0). */
@@ -344,7 +345,6 @@ export function trackerReducer(
     case 'addBadHabit': {
       const all = [...state.habits, ...state.badHabits];
       if (nameProblem(action.name, all)) return state;
-      if (state.badHabits.length >= MAX_BAD_HABITS) return state;
       if (state.badHabits.some((b) => b.id === action.id)) return state;
       // A pairing only sticks to a good habit the user has.
       const paired = state.habits.some((h) => h.id === action.pairedWith);
@@ -355,6 +355,40 @@ export function trackerReducer(
         ...(paired ? { pairedWith: action.pairedWith } : {}),
       };
       return { ...state, badHabits: [...state.badHabits, bad] };
+    }
+    case 'renameBadHabit': {
+      if (!state.badHabits.some((b) => b.id === action.badHabitId)) return state;
+      if (nameProblem(action.name, [...state.habits, ...state.badHabits], action.badHabitId))
+        return state;
+      return {
+        ...state,
+        badHabits: state.badHabits.map((b) =>
+          b.id === action.badHabitId ? { ...b, name: cleanName(action.name) } : b,
+        ),
+      };
+    }
+    case 'pairBadHabit': {
+      if (!state.badHabits.some((b) => b.id === action.badHabitId)) return state;
+      const pairedWith = state.habits.some((h) => h.id === action.pairedWith)
+        ? action.pairedWith
+        : undefined;
+      return {
+        ...state,
+        badHabits: state.badHabits.map((b) => {
+          if (b.id !== action.badHabitId) return b;
+          const { pairedWith: _old, ...rest } = b;
+          return pairedWith ? { ...rest, pairedWith } : rest;
+        }),
+      };
+    }
+    case 'removeBadHabit':
+      // Keep slips by id so Undo restores all counts, including previous days.
+      return { ...state, badHabits: state.badHabits.filter((b) => b.id !== action.badHabitId) };
+    case 'restoreBadHabit': {
+      if (state.badHabits.some((b) => b.id === action.habit.id)) return state;
+      const badHabits = [...state.badHabits];
+      badHabits.splice(Math.min(Math.max(action.index, 0), badHabits.length), 0, action.habit);
+      return { ...state, badHabits };
     }
     case 'logSlip':
     case 'setSlips': {

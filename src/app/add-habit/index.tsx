@@ -22,7 +22,7 @@ import {
   PREMADE_HABITS,
 } from '@/features/habits/premadeHabits';
 import { useSettings } from '@/features/settings/SettingsProvider';
-import { useTracker } from '@/features/tracker/TrackerProvider';
+import { useManageTracker } from '@/features/tracker/TrackerProvider';
 import { HABIT_COLORS } from '@/rules/habits';
 import { MIN_TAP_SIZE, radius, space } from '@/theme';
 import type { Metadata } from 'expo-router/server';
@@ -37,7 +37,7 @@ export function generateMetadata(): Metadata {
 export default function PickHabitScreen() {
   const styles = useStyles();
   const { colors: c } = useTheme();
-  const { state } = useTracker();
+  const { state } = useManageTracker();
   const { badHabitDesign } = useSettings();
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/habits'));
@@ -49,7 +49,7 @@ export default function PickHabitScreen() {
   return (
     <SafeAreaView style={styles.screen} testID="pick-habit-screen">
       <ScrollView contentContainerStyle={styles.content}>
-        <BackLink label="Habits" onPress={goBack} testID="pick-habit-back" />
+        <BackLink label="Manage habits" onPress={goBack} testID="pick-habit-back" />
         <Text style={styles.title} accessibilityRole="header">
           Add habit
         </Text>
@@ -114,7 +114,7 @@ export default function PickHabitScreen() {
             Bad habits
           </Text>
           <Text style={styles.badHint}>
-            Slips you want to see go down. Counting them never takes anything away.
+            Track your slips and we&apos;ll show you your improvement over time. No game penalties.
           </Text>
           <TwoColumns>
             {offeredBadHabits(badHabitDesign).map((b) => {

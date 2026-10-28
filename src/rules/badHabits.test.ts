@@ -2,7 +2,14 @@ import { describe, expect, it } from '@jest/globals';
 
 import { createInitialState, trackerReducer, type TrackerState } from '@/features/tracker/state';
 import { getActivityBar } from './activityBar';
-import { cleanCount, isPaired, slipCount, trayHabits, type BadHabit } from './badHabits';
+import {
+  cleanCount,
+  isPaired,
+  pairingLine,
+  slipCount,
+  trayHabits,
+  type BadHabit,
+} from './badHabits';
 import { allHabits, lockDays } from './locking';
 
 const DAY = '2026-10-25';
@@ -15,6 +22,11 @@ const run = (state: TrackerState, ...actions: Parameters<typeof trackerReducer>[
 
 describe('which bad habits show in the tray (P2-09)', () => {
   const habits = createInitialState().habits;
+  it('management describes existing partners and falls back when a partner is removed', () => {
+    expect(pairingLine(poorSleep, habits)).toBe('Paired with Sleep');
+    expect(pairingLine(soda, habits)).toBe('On its own');
+    expect(pairingLine(poorSleep, [])).toBe('On its own');
+  });
 
   it('Design 1 shows only standalone bad habits; paired ones log from their card', () => {
     expect(trayHabits([soda, poorSleep], habits, 'design1')).toEqual([soda]);

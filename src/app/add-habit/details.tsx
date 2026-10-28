@@ -15,7 +15,7 @@ import type { ThemeColors } from '@/design/tokens';
 import { nameHint, nameProblem } from '@/features/habits/habitName';
 import { findPremade } from '@/features/habits/premadeHabits';
 import { leastUsedColor, MAX_HABITS } from '@/features/tracker/state';
-import { useTracker } from '@/features/tracker/TrackerProvider';
+import { useManageTracker } from '@/features/tracker/TrackerProvider';
 import { EVERY_DAY, type Schedule } from '@/rules/habits';
 import { MIN_TAP_SIZE, radius, space } from '@/theme';
 import type { Metadata } from 'expo-router/server';
@@ -29,7 +29,7 @@ export function generateMetadata(): Metadata {
 
 export default function AddHabitDetailsScreen() {
   const styles = useStyles();
-  const { state, dispatch, today } = useTracker();
+  const { state, dispatch, today } = useManageTracker();
   const params = useLocalSearchParams<{ premade?: string }>();
   const premade = findPremade(params.premade);
   const [name, setName] = useState(premade?.name ?? '');

@@ -40,6 +40,12 @@ export function isPaired(bad: BadHabit, habits: Habit[]): boolean {
   return bad.pairedWith !== undefined && habits.some((h) => h.id === bad.pairedWith);
 }
 
+/** Management shows the saved partner in either design; missing partners are standalone. */
+export function pairingLine(bad: BadHabit, habits: Habit[]): string {
+  const partner = habits.find((h) => h.id === bad.pairedWith);
+  return partner ? `Paired with ${partner.name}` : 'On its own';
+}
+
 /**
  * The bad habits that show in the tray. Design 1: only standalone ones (paired ones are logged
  * from their good habit's card). Design 2: every bad habit, since it has no pairing.

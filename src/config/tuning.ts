@@ -337,6 +337,8 @@ export const tuning = {
   },
 
   habits: {
+    /** Feedback when pressing management and bad-habit form controls. */
+    pressedOpacity: 0.7,
     /** How long the Undo bar stays after a log or a remove. */
     undoMs: 5000,
   },

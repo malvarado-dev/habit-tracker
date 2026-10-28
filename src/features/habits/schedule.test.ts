@@ -25,6 +25,12 @@ describe('acceptance: the result line reads correctly for every schedule', () =>
 });
 
 describe('Specific days picker', () => {
+  it('shows frequency only at two or more, for every schedule type', () => {
+    expect(listLine(any, 1)).toBe('Any days');
+    expect(listLine(any, 2)).toBe('Any days, 2x per day');
+    expect(listLine(specific(0, 2, 4), 3)).toBe('3 days a week, 3x per day');
+    expect(listLine(specific(0, 1, 2, 3, 4, 5, 6), 3)).toBe('Every day, 3x per day');
+  });
   it('presets match only their exact days', () => {
     expect(matchingPreset([0, 1, 2, 3, 4, 5, 6])).toBe('everyDay');
     expect(matchingPreset([4, 0, 1, 2, 3])).toBe('weekdays');
