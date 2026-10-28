@@ -30,7 +30,10 @@ If either is not applicable, explain why. Track design preparation/approval when
 
 - Top risks:
 - Unit:
+- Component/integration:
+- Browser rendering (only when layout/theme is a risk):
 - End to end:
+- Why these E2E journeys need the full app rather than a smaller test:
 - Manual:
 
 <!-- For visual or interactive work, include numbered manual test steps here:

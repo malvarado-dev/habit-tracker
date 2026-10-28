@@ -26,7 +26,7 @@ jobs:
         run: npm run format:check
       - name: Types
         run: npm run typecheck
-      - name: Unit tests
+      - name: Unit and component tests
         run: npm run test:ci
       - name: Web build
         run: npm run export:web
@@ -48,7 +48,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: End-to-end tests
+      - name: E2E and browser rendering checks
         run: npm run e2e
       # The HTML report, with traces and screenshots, downloadable from the run when a test fails.
       - uses: actions/upload-artifact@v4

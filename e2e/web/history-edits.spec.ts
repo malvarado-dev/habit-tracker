@@ -27,18 +27,20 @@ async function openOn(page: import('@playwright/test').Page, date: string) {
 }
 
 test.describe('History edits (P2-18b)', () => {
-  test('− and + change a past day; only removing the final log shows Undo', async ({ page }) => {
+  test('card taps change a past day; reset shows Undo only when the card leaves', async ({
+    page,
+  }) => {
     const history = await openOn(page, back(1));
-    await history.plus('water').click();
+    await history.card('water').click();
     await expect(history.count('water')).toHaveText('2/3');
     await expect(history.undoBar).toBeHidden();
-    await history.minus('water').click();
-    await expect(history.count('water')).toHaveText('1/3');
+    await history.card('water').click();
+    await expect(history.count('water')).toHaveText('3/3');
     await expect(history.undoBar).toBeHidden();
-    await history.minus('water').click();
+    await history.card('water').click();
     await expect(history.loggedCard('water')).toHaveCount(0);
     await history.undo();
-    await expect(history.count('water')).toHaveText('1/3');
+    await expect(history.count('water')).toHaveText('3/3');
   });
 
   test('Undo on a Done habit takes it off the day, and the Undo bar brings it back', async ({
@@ -70,14 +72,17 @@ test.describe('History edits (P2-18b)', () => {
     await history.missedToggle.click();
     await history.missedList.getByTestId('habit-card-stretch').click();
     await expect(history.missedList.getByTestId('habit-card-stretch')).toHaveCount(0);
-    await expect(history.count('stretch')).toHaveText('Done');
+    await expect(history.card('stretch').getByTestId('habit-name-stretch')).toHaveCSS(
+      'text-decoration-line',
+      'line-through',
+    );
   });
 
   test('filling a past day adds it to the band and the streak', async ({ page }) => {
     const history = await openOn(page, back(1));
     await expect(history.band(back(1))).toHaveCount(0);
-    await history.plus('water').click();
-    await history.plus('water').click();
+    await history.card('water').click();
+    await history.card('water').click();
     await history.missedToggle.click();
     await history.missedList.getByTestId('habit-card-stretch').click();
     await expect(history.band(back(1))).toBeVisible();
@@ -87,7 +92,9 @@ test.describe('History edits (P2-18b)', () => {
   test('a locked day has no edit controls', async ({ page }) => {
     const history = await openOn(page, back(3));
     await expect(history.dayStatus).toHaveText('Locked in');
-    await expect(history.plus('water')).toHaveCount(0);
+    await expect(page.getByTestId('history-plus-water')).toHaveCount(0);
+    await history.card('water').click({ force: true });
+    await expect(history.count('water')).toHaveText('1/3');
     await expect(history.missedToggle).toHaveCount(0);
   });
 });

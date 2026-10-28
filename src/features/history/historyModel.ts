@@ -225,6 +225,19 @@ export function isStreakDay(state: LockState, date: DateKey): boolean {
 /** How a cell sits in the lemon band: alone, or the start, middle or end of a run in its row. */
 export type BandPart = 'none' | 'single' | 'start' | 'middle' | 'end';
 
+/** One painted shape per connected run, so adjacent translucent cells cannot form seams. */
+export function streakRuns(parts: BandPart[]): { start: number; end: number }[] {
+  const runs: { start: number; end: number }[] = [];
+  parts.forEach((part, index) => {
+    if (part === 'single' || part === 'start') runs.push({ start: index, end: index });
+    else if (part === 'middle' || part === 'end') {
+      const run = runs[runs.length - 1];
+      if (run) run.end = index;
+    }
+  });
+  return runs;
+}
+
 /**
  * The band for each cell of a month grid. Runs join across a row and break at the row's edges,
  * so a run that crosses a week wraps onto the next row. Only this month's days are banded.
@@ -282,20 +295,43 @@ export function dayTitle(date: DateKey, today: DateKey): string {
 }
 
 /**
- * Right side of the day header: "Changeable for 2 more days", "… 1 more day", "Changeable
- * until midnight" on the last day, or "Locked in". Test keeps older days open (T22) and says
- * "Changeable in Test".
+ * Time until the existing midnight deadline, rounded up in days, hours, then minutes.
+ * `today` may be the Test date; use the clock's local time on that date.
  */
 export function dayHeaderText(
   date: DateKey,
   today: DateKey,
   lockedThrough: DateKey | null,
   openDays: number = calendar.openDaysBeforeToday,
+  now: Date = new Date(),
 ): { locked: boolean; text: string } {
   const age = daysBetween(date, today);
   if (isLocked(date, lockedThrough) || age > openDays) return { locked: true, text: 'Locked in' };
   const left = calendar.openDaysBeforeToday - age;
   if (left < 0) return { locked: false, text: 'Changeable in Test' };
-  if (left === 0) return { locked: false, text: 'Changeable until midnight' };
-  return { locked: false, text: `Changeable for ${left} more ${left === 1 ? 'day' : 'days'}` };
+  const [y, m, d] = today.split('-').map(Number);
+  const [ly, lm, ld] = addDays(date, calendar.openDaysBeforeToday + 1)
+    .split('-')
+    .map(Number);
+  const clock = new Date(
+    y!,
+    m! - 1,
+    d!,
+    now.getHours(),
+    now.getMinutes(),
+    now.getSeconds(),
+    now.getMilliseconds(),
+  );
+  const remaining = new Date(ly!, lm! - 1, ld!).getTime() - clock.getTime();
+  if (remaining <= 0) return { locked: true, text: 'Locked in' };
+  const minute = 60_000;
+  const hour = minute * 60;
+  const day = hour * 24;
+  const [value, unit] =
+    remaining > day
+      ? [Math.ceil(remaining / day), 'day']
+      : remaining >= hour
+        ? [Math.ceil(remaining / hour), 'hour']
+        : [Math.ceil(remaining / minute), 'minute'];
+  return { locked: false, text: `${value} ${unit}${value === 1 ? '' : 's'} left to edit` };
 }

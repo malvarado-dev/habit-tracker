@@ -1,58 +1,68 @@
 # Testing
 
-How this project tests. Every ticket and pull request follows these rules.
+Choose the smallest test that reliably catches the risk. Counts and ratios are not targets.
+Before adding a case, check existing coverage. Reuse or extend it instead of repeating it.
 
-## 1. Test by risk
+## Choose the layer
 
-Each ticket names its top risks. Tests go after those first. A test that wouldn't catch a real bug doesn't get written.
+| Layer                 | Purpose                                                                           | Tool                                   |
+| --------------------- | --------------------------------------------------------------------------------- | -------------------------------------- |
+| Unit                  | Rules, calculations, boundaries and reducer changes                               | Jest                                   |
+| Component/integration | Real controls connected to state: taps, disabled states, labels, Undo and refresh | React Native Testing Library with Jest |
+| Browser rendering     | Layout and theme appearance that need an actual browser                           | Playwright, marked `@rendering`        |
+| E2E                   | Critical journeys across screens and persistence boundaries                       | Playwright                             |
+| Native visual         | Android/iOS rendering, gestures, animation and feel                               | Device checks or native automation     |
 
-## 2. The pyramid
+Use unit cases for edge combinations. Use component/integration cases when the risk is how
+controls and state work together. Mock platform plumbing, not the behavior being checked.
+Read the installed testing library's `docs/guides/llm-guidelines.md` before component tests.
 
-| Layer             | What it covers                                                                         | Tool                 | How many                                   |
-| ----------------- | -------------------------------------------------------------------------------------- | -------------------- | ------------------------------------------ |
-| Unit              | Rules and math: Activity Bar, streaks, locking, the day on screen, pet spots, coins    | Jest                 | Most tests live here                       |
-| End to end        | User journeys on the web build: log and undo, edit a day, add a habit, save and reload | Playwright           | A handful per feature, critical paths only |
-| Manual and visual | Feel: animation, art, layout on a real phone                                           | Recordings, playtest | Every feel ticket                          |
+Every new E2E case must name the risk that a smaller test cannot cover. Keep it focused on a
+critical journey. Do not repeat the same behavior in Light and Dark theme unless theme changes
+that behavior. Use theme variants for rendering risks. Do not expand every case across every
+theme, viewport and platform. Keep browser rendering checks separate from journey counts;
+they still use the browser and do not prove native rendering.
 
-## 3. Test behavior, not code text
+## Regression and reliability
 
-A test checks what the app does, never that a file contains some text. The only exceptions are house rules (no hardcoded colors or timings in screens, the CI Playwright version, no `Link asChild`), and those say so at the top.
+- New regression checks must fail with the relevant fix removed and pass with it. Record the
+  observed failure, not just an assertion that the test would catch it.
+- Test observable behavior, not source text or whole-tree snapshots. Source-text checks are
+  allowed only for documented house rules. Keep visual checks focused and review baselines.
+- Use independent fixtures and a fixed clock. No arbitrary sleeps. Advance time explicitly
+  for timer behavior. Do not mock away the risk the test is meant to catch.
+- Cover saved-count changes with a focused save/reload journey. Keep Real/Test isolation
+  coverage where those boundaries are affected. Reuse existing coverage when sufficient.
+- Remove or replace checks for removed behavior in the same change. Fix or remove flakes;
+  retries expose them rather than turning them into a pass.
+- Keep private art and screenshots of it out of the public repository and reports.
 
-## 4. No timing waits in end-to-end tests
+## Evidence and phone verification
 
-End-to-end tests use the fixed clock and Test tools, never a wait for something random. Animation timing is unit tested and judged by eye in recordings.
+The issue owns risks, planned layers, acceptance-criterion mapping and numbered manual steps.
+The PR links to that procedure and reports actual results, fail-before/pass-after evidence,
+skips and outstanding device checks. Count unit, component/integration, E2E and browser
+rendering cases separately. Do not describe the combined Jest result as all unit tests or
+the combined Playwright result as all E2E journeys.
 
-## 5. User data is always covered end to end
+Manual steps must state the setup, Test mode/design/theme, ordered actions and expected
+results, including persistence. The PR supplies the unmerged branch and copyable commands
+starting with `cd` to the project folder, plus Expo Go opening instructions.
 
-Saving, reloading, and keeping Real and Test data apart always have end-to-end tests. Losing someone's data is the worst bug a tracker can have.
+Browser and JavaScript component tests cannot verify native text alignment or platform
+rendering. Visual fixes require Android and iOS verification in the affected themes. Record
+each platform as pending until checked. Owner screenshots can demonstrate failures; automated
+web passes do not replace phone sign-off.
 
-## 6. Removed code takes its tests with it
+## Commands and locations
 
-When a feature goes, its tests go in the same pull request. No tests for dead code.
+`npm run check` runs lint, formatting, types, unit and component/integration tests.
+`npm run e2e` runs journeys and marked browser rendering checks. `npm run privacy:check`
+is required before publishing. CI runs the same checks.
 
-## 7. Flaky tests get fixed or deleted
+Unit cases live beside code in `*.test.ts`; component/integration cases use
+`*.integration.test.tsx`. Browser cases live in `e2e/web`, with shared fixtures and page objects.
+Review recordings from `npm run e2e:record` stay local because they can show private art.
 
-A test that fails without a real bug is fixed or removed within one ticket. Retries in CI show flakes; they don't hide them.
-
-## 8. Every ticket has a Tests section
-
-It lists the unit, end-to-end and manual checks, and each one maps to an acceptance criterion. The issue template asks for it.
-
-The issue owns the planned tests and detailed manual steps. The PR links to those criteria and reports actual results, including commands run, failures or skipped checks, fail-before/pass-after regression evidence, and phone QA still pending. Do not copy the test plan into a second checklist or mark manual checks complete before the project owner performs them. Follow the shared issue/PR rules in `AGENTS.md` and both GitHub templates.
-
-## 9. Manual testing instructions must be executable
-
-Keep clear, step-by-step manual testing instructions. the project owner is a manual QA engineer; do not assume programming or Git knowledge. Store the detailed procedure in the issue's Tests section and link to it from the PR.
-
-- State the setup: test data or starting state, device, theme, and prototype design when relevant. Say whether to use Test mode and how to reach it.
-- Number the actions in order, naming the screens, buttons, and values. Give the expected result for each step, including what must remain unchanged or saved after reopening.
-- Cover the ticket's risks and link steps to acceptance criteria. Include relevant limits, both themes, persistence, and regression checks without adding unrelated test cases.
-- In the PR, include the exact branch and copyable commands needed to run the unmerged change. Start terminal commands with `cd` to the project folder. Explain how to open the app and which issue procedure to follow. Do not require merging to test.
-- Record what was actually checked and what is still pending. Automated checks do not replace the project owner's phone QA or sign-off.
-
-## Where things live
-
-- Unit tests: next to the code, `*.test.ts`.
-- End-to-end tests: `e2e/web`, with page objects in `e2e/web/pages` and test data in `e2e/web/fixtures.ts`.
-- Review recordings: `npm run e2e:record` (local only, they show private art).
-- CI runs everything on every pull request.
+References: [Practical Test Pyramid](https://martinfowler.com/articles/practical-test-pyramid.html),
+[React Native testing](https://reactnative.dev/docs/testing-overview).

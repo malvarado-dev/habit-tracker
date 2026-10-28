@@ -76,6 +76,8 @@ interface HabitCardProps {
   locked?: boolean;
   /** History (P2-18a): taps on the card are off, not dimmed. */
   readOnly?: boolean;
+  /** History frequency cards keep their History appearance but cycle on a card tap. */
+  tapToCycle?: boolean;
   /** History edits (P2-18b): controls drawn at the right end of the card. */
   trailing?: ReactNode;
   /** Home without the sheet (#133): the card floats over the room, so it gets a stronger shadow. */
@@ -84,7 +86,7 @@ interface HabitCardProps {
 
 export function HabitCard(props: HabitCardProps) {
   const { habit, count, slate = 0, linked, onLog, locked = false, readOnly = false } = props;
-  const off = locked || readOnly;
+  const off = locked || (readOnly && !props.tapToCycle);
   const styles = useStyles();
   const { colors: c } = useTheme();
   const reduceMotion = useReducedMotion();
@@ -96,10 +98,10 @@ export function HabitCard(props: HabitCardProps) {
   const [menu, setMenu] = useState(false);
   const habitColor = c[habit.color];
   const times = timesPerDay(habit);
-  // History shows a one-segment ring on once-a-day habits too, with "Done" or the slip's name
-  // (P2-18a boards). Today keeps them ringless; a finished card leaves the sheet there.
+  // History keeps its ring and crosses out completed names. Today removes finished cards.
   const ring = ringFor(times, count, slate) ?? (readOnly ? onceRing(count, slate) : null);
-  const onceText = readOnly && times <= 1 ? (count > 0 ? 'Done' : linked?.name) : undefined;
+  const completed = readOnly && count + slate >= times;
+  const onceText = readOnly && times <= 1 && count === 0 ? linked?.name : undefined;
   const name = habit.name.trim() || 'Untitled habit';
   const id = habit.id;
   const canSlide = !off && !!props.onSkip;
@@ -158,14 +160,16 @@ export function HabitCard(props: HabitCardProps) {
         disabled={locked}
         accessibilityState={{ disabled: off }}
         testID={`habit-card-${id}`}
-        accessibilityRole={readOnly ? undefined : 'button'}
+        accessibilityRole={readOnly && !props.tapToCycle ? undefined : 'button'}
         // No custom label: the spoken name is the card's visible text (name and count), so voice
         // control users can say what they see (#113, WCAG 2.5.3). The letter icon is hidden.
         accessibilityHint={
           locked
             ? 'This day is locked.'
             : readOnly
-              ? undefined
+              ? props.tapToCycle
+                ? 'Tap to add one. When full, tap to reset good logs. Linked slips stay.'
+                : undefined
               : canSlide
                 ? 'Tap to log one time. Long-press for more.'
                 : 'Tap to log one time.'
@@ -192,7 +196,14 @@ export function HabitCard(props: HabitCardProps) {
             </View>
           )}
 
-          <Text style={styles.name} numberOfLines={1} testID={`habit-name-${id}`}>
+          <Text
+            style={[styles.name, completed && styles.completedName]}
+            numberOfLines={1}
+            testID={`habit-name-${id}`}
+            accessibilityLabel={
+              readOnly ? `${name}, ${completed ? 'completed' : 'in progress'}` : undefined
+            }
+          >
             {name}
           </Text>
 
@@ -203,7 +214,7 @@ export function HabitCard(props: HabitCardProps) {
             >
               {onceText}
             </Text>
-          ) : ring ? (
+          ) : ring && times > 1 ? (
             <Text style={styles.count} testID={`habit-count-${id}`}>
               {ring.label}
             </Text>
@@ -321,10 +332,10 @@ function MenuItem(props: { label: string; onPress: () => void; testID: string })
 }
 
 /** The letter placeholder in a tinted circle, until the icon sheet. */
-/** A once-a-day habit's ring in History: one segment, gold if done, slate if slipped. */
+/** A once-a-day History ring shows a linked slip before a good log. */
 function onceRing(count: number, slate: number) {
-  const gold = Math.min(count, 1);
-  const slateFill = gold ? 0 : Math.min(slate, 1);
+  const slateFill = Math.min(slate, 1);
+  const gold = slateFill ? 0 : Math.min(count, 1);
   const filled = gold + slateFill;
   return { segments: 1, filled, gold, slate: slateFill, label: `${filled}/1` };
 }
@@ -454,7 +465,9 @@ const makeStyles = (c: ThemeColors, scheme: 'light' | 'dark') =>
       justifyContent: 'center',
     },
     iconLetter: textStyle('habitName', '700'),
-    name: { ...textStyle('habitName'), color: c.onSurface, flex: 1 },
+    name: { ...textStyle('habitName'), color: c.onSurface, flex: 1, minWidth: 0 },
+    // Let Android, iOS and web place the strike using their text/font metrics.
+    completedName: { textDecorationLine: 'line-through' },
     count: { ...textStyle('label', '700'), color: c.onSurfaceMuted },
     // Option D: Skip circle first, then the dark bad habit chip.
     actions: {

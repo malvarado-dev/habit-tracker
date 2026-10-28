@@ -12,7 +12,8 @@ criteria stay in the issue; do not repeat them as another checklist. -->
 evidence for regression tests. Link issue acceptance criteria by number where useful.
 State failures, skipped checks, and limits honestly. Keep the planned test cases in the issue. -->
 
-- [ ] Tests target the ticket's top risks and map to its acceptance criteria
+- [ ] Tests target the ticket's top risks and use the smallest reliable layer
+- [ ] Unit, component/integration, E2E and browser rendering results reported separately; no redundant theme runs
 - [ ] No test checks code text (house rules excepted)
 - [ ] No end-to-end test waits on random timing
 - [ ] Removed code took its tests with it

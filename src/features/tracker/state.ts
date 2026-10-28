@@ -25,7 +25,7 @@ import {
   type SlipCounts,
 } from '@/rules/badHabits';
 import { addToTally, habitsForDesign, timesFor, type DesignTallies } from '@/rules/design';
-import { dayLogs, isSkipped, type Skips } from '@/rules/linked';
+import { dayLogs, isSkipped, linkedSlipLimit, type Skips } from '@/rules/linked';
 import { allHabits, isLocked, lockDays, type LockedDay } from '@/rules/locking';
 import { adjustFor, type PetAdjust, type PetStat } from '@/rules/petStats';
 import { START_EXPLORE, type ExploreState } from '@/rules/explore';
@@ -141,6 +141,8 @@ export type TrackerAction =
   | { type: 'logHabit'; date: DateKey; habitId: string }
   /** The Undo bar: takes the last log back. */
   | { type: 'undoLog'; date: DateKey; habitId: string }
+  /** History counter reset and Undo. Changes good logs only, preserving linked slips. */
+  | { type: 'setHistoryLogs'; date: DateKey; habitId: string; count: number }
   | {
       type: 'addHabit';
       id: string;
@@ -256,6 +258,21 @@ export function trackerReducer(
       if (count <= 0) return state;
       const next = withCount(state, action.date, action.habitId, count - 1);
       return withTally(next, action.date, design, { logs: -1 });
+    }
+    case 'setHistoryLogs': {
+      if (isLocked(action.date, state.lockedThrough)) return state;
+      if (!Number.isSafeInteger(action.count) || action.count < 0) return state;
+      const habit = allHabits(state).find((h) => h.id === action.habitId);
+      if (!habit || !existsOn(habit, action.date)) return state;
+      const before = logCount(state.log, action.date, action.habitId);
+      if (before === action.count) return state;
+      const next = withCount(
+        withTarget(state, action.date, design),
+        action.date,
+        action.habitId,
+        action.count,
+      );
+      return withTally(next, action.date, design, { logs: action.count - before });
     }
     case 'addHabit': {
       // Name rules (habitName.ts): never blank, never a duplicate, at most 20 characters.
@@ -393,17 +410,15 @@ export function trackerReducer(
     case 'logSlip':
     case 'setSlips': {
       if (isLocked(action.date, state.lockedThrough)) return state;
-      if (!state.badHabits.some((b) => b.id === action.badHabitId)) return state;
-      const current = slipCount(state.slips, action.date, action.badHabitId);
-      // A linked slip fills one of its good habit's segments, so it stops when that habit is
-      // finished, the same as a gold log (P2-08b). Standalone slips have no limit.
       const bad = state.badHabits.find((b) => b.id === action.badHabitId);
-      const partner = state.habits.find((h) => h.id === bad?.pairedWith);
-      if (action.type === 'logSlip' && partner) {
-        const { total } = dayLogs(partner, state.log, state.slips, state.badHabits, action.date);
-        if (total >= timesFor(partner, design)) return state;
+      if (!bad) return state;
+      const current = slipCount(state.slips, action.date, action.badHabitId);
+      const limit = linkedSlipLimit(bad, allHabits(state), state.log, action.date, design);
+      let next = action.type === 'logSlip' ? current + 1 : cleanCount(action.count);
+      // Guard every entry point. Old over-limit saves can decrease without being trimmed on load.
+      if (limit !== undefined && next > current) {
+        next = Math.max(current, Math.min(next, limit));
       }
-      const next = action.type === 'logSlip' ? current + 1 : cleanCount(action.count);
       if (next === current) return state;
       const day = { ...state.slips[action.date] };
       if (next === 0) delete day[action.badHabitId];

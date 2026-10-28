@@ -8,6 +8,7 @@ import {
   dayTitle,
   monthGrid,
   streakBand,
+  streakRuns,
   streaks,
   streakText,
 } from './historyModel';
@@ -22,6 +23,17 @@ function state(fullDays: string[]): TrackerState {
 }
 
 describe('streak band (P2-18a)', () => {
+  it('paints one continuous run with separate shapes at gaps and week edges', () => {
+    expect(streakRuns(['none', 'start', 'middle', 'end', 'none', 'start', 'end'])).toEqual([
+      { start: 1, end: 3 },
+      { start: 5, end: 6 },
+    ]);
+    expect(streakRuns(['single', 'none', 'single'])).toEqual([
+      { start: 0, end: 0 },
+      { start: 2, end: 2 },
+    ]);
+    expect(streakRuns(['none', 'none'])).toEqual([]);
+  });
   it('joins a run in a row and wraps it across the week edge', () => {
     // Fri Oct 16, Sat Oct 17 end one row; Sun Oct 18 starts the next.
     const s = state(['2026-10-16', '2026-10-17', '2026-10-18']);
@@ -68,10 +80,11 @@ describe('day header (P2-18a)', () => {
 
   it('counts down the edit window, then locks', () => {
     const s = state([]);
-    const text = (d: string) => dayHeaderText(d, TODAY, s.lockedThrough).text;
-    expect(text(TODAY)).toBe('Changeable for 2 more days');
-    expect(text('2026-10-18')).toBe('Changeable for 1 more day');
-    expect(text('2026-10-17')).toBe('Changeable until midnight');
+    const text = (d: string) =>
+      dayHeaderText(d, TODAY, s.lockedThrough, 2, new Date(2026, 9, 19, 10)).text;
+    expect(text(TODAY)).toBe('3 days left to edit');
+    expect(text('2026-10-18')).toBe('2 days left to edit');
+    expect(text('2026-10-17')).toBe('14 hours left to edit');
     expect(text('2026-10-16')).toBe('Locked in');
   });
 });

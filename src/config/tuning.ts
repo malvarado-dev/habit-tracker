@@ -302,6 +302,13 @@ export const tuning = {
     },
   },
 
+  /** History display settings (#146). */
+  history: {
+    countdownTickMs: 60_000,
+    undoIconSize: 20,
+    undoIconStroke: 2,
+  },
+
   /** Bad habits tray (P2-09). */
   badHabits: {
     /** Compact minus/plus popup, with the count kept on the chip badge. */
