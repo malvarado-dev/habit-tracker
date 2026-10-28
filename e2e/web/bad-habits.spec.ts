@@ -26,7 +26,7 @@ test.describe('bad habits (P2-09)', () => {
     await expect(tray.tray.getByText('0')).toBeVisible();
   });
 
-  test('a popup increase counts one slip, shows Undo, and never moves the Activity Bar', async ({
+  test('a popup increase counts one slip without Undo or Activity Bar progress', async ({
     page,
   }) => {
     await openWithSave(page, saveWith(HABITS, [SODA]));
@@ -36,10 +36,12 @@ test.describe('bad habits (P2-09)', () => {
 
     await tray.countSlip('soda');
     await expect(tray.badge('soda')).toHaveText('1');
-    await expect(page.getByTestId('undo-text')).toHaveText('Soda counted');
+    await expect(home.undoBar).toBeHidden();
     await home.expectBar('Activity Bar, 0 of 3 logs today');
 
-    await home.undo();
+    await tray.tap('soda');
+    await tray.minus.click();
+    await tray.closeStepper();
     await expect(tray.badge('soda')).toHaveText('0');
   });
 

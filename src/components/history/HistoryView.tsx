@@ -142,28 +142,23 @@ function DayDetails({
   );
   const nothing = logged.length === 0 && slipped.length === 0;
 
-  // Every History edit earns Coins quietly and shows the Undo bar.
+  // History edits earn Coins quietly. Only removing a good habit card shows Undo.
   const log = (habit: Habit) => {
     noteQuietCoins();
     dispatch({ type: 'logHabit', date, habitId: habit.id });
-    showUndo({
-      text: `${habit.name} logged`,
-      run: () => {
-        noteQuietCoins();
-        dispatch({ type: 'undoLog', date, habitId: habit.id });
-      },
-    });
   };
   const unlog = (habit: Habit) => {
     noteQuietCoins();
     dispatch({ type: 'undoLog', date, habitId: habit.id });
-    showUndo({
-      text: `${habit.name} log removed`,
-      run: () => {
-        noteQuietCoins();
-        dispatch({ type: 'logHabit', date, habitId: habit.id });
-      },
-    });
+    if (rows.find((row) => row.habit.id === habit.id)?.total === 1) {
+      showUndo({
+        text: `${habit.name} log removed`,
+        run: () => {
+          noteQuietCoins();
+          dispatch({ type: 'logHabit', date, habitId: habit.id });
+        },
+      });
+    }
   };
   const setSlips = (bad: BadHabit, count: number) => {
     const before = slipCount(state.slips, date, bad.id);
@@ -172,13 +167,18 @@ function DayDetails({
     setKeep((k) => (k.includes(bad.id) ? k : [...k, bad.id]));
     noteQuietCoins();
     dispatch({ type: 'setSlips', date, badHabitId: bad.id, count: next });
-    showUndo({
-      text: `${bad.name}: ${next}`,
-      run: () => {
-        noteQuietCoins();
-        dispatch({ type: 'setSlips', date, badHabitId: bad.id, count: before });
-      },
-    });
+    const removedCard = rows.some(
+      (row) => row.habit.id === bad.pairedWith && row.total > 0 && row.gold + next === 0,
+    );
+    if (removedCard) {
+      showUndo({
+        text: `${bad.name}: ${next}`,
+        run: () => {
+          noteQuietCoins();
+          dispatch({ type: 'setSlips', date, badHabitId: bad.id, count: before });
+        },
+      });
+    }
   };
 
   return (

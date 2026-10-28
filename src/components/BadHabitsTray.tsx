@@ -1,7 +1,7 @@
 // The Bad habits tray (PRD-15 Standalone bad habits, P2-09). A lilac tray under the habit cards
 // with dark chips, so a slip is never mistaken for a habit card. Every chip keeps its count badge,
 // muted "0" or lemon above 0, so chips never change size. Tap opens dark minus/plus controls;
-// the chip badge shows the count, and an edit shows the Undo bar. Long-press also opens the
+// the chip badge shows the count without a toast. Long-press also opens the
 // controls; tapping outside closes them. Screen readers get increment and
 // decrement actions on the chip, so long-press always has a non-gesture route.
 

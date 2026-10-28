@@ -1,4 +1,4 @@
-// The habit list, shared by the phone and wide layouts (T10). Every log shows the Undo bar (P2-08a).
+// The habit list, shared by phone and wide layouts. Undo appears when a card leaves the list.
 //
 // Wide: a sheet with the Activity Bar on top, then the Main Quest card and the habit cards, which
 // scroll inside.
@@ -33,7 +33,7 @@ import { useSettings } from '@/features/settings/SettingsProvider';
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import { getActivityBar } from '@/rules/activityBar';
 import { slipCount, trayHabits, type BadHabit } from '@/rules/badHabits';
-import { type Habit } from '@/rules/habits';
+import { logCount, type Habit } from '@/rules/habits';
 import { dayLogs, linkedBadHabit } from '@/rules/linked';
 import { allHabits, barLog } from '@/rules/locking';
 import { canExplore } from '@/rules/explore';
@@ -41,7 +41,7 @@ import { finishedCount } from '@/rules/payoff';
 import { healCheckIns, healStatus } from '@/rules/quest';
 import { announce, requestPetMoment } from '@/scene/petMoments';
 
-import { groupHabits } from '@/rules/sheet';
+import { groupHabits, isFinishedToday } from '@/rules/sheet';
 import { radius, space } from '@/theme';
 import { todayLayout } from '@/design/tokens';
 
@@ -112,8 +112,8 @@ export function HabitSheet({
   const linkedOf = (habit: Habit) =>
     badHabitDesign === 'design1' ? linkedBadHabit(habit, state.badHabits) : undefined;
   const trayList = trayHabits(state.badHabits, state.habits, badHabitDesign);
-  // The last change, so Undo can take it back. `id` changes every time to restart the timer.
-  // A slip remembers the count before it, so Undo after a stepper change puts it back exactly.
+  // Remember the action that removed a card. Count-only edits leave this Undo untouched.
+  // A completing linked slip remembers its prior count so Undo brings the card back.
   const [undo, setUndo] = useState<
     | { kind: 'log'; habit: Habit; id: number }
     | { kind: 'skip'; habit: Habit; id: number }
@@ -129,7 +129,9 @@ export function HabitSheet({
 
   const logHabit = (habit: Habit) => {
     dispatch({ type: 'logHabit', date: today, habitId: habit.id });
-    setUndo((u) => ({ kind: 'log', habit, id: (u?.id ?? 0) + 1 }));
+    if (isFinishedToday(habit, logCount(log, today, habit.id) + 1)) {
+      setUndo((u) => ({ kind: 'log', habit, id: (u?.id ?? 0) + 1 }));
+    }
   };
 
   const skip = (habit: Habit) => {
@@ -139,11 +141,13 @@ export function HabitSheet({
 
   const slips = (id: string) => slipCount(state.slips, today, id);
 
-  const setSlips = (bad: BadHabit, count: number) => {
+  const setSlips = (bad: BadHabit, count: number, habit?: Habit) => {
     const before = slips(bad.id);
     if (count < 0 || count === before) return;
     dispatch({ type: 'setSlips', date: today, badHabitId: bad.id, count });
-    setUndo((u) => ({ kind: 'slip', bad, before, after: count, id: (u?.id ?? 0) + 1 }));
+    if (habit && isFinishedToday(habit, logCount(log, today, habit.id) + count - before)) {
+      setUndo((u) => ({ kind: 'slip', bad, before, after: count, id: (u?.id ?? 0) + 1 }));
+    }
   };
 
   const undoLast = () => {
@@ -167,7 +171,7 @@ export function HabitSheet({
         linked={linked ? { name: linked.name, count: slips(linked.id) } : undefined}
         onLog={() => logHabit(habit)}
         onSkip={() => skip(habit)}
-        onSlip={linked ? () => setSlips(linked, slips(linked.id) + 1) : undefined}
+        onSlip={linked ? () => setSlips(linked, slips(linked.id) + 1, habit) : undefined}
         onEdit={() => router.push({ pathname: '/habit/[id]', params: { id: habit.id } })}
         floating={!!floating}
       />

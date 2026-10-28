@@ -8,7 +8,7 @@ const SAVE = saveWith([dailyHabit('sleep', 'Sleep')], [{ id: 'soda', name: 'Soda
 
 for (const design of ['design1', 'design2'] as const) {
   for (const theme of ['light', 'dark'] as const) {
-    test(`${design}, ${theme}: tap opens controls without a slip; edits, dismissal and Undo work`, async ({
+    test(`${design}, ${theme}: tap opens controls without a slip; edits save without Undo`, async ({
       page,
     }) => {
       await page.emulateMedia({ colorScheme: theme });
@@ -46,11 +46,11 @@ for (const design of ['design1', 'design2'] as const) {
       await tray.closeStepper();
       await expect(tray.badge('soda')).toHaveText('1');
       await home.expectBar('Activity Bar, 0 of 1 log today');
-      await expect(page.getByTestId('undo-text')).toHaveText('Soda counted');
-      await home.undo();
-      await expect(tray.badge('soda')).toHaveText('0');
+      await expect(home.undoBar).toBeHidden();
 
       await tray.chip('soda').click();
+      await expect(tray.badge('soda')).toHaveText('1');
+      await tray.minus.click();
       await expect(tray.badge('soda')).toHaveText('0');
       await tray.plus.click();
       await tray.closeStepper();

@@ -1,5 +1,5 @@
 // The Undo bar for History edits (P2-18b). Wraps the scrolling History so the bar stays on
-// screen, like Today's. Every edit shows it; Undo runs the edit's reverse.
+// screen, like Today's. Removing a good habit card shows it; Undo restores the removed log.
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
