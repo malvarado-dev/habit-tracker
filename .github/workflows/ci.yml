@@ -18,6 +18,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Public content privacy
+        run: npm run privacy:check
       - name: Lint
         run: npm run lint
       - name: Format

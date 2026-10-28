@@ -1,4 +1,4 @@
-// The name field and schedule picker shared by Edit habit and Add habit (SPEC-00, T12, T13).
+// Name, display-only icon, daily frequency and schedule shared by Add/Edit habit (#131).
 // The screen owns the values; this only draws them and reports changes.
 // Test IDs start with the screen's prefix, like "edit-habit-name" or "add-habit-name".
 
@@ -6,6 +6,10 @@ import { useMemo, useRef } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { textStyle } from '@/design/fonts';
+import { tuning } from '@/config/tuning';
+import { withAlpha } from '@/design/theme/theme';
+import { habitCardSizes, tints } from '@/design/tokens';
+import { iconLetter } from './habitCardText';
 import { useTheme } from '@/design/theme/ThemeProvider';
 import type { ThemeColors } from '@/design/tokens';
 import { MAX_NAME_LENGTH, nameCounter } from '@/features/habits/habitName';
@@ -17,7 +21,7 @@ import {
   switchSchedule,
   toggleDay,
 } from '@/features/habits/schedule';
-import type { Schedule, Weekday } from '@/rules/habits';
+import { cleanTimesPerDay, type HabitColor, type Schedule, type Weekday } from '@/rules/habits';
 import { MIN_TAP_SIZE, radius, space } from '@/theme';
 
 export function HabitForm(props: {
@@ -29,6 +33,9 @@ export function HabitForm(props: {
   nameHint: string;
   schedule: Schedule;
   onScheduleChange: (schedule: Schedule) => void;
+  color: HabitColor;
+  timesPerDay: number;
+  onTimesPerDayChange: (times: number) => void;
 }) {
   const { idPrefix: p, name, schedule } = props;
   const styles = useStyles();
@@ -48,18 +55,27 @@ export function HabitForm(props: {
   return (
     <>
       <Text style={styles.label}>NAME</Text>
-      <TextInput
-        value={name}
-        onChangeText={props.onNameChange}
-        style={styles.input}
-        placeholder="Habit name"
-        placeholderTextColor={c.onSurfaceMuted}
-        maxLength={MAX_NAME_LENGTH}
-        returnKeyType="done"
-        testID={`${p}-habit-name`}
-        accessibilityLabel="Habit name"
-        accessibilityHint={`Up to ${MAX_NAME_LENGTH} characters`}
-      />
+      <View style={styles.nameRow}>
+        <View
+          style={[styles.icon, { backgroundColor: withAlpha(c[props.color], tints.icon) }]}
+          testID={`${p}-habit-icon`}
+          aria-hidden
+        >
+          <Text style={[styles.iconLetter, { color: c[props.color] }]}>{iconLetter(name)}</Text>
+        </View>
+        <TextInput
+          value={name}
+          onChangeText={props.onNameChange}
+          style={styles.input}
+          placeholder="Habit name"
+          placeholderTextColor={c.onSurfaceMuted}
+          maxLength={MAX_NAME_LENGTH}
+          returnKeyType="done"
+          testID={`${p}-habit-name`}
+          accessibilityLabel="Habit name"
+          accessibilityHint={`Up to ${MAX_NAME_LENGTH} characters`}
+        />
+      </View>
       {props.nameHint || counter ? (
         <View style={styles.hintRow}>
           <Text
@@ -77,7 +93,7 @@ export function HabitForm(props: {
         </View>
       ) : null}
 
-      <Text style={styles.label}>WEEKLY GOAL</Text>
+      <Text style={styles.label}>SCHEDULE</Text>
       <View style={styles.segment} accessibilityRole="radiogroup">
         {(
           [
@@ -136,6 +152,7 @@ export function HabitForm(props: {
                   style={[styles.circle, on && styles.selected]}
                   testID={`${p}-day-${day}`}
                   accessibilityRole="checkbox"
+                  aria-checked={on}
                   accessibilityState={{ checked: on, disabled: onlyDay }}
                   accessibilityLabel={dayName}
                   accessibilityHint={onlyDay ? 'At least one day is needed' : undefined}
@@ -153,6 +170,38 @@ export function HabitForm(props: {
       <Text style={styles.result} testID={`${p}-goal-result`} accessibilityLiveRegion="polite">
         {resultLine(schedule)}
       </Text>
+
+      <Text style={styles.label}>TIMES PER DAY</Text>
+      <View style={styles.stepper}>
+        <Pressable
+          testID={`${p}-times-down`}
+          accessibilityRole="button"
+          accessibilityLabel="Fewer times per day"
+          disabled={props.timesPerDay <= 1}
+          accessibilityState={{ disabled: props.timesPerDay <= 1 }}
+          style={[styles.stepButton, props.timesPerDay <= 1 && styles.off]}
+          onPress={() => props.onTimesPerDayChange(cleanTimesPerDay(props.timesPerDay - 1))}
+        >
+          <Text style={styles.body}>−</Text>
+        </Pressable>
+        <Text style={styles.body} testID={`${p}-times-value`} accessibilityLiveRegion="polite">
+          {props.timesPerDay}
+        </Text>
+        <Pressable
+          testID={`${p}-times-up`}
+          accessibilityRole="button"
+          accessibilityLabel="More times per day"
+          disabled={props.timesPerDay >= tuning.activityBar.timesPerDayMax}
+          accessibilityState={{ disabled: props.timesPerDay >= tuning.activityBar.timesPerDayMax }}
+          style={[
+            styles.stepButton,
+            props.timesPerDay >= tuning.activityBar.timesPerDayMax && styles.off,
+          ]}
+          onPress={() => props.onTimesPerDayChange(cleanTimesPerDay(props.timesPerDay + 1))}
+        >
+          <Text style={styles.body}>+</Text>
+        </Pressable>
+      </View>
     </>
   );
 }
@@ -184,9 +233,32 @@ const makeStyles = (c: ThemeColors) =>
     backText: { ...textStyle('habitName'), color: c.onSurface },
     label: { ...textStyle('caption'), color: c.onSurfaceMuted, marginTop: space.sm },
     body: { ...textStyle('body'), color: c.onSurface },
+    icon: {
+      width: habitCardSizes.icon,
+      height: habitCardSizes.icon,
+      borderRadius: habitCardSizes.icon / 2,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    nameRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+    iconLetter: textStyle('habitName', '700'),
+    stepper: { flexDirection: 'row', alignItems: 'center', gap: space.xl },
+    stepButton: {
+      minWidth: MIN_TAP_SIZE,
+      minHeight: MIN_TAP_SIZE,
+      borderRadius: radius.pill,
+      backgroundColor: c.surface,
+      borderWidth: 1,
+      borderColor: c.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    off: { opacity: 0.4 },
     hintRow: { flexDirection: 'row', justifyContent: 'space-between', gap: space.md },
     hint: { ...textStyle('caption'), color: c.onSurfaceMuted, flexShrink: 1 },
     input: {
+      flex: 1,
+      minWidth: 0,
       ...textStyle('body'),
       minHeight: MIN_TAP_SIZE + space.sm,
       paddingHorizontal: space.lg,
@@ -219,7 +291,7 @@ const makeStyles = (c: ThemeColors) =>
       borderWidth: 1,
       borderColor: c.border,
     },
-    circleRow: { flexDirection: 'row', justifyContent: 'space-between' },
+    circleRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.xs },
     circle: {
       width: MIN_TAP_SIZE,
       height: MIN_TAP_SIZE,

@@ -1,7 +1,7 @@
 // Edit habit (SPEC-00, T12; Figma "Edit habit · Specific days" and "· Any days").
 // Name and schedule, saved as you type. Only valid names save (never blank, never a
 // duplicate, at most 20 characters); while the field is invalid a hint shows, and leaving
-// keeps the last valid name. Icon and color pickers come in MVP.
+// keeps the last valid name. The icon is display-only; there is no color picker.
 // Remove goes back to Habits, which shows the Undo bar.
 
 import { router, useLocalSearchParams } from 'expo-router';
@@ -17,6 +17,7 @@ import { nameHint } from '@/features/habits/habitName';
 import { setRemoved } from '@/features/habits/undoRemove';
 import { useTracker } from '@/features/tracker/TrackerProvider';
 import { MIN_TAP_SIZE, radius, space } from '@/theme';
+import { timesPerDay } from '@/rules/habits';
 import type { Metadata } from 'expo-router/server';
 
 import { pageTitle } from '@/components/pageTitle';
@@ -77,6 +78,11 @@ export default function EditHabitScreen() {
           onNameChange={rename}
           nameHint={nameHint(draft, [...state.habits, ...state.badHabits], habit.id)}
           schedule={habit.schedule}
+          color={habit.color}
+          timesPerDay={timesPerDay(habit)}
+          onTimesPerDayChange={(times) =>
+            dispatch({ type: 'setTimesPerDay', habitId: habit.id, times })
+          }
           onScheduleChange={(schedule) =>
             dispatch({ type: 'setSchedule', habitId: habit.id, schedule })
           }
@@ -94,7 +100,7 @@ export default function EditHabitScreen() {
           ]}
           testID="edit-habit-remove"
           accessibilityRole="button"
-          accessibilityLabel={`Remove ${habit.name}`}
+          accessibilityLabel={`Remove habit ${habit.name}`}
           accessibilityState={{ disabled: !canRemove }}
         >
           <Text style={styles.removeText}>Remove habit</Text>

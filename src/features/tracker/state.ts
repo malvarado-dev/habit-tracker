@@ -144,10 +144,17 @@ export type TrackerAction =
   | { type: 'logHabit'; date: DateKey; habitId: string }
   /** The Undo bar: takes the last log back. */
   | { type: 'undoLog'; date: DateKey; habitId: string }
-  | { type: 'addHabit'; id: string; name: string; schedule?: Schedule; date: DateKey }
+  | {
+      type: 'addHabit';
+      id: string;
+      name: string;
+      schedule?: Schedule;
+      timesPerDay?: number;
+      date: DateKey;
+    }
   | { type: 'renameHabit'; habitId: string; name: string }
   | { type: 'setSchedule'; habitId: string; schedule: Schedule }
-  /** Test tools for now (P2-08a): how many logs finish the habit today, 1 to the max. */
+  /** Add/Edit habit and Test tools: how many logs finish the habit today, 1 to the max. */
   | { type: 'setTimesPerDay'; habitId: string; times: number }
   | { type: 'removeHabit'; habitId: string; date: DateKey }
   | { type: 'restoreHabit'; habit: Habit; index: number }
@@ -269,6 +276,9 @@ export function trackerReducer(
             name: cleanName(action.name),
             schedule,
             color: leastUsedColor(before.habits),
+            ...(action.timesPerDay !== undefined
+              ? { timesPerDay: cleanTimesPerDay(action.timesPerDay) }
+              : {}),
             addedOn: action.date,
           },
         ],
