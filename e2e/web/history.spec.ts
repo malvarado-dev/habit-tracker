@@ -49,7 +49,7 @@ test.describe('History (P2-18a)', () => {
     await expect(history.month).toHaveText('October 2026');
     await expect(history.streak).toHaveText('3 day streak · Best 3');
     await expect(history.dayTitle).toHaveText('Today, Sun Oct 25');
-    await expect(history.dayStatus).toHaveText('Changeable for 2 more days');
+    await expect(history.dayStatus).toHaveText('3 days left to edit');
   });
 
   test('full days are banded; a missed day is not', async ({ page }) => {

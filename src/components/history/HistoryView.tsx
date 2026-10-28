@@ -5,8 +5,10 @@
 // Done with Undo, the slip stepper, and "+ Log a habit I missed" (P2-18b).
 // Used on the phone History screen and in the wide layout.
 
-import { useMemo, useState, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
+import { tuning } from '@/config/tuning';
 
 import { BadHabitsTray } from '@/components/BadHabitsTray';
 import { HabitCard } from '@/components/HabitCard';
@@ -23,6 +25,7 @@ import {
   monthTitle,
   stepMonth,
   streakBand,
+  streakRuns,
   streaks,
   streakText,
   weekdayLetters,
@@ -34,7 +37,7 @@ import { useTracker } from '@/features/tracker/TrackerProvider';
 import type { BadHabit } from '@/rules/badHabits';
 import { existsOn, isDue, isOptional, timesPerDay, type Habit } from '@/rules/habits';
 import { slipCount } from '@/rules/badHabits';
-import { monthOf, type DateKey } from '@/rules/dates';
+import { addDays, monthOf, toDateKey, type DateKey } from '@/rules/dates';
 import { linkedBadHabit, dayLogs } from '@/rules/linked';
 import { allHabits } from '@/rules/locking';
 import { MIN_TAP_SIZE, radius, space } from '@/theme';
@@ -89,6 +92,22 @@ export function HistoryView() {
         </View>
         {weeks.map((week, w) => (
           <View key={week[0]!.date} style={styles.row}>
+            {streakRuns(band[w]!).map((run) => (
+              <View
+                key={run.start}
+                pointerEvents="none"
+                importantForAccessibility="no-hide-descendants"
+                style={[
+                  styles.bandSlot,
+                  {
+                    left: `${(run.start / week.length) * 100}%`,
+                    right: `${((week.length - run.end - 1) / week.length) * 100}%`,
+                  },
+                ]}
+              >
+                <View style={styles.bandRun} testID={`history-band-run-${week[run.start]!.date}`} />
+              </View>
+            ))}
             {week.map((cell, i) => (
               <DayCellView
                 key={cell.date}
@@ -118,9 +137,29 @@ function DayDetails({
   openDays: number;
 }) {
   const styles = useStyles();
-  const { state, dispatch } = useTracker();
+  const { state, dispatch, testTools } = useTracker();
   const showUndo = useShowUndo();
-  const status = dayHeaderText(date, today, state.lockedThrough, openDays);
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    const update = () => {
+      setNow(new Date());
+      timer = setTimeout(
+        update,
+        tuning.history.countdownTickMs - (Date.now() % tuning.history.countdownTickMs),
+      );
+    };
+    update();
+    const subscription = AppState.addEventListener('change', (next) => {
+      if (next === 'active') setNow(new Date());
+    });
+    return () => {
+      clearTimeout(timer);
+      subscription.remove();
+    };
+  }, []);
+  const clockDay = addDays(toDateKey(now), testTools.dayOffset);
+  const status = dayHeaderText(date, clockDay, state.lockedThrough, openDays, now);
   const editable = !status.locked;
   const [missedOpen, setMissedOpen] = useState(false);
   // A slip counted down to 0 keeps its chip until the stepper closes (#108).
@@ -206,7 +245,7 @@ function DayDetails({
         if (editable && once) {
           trailing = (
             <RoundButton
-              glyph="↶"
+              glyph="undo"
               label={`Undo ${name}`}
               testID={`history-undo-${habit.id}`}
               onPress={() =>
@@ -301,6 +340,7 @@ function RoundButton(props: {
   disabled?: boolean;
 }) {
   const styles = useStyles();
+  const { colors } = useTheme();
   return (
     <Pressable
       onPress={props.onPress}
@@ -311,7 +351,25 @@ function RoundButton(props: {
       accessibilityLabel={props.label}
       accessibilityState={{ disabled: !!props.disabled }}
     >
-      <Text style={[styles.roundText, props.dark && styles.roundTextDark]}>{props.glyph}</Text>
+      {props.glyph === 'undo' ? (
+        <Svg
+          width={tuning.history.undoIconSize}
+          height={tuning.history.undoIconSize}
+          viewBox="0 0 24 24"
+          aria-hidden
+        >
+          <Path
+            d="m9 14-5-5 5-5M4 9h9a7 7 0 0 1 0 14"
+            fill="none"
+            stroke={colors.onInverse}
+            strokeWidth={tuning.history.undoIconStroke}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </Svg>
+      ) : (
+        <Text style={[styles.roundText, props.dark && styles.roundTextDark]}>{props.glyph}</Text>
+      )}
     </Pressable>
   );
 }
@@ -347,17 +405,9 @@ function DayCellView(props: {
 }) {
   const { cell, band, selected } = props;
   const styles = useStyles();
-  const bandStyle =
-    band === 'none'
-      ? null
-      : [
-          styles.band,
-          (band === 'start' || band === 'single') && styles.bandStart,
-          (band === 'end' || band === 'single') && styles.bandEnd,
-        ];
-
   const number = (
     <View
+      testID={band !== 'none' ? `history-band-${cell.date}` : undefined}
       style={[
         styles.marker,
         cell.isToday && !selected && styles.todayRing,
@@ -386,7 +436,6 @@ function DayCellView(props: {
       accessibilityLabel={label}
       accessibilityState={{ disabled: !tappable, selected }}
     >
-      {bandStyle ? <View style={bandStyle} testID={`history-band-${cell.date}`} /> : null}
       {number}
     </Pressable>
   );
@@ -439,23 +488,16 @@ const makeStyles = (c: ThemeColors, scheme: 'light' | 'dark') =>
       alignItems: 'center',
       justifyContent: 'center',
     },
-    band: {
+    bandSlot: {
       position: 'absolute',
-      left: 0,
-      right: 0,
       top: (size.arrowSize - size.dayMarker) / 2,
       height: size.dayMarker,
+    },
+    bandRun: {
+      flex: 1,
+      marginHorizontal: space.xs,
+      borderRadius: radius.pill,
       backgroundColor: withAlpha(c.primary, size.bandAlpha),
-    },
-    bandStart: {
-      left: space.xs,
-      borderTopLeftRadius: radius.pill,
-      borderBottomLeftRadius: radius.pill,
-    },
-    bandEnd: {
-      right: space.xs,
-      borderTopRightRadius: radius.pill,
-      borderBottomRightRadius: radius.pill,
     },
     marker: {
       width: size.dayMarker,
@@ -474,6 +516,7 @@ const makeStyles = (c: ThemeColors, scheme: 'light' | 'dark') =>
     day: { gap: space.sm },
     dayHeader: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
       alignItems: 'baseline',
       justifyContent: 'space-between',
       gap: space.sm,
@@ -482,19 +525,25 @@ const makeStyles = (c: ThemeColors, scheme: 'light' | 'dark') =>
     dayStatus: { ...textStyle('caption'), color: c.onSurfaceMuted },
     empty: { ...textStyle('caption'), color: c.onSurfaceMuted },
     dimmed: { opacity: size.lockedCardOpacity },
-    stepper: { flexDirection: 'row', gap: space.sm, marginLeft: space.sm },
+    stepper: {
+      flexDirection: 'row',
+      gap: space.sm,
+      marginLeft: space.sm,
+      padding: space.sm,
+      backgroundColor: c.inverse,
+      borderRadius: radius.pill,
+    },
     round: {
       width: MIN_TAP_SIZE,
       height: MIN_TAP_SIZE,
       borderRadius: radius.pill,
-      backgroundColor: c.surfaceDim,
+      backgroundColor: c.inverse,
       alignItems: 'center',
       justifyContent: 'center',
-      marginLeft: space.sm,
     },
-    roundDark: { backgroundColor: c.onSurface },
-    roundText: { ...textStyle('title'), color: c.onSurface },
-    roundTextDark: { color: c.primary },
+    roundDark: { backgroundColor: c.primary },
+    roundText: { ...textStyle('title'), color: c.onInverse },
+    roundTextDark: { color: c.onPrimary },
     missedLink: { alignSelf: 'center', minHeight: MIN_TAP_SIZE, justifyContent: 'center' },
     missedText: {
       ...textStyle('habitName', '700'),
