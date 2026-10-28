@@ -128,7 +128,7 @@ export function HistoryView() {
 }
 
 /** The selected day: title, status, and only what was logged that day. */
-function DayDetails({
+export function DayDetails({
   date,
   today,
   openDays,

@@ -36,7 +36,9 @@ for (const viewport of [
   { width: 393, height: 851 },
   { width: 1100, height: 800 },
 ]) {
-  test(`no bar markers at ${viewport.width}pt, before and after filling`, async ({ page }) => {
+  test(`no bar markers at ${viewport.width}pt, before and after filling @rendering (#137)`, async ({
+    page,
+  }) => {
     await page.setViewportSize(viewport);
     await openWithSave(page, saveWith(HABITS));
     const home = new HomePage(page);
