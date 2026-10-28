@@ -177,7 +177,10 @@ function DayDetails({
       (isDue(h.habit, date) || isOptional(h.habit, date)),
   );
   const slipped = state.badHabits.filter(
-    (b) => slipCount(state.slips, date, b.id) > 0 || keep.includes(b.id),
+    (b) =>
+      slipCount(state.slips, date, b.id) > 0 ||
+      keep.includes(b.id) ||
+      logged.some(({ habit }) => habit.id === b.pairedWith),
   );
   const nothing = logged.length === 0 && slipped.length === 0;
 
