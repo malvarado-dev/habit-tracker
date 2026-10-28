@@ -307,9 +307,6 @@ export const tuning = {
     countdownTickMs: 60_000,
     undoIconSize: 20,
     undoIconStroke: 2,
-    completedLineHeight: 3,
-    completedCheckSize: 20,
-    completedCheckStroke: 3,
   },
 
   /** Bad habits tray (P2-09). */

@@ -9,6 +9,7 @@ import { addDays, type DateKey } from '@/rules/dates';
 export const DAY_EDITS = new Set([
   'logHabit',
   'undoLog',
+  'setHistoryLogs',
   'logSlip',
   'setSlips',
   'skipHabit',

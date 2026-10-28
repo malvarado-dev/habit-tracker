@@ -141,6 +141,8 @@ export type TrackerAction =
   | { type: 'logHabit'; date: DateKey; habitId: string }
   /** The Undo bar: takes the last log back. */
   | { type: 'undoLog'; date: DateKey; habitId: string }
+  /** History counter reset and Undo. Changes good logs only, preserving linked slips. */
+  | { type: 'setHistoryLogs'; date: DateKey; habitId: string; count: number }
   | {
       type: 'addHabit';
       id: string;
@@ -256,6 +258,21 @@ export function trackerReducer(
       if (count <= 0) return state;
       const next = withCount(state, action.date, action.habitId, count - 1);
       return withTally(next, action.date, design, { logs: -1 });
+    }
+    case 'setHistoryLogs': {
+      if (isLocked(action.date, state.lockedThrough)) return state;
+      if (!Number.isSafeInteger(action.count) || action.count < 0) return state;
+      const habit = allHabits(state).find((h) => h.id === action.habitId);
+      if (!habit || !existsOn(habit, action.date)) return state;
+      const before = logCount(state.log, action.date, action.habitId);
+      if (before === action.count) return state;
+      const next = withCount(
+        withTarget(state, action.date, design),
+        action.date,
+        action.habitId,
+        action.count,
+      );
+      return withTally(next, action.date, design, { logs: action.count - before });
     }
     case 'addHabit': {
       // Name rules (habitName.ts): never blank, never a duplicate, at most 20 characters.

@@ -186,6 +186,25 @@ function DayDetails({
     noteQuietCoins();
     dispatch({ type: 'logHabit', date, habitId: habit.id });
   };
+  const cycle = (habit: Habit) => {
+    const row = rows.find((item) => item.habit.id === habit.id);
+    if (!row || row.total < timesPerDay(habit)) {
+      log(habit);
+      return;
+    }
+    if (row.gold === 0) return;
+    noteQuietCoins();
+    dispatch({ type: 'setHistoryLogs', date, habitId: habit.id, count: 0 });
+    if (row.slate === 0) {
+      showUndo({
+        text: `${habit.name} logs reset`,
+        run: () => {
+          noteQuietCoins();
+          dispatch({ type: 'setHistoryLogs', date, habitId: habit.id, count: row.gold });
+        },
+      });
+    }
+  };
   const unlog = (habit: Habit) => {
     noteQuietCoins();
     dispatch({ type: 'undoLog', date, habitId: habit.id });
@@ -253,26 +272,6 @@ function DayDetails({
               }
             />
           );
-        } else if (editable) {
-          trailing = (
-            <View style={styles.stepper}>
-              <RoundButton
-                glyph="−"
-                label={`One less ${name}`}
-                testID={`history-minus-${habit.id}`}
-                disabled={gold === 0}
-                onPress={() => unlog(habit)}
-              />
-              <RoundButton
-                glyph="+"
-                label={`One more ${name}`}
-                testID={`history-plus-${habit.id}`}
-                dark
-                disabled={gold + slate >= timesPerDay(habit)}
-                onPress={() => log(habit)}
-              />
-            </View>
-          );
         }
         return (
           <HabitCard
@@ -281,9 +280,10 @@ function DayDetails({
             count={gold}
             slate={slate}
             linked={linked ? { name: linked.name, count: slate } : undefined}
-            onLog={() => {}}
+            onLog={() => cycle(habit)}
             locked={status.locked}
             readOnly
+            tapToCycle={editable && !once}
             trailing={trailing}
           />
         );
@@ -336,7 +336,6 @@ function RoundButton(props: {
   label: string;
   testID: string;
   onPress: () => void;
-  dark?: boolean;
   disabled?: boolean;
 }) {
   const styles = useStyles();
@@ -345,7 +344,7 @@ function RoundButton(props: {
     <Pressable
       onPress={props.onPress}
       disabled={props.disabled}
-      style={[styles.round, props.dark && styles.roundDark, props.disabled && styles.faint]}
+      style={[styles.round, props.disabled && styles.faint]}
       testID={props.testID}
       accessibilityRole="button"
       accessibilityLabel={props.label}
@@ -368,7 +367,7 @@ function RoundButton(props: {
           />
         </Svg>
       ) : (
-        <Text style={[styles.roundText, props.dark && styles.roundTextDark]}>{props.glyph}</Text>
+        <Text style={styles.roundText}>{props.glyph}</Text>
       )}
     </Pressable>
   );
@@ -525,14 +524,6 @@ const makeStyles = (c: ThemeColors, scheme: 'light' | 'dark') =>
     dayStatus: { ...textStyle('caption'), color: c.onSurfaceMuted },
     empty: { ...textStyle('caption'), color: c.onSurfaceMuted },
     dimmed: { opacity: size.lockedCardOpacity },
-    stepper: {
-      flexDirection: 'row',
-      gap: space.sm,
-      marginLeft: space.sm,
-      padding: space.sm,
-      backgroundColor: c.inverse,
-      borderRadius: radius.pill,
-    },
     round: {
       width: MIN_TAP_SIZE,
       height: MIN_TAP_SIZE,
@@ -541,9 +532,7 @@ const makeStyles = (c: ThemeColors, scheme: 'light' | 'dark') =>
       alignItems: 'center',
       justifyContent: 'center',
     },
-    roundDark: { backgroundColor: c.primary },
     roundText: { ...textStyle('title'), color: c.onInverse },
-    roundTextDark: { color: c.onPrimary },
     missedLink: { alignSelf: 'center', minHeight: MIN_TAP_SIZE, justifyContent: 'center' },
     missedText: {
       ...textStyle('habitName', '700'),

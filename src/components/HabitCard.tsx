@@ -76,6 +76,8 @@ interface HabitCardProps {
   locked?: boolean;
   /** History (P2-18a): taps on the card are off, not dimmed. */
   readOnly?: boolean;
+  /** History frequency cards keep their History appearance but cycle on a card tap. */
+  tapToCycle?: boolean;
   /** History edits (P2-18b): controls drawn at the right end of the card. */
   trailing?: ReactNode;
   /** Home without the sheet (#133): the card floats over the room, so it gets a stronger shadow. */
@@ -84,7 +86,7 @@ interface HabitCardProps {
 
 export function HabitCard(props: HabitCardProps) {
   const { habit, count, slate = 0, linked, onLog, locked = false, readOnly = false } = props;
-  const off = locked || readOnly;
+  const off = locked || (readOnly && !props.tapToCycle);
   const styles = useStyles();
   const { colors: c } = useTheme();
   const reduceMotion = useReducedMotion();
@@ -158,14 +160,16 @@ export function HabitCard(props: HabitCardProps) {
         disabled={locked}
         accessibilityState={{ disabled: off }}
         testID={`habit-card-${id}`}
-        accessibilityRole={readOnly ? undefined : 'button'}
+        accessibilityRole={readOnly && !props.tapToCycle ? undefined : 'button'}
         // No custom label: the spoken name is the card's visible text (name and count), so voice
         // control users can say what they see (#113, WCAG 2.5.3). The letter icon is hidden.
         accessibilityHint={
           locked
             ? 'This day is locked.'
             : readOnly
-              ? undefined
+              ? props.tapToCycle
+                ? 'Tap to add one. When full, tap to reset good logs. Linked slips stay.'
+                : undefined
               : canSlide
                 ? 'Tap to log one time. Long-press for more.'
                 : 'Tap to log one time.'
@@ -192,49 +196,16 @@ export function HabitCard(props: HabitCardProps) {
             </View>
           )}
 
-          <View style={styles.nameSlot}>
-            <View style={styles.nameTextWrap}>
-              <Text
-                style={styles.name}
-                numberOfLines={1}
-                testID={`habit-name-${id}`}
-                accessibilityLabel={
-                  readOnly ? `${name}, ${completed ? 'completed' : 'in progress'}` : undefined
-                }
-              >
-                {name}
-              </Text>
-              {completed ? (
-                <View
-                  style={styles.completedLine}
-                  testID={`habit-strike-${id}`}
-                  pointerEvents="none"
-                  importantForAccessibility="no-hide-descendants"
-                  accessibilityElementsHidden
-                />
-              ) : null}
-            </View>
-            {completed ? (
-              <Svg
-                width={tuning.history.completedCheckSize}
-                height={tuning.history.completedCheckSize}
-                viewBox="0 0 24 24"
-                style={styles.completedCheck}
-                testID={`habit-check-${id}`}
-                aria-hidden
-                accessible={false}
-              >
-                <Path
-                  d="m20 6-11 11-5-5"
-                  fill="none"
-                  stroke={c.onSurface}
-                  strokeWidth={tuning.history.completedCheckStroke}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </Svg>
-            ) : null}
-          </View>
+          <Text
+            style={[styles.name, completed && styles.completedName]}
+            numberOfLines={1}
+            testID={`habit-name-${id}`}
+            accessibilityLabel={
+              readOnly ? `${name}, ${completed ? 'completed' : 'in progress'}` : undefined
+            }
+          >
+            {name}
+          </Text>
 
           {onceText ? (
             <Text
@@ -494,20 +465,9 @@ const makeStyles = (c: ThemeColors, scheme: 'light' | 'dark') =>
       justifyContent: 'center',
     },
     iconLetter: textStyle('habitName', '700'),
-    nameSlot: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.sm, minWidth: 0 },
-    nameTextWrap: { flexShrink: 1, minWidth: 0 },
-    name: { ...textStyle('habitName'), color: c.onSurface },
-    completedCheck: { flexShrink: 0 },
-    // Native line-through thickness cannot be set on Android. Draw it over the name only.
-    completedLine: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      top: '50%',
-      height: tuning.history.completedLineHeight,
-      marginTop: -tuning.history.completedLineHeight / 2,
-      backgroundColor: c.onSurface,
-    },
+    name: { ...textStyle('habitName'), color: c.onSurface, flex: 1, minWidth: 0 },
+    // Let Android, iOS and web place the strike using their text/font metrics.
+    completedName: { textDecorationLine: 'line-through' },
     count: { ...textStyle('label', '700'), color: c.onSurfaceMuted },
     // Option D: Skip circle first, then the dark bad habit chip.
     actions: {

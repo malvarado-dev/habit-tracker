@@ -36,22 +36,22 @@ test('Today count edits preserve Undo for another removed card', async ({ page }
   await expect(page.getByTestId('bad-badge-soda')).toHaveText('1');
 });
 
-test('History plus/minus stays quiet until the final log removes a card', async ({ page }) => {
+test('History taps stay quiet until a reset removes a card', async ({ page }) => {
   const save = saveWith(HABITS);
   save.log = { [TODAY]: { water: 1 } };
   await openWithSave(page, save, 'history');
   const history = new HistoryPage(page);
-  await history.plus('water').click();
+  await history.card('water').click();
   await expect(history.count('water')).toHaveText('2/3');
   await expect(history.undoBar).toBeHidden();
-  await history.minus('water').click();
-  await expect(history.count('water')).toHaveText('1/3');
+  await history.card('water').click();
+  await expect(history.count('water')).toHaveText('3/3');
   await expect(history.undoBar).toBeHidden();
-  await history.minus('water').click();
+  await history.card('water').click();
   await expect(history.card('water')).toHaveCount(0);
   await expect(history.undoBar).toBeVisible();
   await history.undo();
-  await expect(history.count('water')).toHaveText('1/3');
+  await expect(history.count('water')).toHaveText('3/3');
 });
 
 test('History count edits preserve Undo for another removed card', async ({ page }) => {
@@ -61,7 +61,7 @@ test('History count edits preserve Undo for another removed card', async ({ page
   await openWithSave(page, save, 'history');
   const history = new HistoryPage(page);
   await history.undoDone('sleep').click();
-  await history.plus('water').click();
+  await history.card('water').click();
   const tray = new BadHabitsTray(page);
   await tray.countSlip('soda');
   await expect(page.getByTestId('undo-text')).toHaveText('Sleep log removed');

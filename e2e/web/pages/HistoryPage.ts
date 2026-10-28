@@ -48,14 +48,6 @@ export class HistoryPage {
     return this.page.getByTestId(`habit-count-${habitId}`).first();
   }
 
-  plus(habitId: string): Locator {
-    return this.page.getByTestId(`history-plus-${habitId}`);
-  }
-
-  minus(habitId: string): Locator {
-    return this.page.getByTestId(`history-minus-${habitId}`);
-  }
-
   undoDone(habitId: string): Locator {
     return this.page.getByTestId(`history-undo-${habitId}`);
   }

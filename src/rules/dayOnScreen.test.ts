@@ -30,6 +30,7 @@ describe('logs count toward the day on screen (P2-18a)', () => {
 
   it('only day edits are checked; adding a habit is not', () => {
     expect(DAY_EDITS.has('logHabit')).toBe(true);
+    expect(DAY_EDITS.has('setHistoryLogs')).toBe(true);
     expect(DAY_EDITS.has('setSlips')).toBe(true);
     expect(DAY_EDITS.has('addHabit')).toBe(false);
   });
