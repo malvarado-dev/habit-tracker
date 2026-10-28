@@ -5,6 +5,7 @@ import { toDateKey } from '../../src/rules/dates';
 const TODAY = toDateKey(FIXED_NOW);
 const HABITS = [dailyHabit('water', 'Drink Water', 3), dailyHabit('sleep', 'Sleep')];
 
+// Full-app risk: reset/Undo must reach the persisted save and restore after reload.
 test('History frequency card taps increment, reset, Undo and survive reload (#146)', async ({
   page,
 }) => {
@@ -30,6 +31,7 @@ test('History frequency card taps increment, reset, Undo and survive reload (#14
   await expect(history.undoDone('sleep')).toBeVisible();
 });
 
+// Full-app risk: a mixed reset must persist good logs and linked slips independently.
 test('History reset retains linked slips and creates no toast while the card remains (#146)', async ({
   page,
 }) => {
@@ -47,6 +49,7 @@ test('History reset retains linked slips and creates no toast while the card rem
   await expect(page.getByTestId('bad-badge-spill')).toHaveText('1');
 });
 
+// Full-app risk: mode routing and storage keys must isolate Real from Test through reload.
 test('Test History reset and Undo leave Real logs unchanged (#146)', async ({ page }) => {
   const save = saveWith(HABITS);
   save.log = { [TODAY]: { water: 3 } };
