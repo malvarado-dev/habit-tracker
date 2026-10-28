@@ -10,6 +10,7 @@ import { AppState as RNAppState } from 'react-native';
 import { DAY_EDITS, isStaleTap } from '@/rules/dayOnScreen';
 import { useSettings } from '@/features/settings/SettingsProvider';
 import { designView } from './designView';
+import { setRemoved } from '@/features/habits/undoRemove';
 import {
   createContext,
   useCallback,
@@ -41,6 +42,8 @@ import type { TrackerAction, TrackerState } from './state';
 interface TrackerContextValue {
   /** The active tracker: Real, or Test while Test mode is on. */
   state: TrackerState;
+  /** Full active save for management forms, before the Today design filters it. */
+  managementState: TrackerState;
   dispatch: Dispatch<TrackerAction>;
   /** The date the active tracker lives on. Real is always the real date; Test can be ahead. */
   today: DateKey;
@@ -161,12 +164,16 @@ export function TrackerProvider({ children }: { children: ReactNode }) {
   const value = useMemo<TrackerContextValue>(
     () => ({
       state: designView(app[app.mode].state, badHabitDesign),
+      managementState: app[app.mode].state,
       dispatch,
       today: modeToday(app, now),
       mode: app.mode,
       openDays: openDaysFor(app.mode),
       oldestDay: oldestOpenableDay(app.mode, modeToday(app, now)),
-      setMode: (mode) => rawDispatch({ type: 'setMode', mode }),
+      setMode: (mode) => {
+        setRemoved(null);
+        rawDispatch({ type: 'setMode', mode });
+      },
       testTools: {
         dayOffset: app.mode === 'test' ? app.testOffset : 0,
         nextDay: () => rawDispatch({ type: 'nextDay', realDate: realDate() }),
@@ -194,4 +201,10 @@ export function useTracker(): TrackerContextValue {
   const value = useContext(TrackerContext);
   if (!value) throw new Error('useTracker must be used inside TrackerProvider');
   return value;
+}
+
+/** Manage saved habits without hiding mirror habits or replacing saved frequencies. */
+export function useManageTracker() {
+  const tracker = useTracker();
+  return { ...tracker, state: tracker.managementState };
 }

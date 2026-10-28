@@ -15,7 +15,7 @@ import { useTheme } from '@/design/theme/ThemeProvider';
 import type { ThemeColors } from '@/design/tokens';
 import { nameHint } from '@/features/habits/habitName';
 import { setRemoved } from '@/features/habits/undoRemove';
-import { useTracker } from '@/features/tracker/TrackerProvider';
+import { useManageTracker } from '@/features/tracker/TrackerProvider';
 import { MIN_TAP_SIZE, radius, space } from '@/theme';
 import { timesPerDay } from '@/rules/habits';
 import type { Metadata } from 'expo-router/server';
@@ -29,7 +29,7 @@ export function generateMetadata(): Metadata {
 
 export default function EditHabitScreen() {
   const styles = useStyles();
-  const { state, dispatch, today } = useTracker();
+  const { state, dispatch, today, mode } = useManageTracker();
   const { id } = useLocalSearchParams<{ id: string }>();
   const index = state.habits.findIndex((h) => h.id === id);
   const habit = index >= 0 ? state.habits[index] : undefined;
@@ -37,7 +37,7 @@ export default function EditHabitScreen() {
   const [draft, setDraft] = useState(habit?.name ?? '');
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/habits'));
-  const back = <BackLink label="Habits" onPress={goBack} testID="edit-habit-back" />;
+  const back = <BackLink label="Manage habits" onPress={goBack} testID="edit-habit-back" />;
 
   if (!habit) {
     return (
@@ -59,7 +59,7 @@ export default function EditHabitScreen() {
 
   const remove = () => {
     if (!canRemove) return;
-    setRemoved({ habit, index });
+    setRemoved({ habit, index, mode });
     dispatch({ type: 'removeHabit', habitId: habit.id, date: today });
     goBack();
   };

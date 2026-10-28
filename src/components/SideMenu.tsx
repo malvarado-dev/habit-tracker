@@ -29,7 +29,7 @@ const PANEL_WIDTH = 280;
 
 const ITEMS = [
   { label: 'Profile', path: '/profile', id: 'menu-profile' },
-  { label: 'Habits', path: '/habits', id: 'menu-habits' },
+  { label: 'Manage habits', path: '/habits', id: 'menu-habits' },
   { label: 'History', path: '/history', id: 'menu-history' },
 ] as const;
 

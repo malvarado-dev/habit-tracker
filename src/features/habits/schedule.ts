@@ -49,8 +49,9 @@ export function resultLine(schedule: Schedule): string {
 }
 
 /** The small line under each name on the Habits list. Same words as the result line. */
-export function listLine(schedule: Schedule): string {
-  return resultLine(schedule);
+export function listLine(schedule: Schedule, times = 1): string {
+  const line = resultLine(schedule);
+  return times >= 2 ? `${line}, ${times}x per day` : line;
 }
 
 /** Tapping a day turns it on or off, but the last planned day can't be turned off (minimum 1). */

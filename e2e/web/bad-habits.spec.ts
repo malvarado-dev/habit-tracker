@@ -10,12 +10,14 @@ const SODA = { id: 'soda', name: 'Soda' };
 
 test.describe('bad habits (P2-09)', () => {
   test('a bad habit added from Add habit shows in the tray at 0', async ({ page }) => {
-    await openWithSave(page, saveWith(HABITS), 'add-habit');
+    await openWithSave(page, saveWith(HABITS), 'habits');
+    await page.getByTestId('habits-add').click();
     await expect(page.getByTestId('pick-bad-habits')).toBeVisible();
 
     await page.getByTestId('pick-bad-soda').click();
     await expect(page.getByTestId('add-bad-name')).toHaveValue('Soda');
     await page.getByTestId('add-bad-confirm').click();
+    await expect(page.getByTestId('habits-screen')).toBeVisible();
 
     await page.goto('');
     const tray = new BadHabitsTray(page);
