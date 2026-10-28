@@ -29,7 +29,7 @@ test.describe('Coins from logs (P2-08c)', () => {
     const home = new HomePage(page);
     const tray = new BadHabitsTray(page);
     await home.waitUntilReady();
-    await tray.tap('soda');
+    await tray.countSlip('soda');
     await expect(tray.badge('soda')).toHaveText('1');
     await expect(home.coinBalance).toHaveText('0');
   });

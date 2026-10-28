@@ -27,15 +27,18 @@ async function openOn(page: import('@playwright/test').Page, date: string) {
 }
 
 test.describe('History edits (P2-18b)', () => {
-  test('− and + change a past day, with Undo', async ({ page }) => {
+  test('− and + change a past day; only removing the final log shows Undo', async ({ page }) => {
     const history = await openOn(page, back(1));
     await history.plus('water').click();
     await expect(history.count('water')).toHaveText('2/3');
-    await expect(history.undoBar).toBeVisible();
+    await expect(history.undoBar).toBeHidden();
     await history.minus('water').click();
     await expect(history.count('water')).toHaveText('1/3');
+    await expect(history.undoBar).toBeHidden();
+    await history.minus('water').click();
+    await expect(history.loggedCard('water')).toHaveCount(0);
     await history.undo();
-    await expect(history.count('water')).toHaveText('2/3');
+    await expect(history.count('water')).toHaveText('1/3');
   });
 
   test('Undo on a Done habit takes it off the day, and the Undo bar brings it back', async ({
@@ -56,7 +59,7 @@ test.describe('History edits (P2-18b)', () => {
     await tray.chip('soda').click();
     await expect(tray.stepper).toBeVisible();
     await tray.minus.click();
-    await expect(tray.stepperCount).toHaveText('0');
+    await expect(tray.badge('soda')).toHaveText('0');
     await expect(tray.chip('soda')).toBeVisible();
     await tray.closeStepper();
     await expect(tray.chip('soda')).toHaveCount(0);

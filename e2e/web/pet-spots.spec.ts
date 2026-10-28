@@ -36,7 +36,7 @@ test.describe('Pet spots and wake rule (P2-12)', () => {
 
   test('a slip does not wake it', async ({ page }) => {
     const home = await openAt(page, 20);
-    await new BadHabitsTray(page).tap('soda');
+    await new BadHabitsTray(page).countSlip('soda');
     expect(await home.petPlace()).toEqual({ spot: 'bed', layer: 'inBed' });
   });
 

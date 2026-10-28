@@ -304,6 +304,8 @@ export const tuning = {
 
   /** Bad habits tray (P2-09). */
   badHabits: {
+    /** Compact minus/plus popup, with the count kept on the chip badge. */
+    stepperWidth: 112,
     /** The count badge grows this much when a slip is added, then springs back. */
     bumpScale: 1.25,
     bumpMs: 120,

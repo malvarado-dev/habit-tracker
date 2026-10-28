@@ -1,7 +1,8 @@
 // P2-08b end-to-end tests: slide reveal (option D), Skip, linked bad habit chip, long-press menu.
 // Eat Healthy (3 times a day) is paired with Eat Out; Read (once a day) has no link. Both are due,
 // so the possible total is 3 + 1 = 4 logs and the bar is full at 3.
-import { dailyHabit, expect, openWithSave, saveWith, test } from './fixtures';
+import { toDateKey } from '../../src/rules/dates';
+import { dailyHabit, expect, FIXED_NOW, openWithSave, saveWith, test } from './fixtures';
 import { HomePage } from './pages/HomePage';
 
 const HABITS = [dailyHabit('eat', 'Eat Healthy', 3), dailyHabit('read', 'Read')];
@@ -42,11 +43,24 @@ test.describe('slide actions (P2-08b)', () => {
 
     await expect(home.count('eat')).toHaveText('1/3');
     await expect(home.ring('eat')).toHaveAttribute('aria-label', '1 of 3 done today');
-    await expect(page.getByTestId('undo-text')).toHaveText('Eat Out counted');
+    await expect(home.undoBar).toBeHidden();
     await home.expectBar('Activity Bar, 1 of 3 logs today');
+  });
 
+  test('a completing linked slip removes the card and Undo restores its prior count', async ({
+    page,
+  }) => {
+    const save = saveWith(HABITS, BAD);
+    save.log = { [toDateKey(FIXED_NOW)]: { eat: 2 } };
+    await openWithSave(page, save);
+    const home = new HomePage(page);
+    await home.waitUntilReady();
+    await home.slideOpen('eat');
+    await home.slideSlip('eat').click();
+    await expect(home.card('eat')).toHaveCount(0);
+    await expect(page.getByTestId('undo-text')).toHaveText('Eat Out counted');
     await home.undo();
-    await expect(home.count('eat')).toHaveText('0/3');
+    await expect(home.count('eat')).toHaveText('2/3');
   });
 
   test('Skip hides the card for today, leaves the bar alone, and Undo brings it back', async ({
