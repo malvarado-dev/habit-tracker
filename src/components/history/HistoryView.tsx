@@ -34,11 +34,12 @@ import {
 } from '@/features/history/historyModel';
 import { noteQuietCoins } from '@/features/coins/coinOrigin';
 import { useTracker } from '@/features/tracker/TrackerProvider';
+import { useSettings } from '@/features/settings/SettingsProvider';
 import type { BadHabit } from '@/rules/badHabits';
 import { existsOn, isDue, isOptional, timesPerDay, type Habit } from '@/rules/habits';
 import { slipCount } from '@/rules/badHabits';
 import { addDays, monthOf, toDateKey, type DateKey } from '@/rules/dates';
-import { linkedBadHabit, dayLogs } from '@/rules/linked';
+import { linkedBadHabit, linkedSlipLimit, dayLogs } from '@/rules/linked';
 import { allHabits } from '@/rules/locking';
 import { MIN_TAP_SIZE, radius, space } from '@/theme';
 
@@ -138,6 +139,7 @@ function DayDetails({
 }) {
   const styles = useStyles();
   const { state, dispatch, testTools } = useTracker();
+  const { badHabitDesign } = useSettings();
   const showUndo = useShowUndo();
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -223,7 +225,11 @@ function DayDetails({
   };
   const setSlips = (bad: BadHabit, count: number) => {
     const before = slipCount(state.slips, date, bad.id);
-    const next = Math.max(0, count);
+    const limit = linkedSlipLimit(bad, allHabits(state), state.log, date, badHabitDesign);
+    const next =
+      limit !== undefined && count > before
+        ? Math.max(before, Math.min(count, limit))
+        : Math.max(0, count);
     if (next === before) return;
     setKeep((k) => (k.includes(bad.id) ? k : [...k, bad.id]));
     noteQuietCoins();
@@ -297,6 +303,9 @@ function DayDetails({
           <BadHabitsTray
             badHabits={slipped}
             countOf={(id) => slipCount(state.slips, date, id)}
+            limitOf={(bad) =>
+              linkedSlipLimit(bad, allHabits(state), state.log, date, badHabitDesign)
+            }
             onSlip={() => {}}
             onSetCount={(bad, n) => setSlips(bad, n)}
             readOnly={!editable}

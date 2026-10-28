@@ -15,7 +15,8 @@ for (const theme of ['light', 'dark'] as const) {
       ],
     );
     state.log = { [TODAY]: { sleep: 1, water: 2 } };
-    state.slips = { [TODAY]: { soda: 1 } };
+    // Preserve an older over-limit save while applying the shared cap to new increases.
+    state.slips = { [TODAY]: { soda: 1, 'poor-sleep': 1 } };
     await page.emulateMedia({ colorScheme: theme });
     await openWithSave(page, state, 'history');
     const tray = new BadHabitsTray(page);
@@ -23,17 +24,17 @@ for (const theme of ['light', 'dark'] as const) {
     const water = page.getByTestId('habit-ring-water');
     const gold = `path[stroke="${tuning.ring.gold}"][stroke-dasharray]`;
     const slate = `path[stroke="${tuning.ring.slate}"][stroke-dasharray]`;
-    await expect(sleep.locator(gold)).toHaveCount(1);
     await expect(water.locator(gold)).toHaveCount(2);
     await expect(water.locator(slate)).toHaveCount(1);
-    await tray.countSlip('poor-sleep');
     await expect(sleep.locator(slate)).toHaveCount(1);
     await expect(sleep.locator(gold)).toHaveCount(0);
     await page.reload();
     await expect(sleep.locator(slate)).toHaveCount(1);
     await expect(tray.badge('poor-sleep')).toHaveText('1');
     await tray.tap('poor-sleep');
+    await expect(tray.plus).toBeDisabled();
     await tray.minus.click();
+    await expect(tray.plus).toBeDisabled();
     await tray.closeStepper();
     await expect(sleep.locator(gold)).toHaveCount(1);
     await expect(sleep.locator(slate)).toHaveCount(0);

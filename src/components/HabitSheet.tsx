@@ -34,7 +34,7 @@ import { useTracker } from '@/features/tracker/TrackerProvider';
 import { getActivityBar } from '@/rules/activityBar';
 import { slipCount, trayHabits, type BadHabit } from '@/rules/badHabits';
 import { logCount, type Habit } from '@/rules/habits';
-import { dayLogs, linkedBadHabit } from '@/rules/linked';
+import { dayLogs, linkedBadHabit, linkedSlipLimit } from '@/rules/linked';
 import { allHabits, barLog } from '@/rules/locking';
 import { canExplore } from '@/rules/explore';
 import { finishedCount } from '@/rules/payoff';
@@ -143,6 +143,8 @@ export function HabitSheet({
 
   const setSlips = (bad: BadHabit, count: number, habit?: Habit) => {
     const before = slips(bad.id);
+    const limit = linkedSlipLimit(bad, allHabits(state), state.log, today, badHabitDesign);
+    if (limit !== undefined && count > before) count = Math.max(before, Math.min(count, limit));
     if (count < 0 || count === before) return;
     dispatch({ type: 'setSlips', date: today, badHabitId: bad.id, count });
     if (habit && isFinishedToday(habit, logCount(log, today, habit.id) + count - before)) {
@@ -248,6 +250,7 @@ export function HabitSheet({
     <BadHabitsTray
       badHabits={trayList}
       countOf={slips}
+      limitOf={(bad) => linkedSlipLimit(bad, allHabits(state), state.log, today, badHabitDesign)}
       onSlip={(bad) => setSlips(bad, slips(bad.id) + 1)}
       onSetCount={setSlips}
       tapOpensStepper

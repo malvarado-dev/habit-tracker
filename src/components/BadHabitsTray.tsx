@@ -25,6 +25,8 @@ import { MIN_TAP_SIZE, radius, space } from '@/theme';
 type Props = {
   badHabits: BadHabit[];
   countOf: (id: string) => number;
+  /** Remaining daily capacity after good logs; absent means unlimited. */
+  limitOf?: (bad: BadHabit) => number | undefined;
   /** Tap: one more slip. */
   onSlip: (bad: BadHabit) => void;
   /** Stepper: set the day's count (the reducer keeps it at 0 or more). */
@@ -66,6 +68,7 @@ export function BadHabitsTray(props: Props) {
             key={b.id}
             bad={b}
             count={countOf(b.id)}
+            limit={props.limitOf?.(b)}
             onSlip={() => onSlip(b)}
             onSetCount={(n) => onSetCount(b, n)}
             onOpen={(anchor) => setOpen({ bad: b, ...anchor })}
@@ -78,6 +81,7 @@ export function BadHabitsTray(props: Props) {
         <Stepper
           anchor={open}
           count={countOf(open.bad.id)}
+          limit={props.limitOf?.(open.bad)}
           onChange={(n) => onSetCount(open.bad, n)}
           onClose={() => {
             setOpen(null);
@@ -92,6 +96,7 @@ export function BadHabitsTray(props: Props) {
 function Chip(props: {
   bad: BadHabit;
   count: number;
+  limit?: number;
   onSlip: () => void;
   onSetCount: (count: number) => void;
   onOpen: (anchor: Omit<Anchor, 'bad'>) => void;
@@ -145,10 +150,13 @@ function Chip(props: {
       }
       aria-valuemin={0}
       aria-valuenow={count}
+      aria-valuemax={props.limit}
       accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
-      onAccessibilityAction={(e) =>
-        props.onSetCount(count + (e.nativeEvent.actionName === 'increment' ? 1 : -1))
-      }
+      onAccessibilityAction={(e) => {
+        if (e.nativeEvent.actionName === 'increment') {
+          if (props.limit === undefined || count < props.limit) props.onSetCount(count + 1);
+        } else props.onSetCount(count - 1);
+      }}
     >
       <Text style={styles.chipText} numberOfLines={1}>
         {name}
@@ -172,12 +180,14 @@ function Chip(props: {
 function Stepper(props: {
   anchor: Anchor;
   count: number;
+  limit?: number;
   onChange: (count: number) => void;
   onClose: () => void;
 }) {
   const styles = useStyles();
   const { width: screenWidth } = useWindowDimensions();
   const { anchor, count } = props;
+  const full = props.limit !== undefined && count >= props.limit;
   const width = tuning.badHabits.stepperWidth;
   const left = Math.min(
     Math.max(space.sm, anchor.x + anchor.width / 2 - width / 2),
@@ -210,11 +220,13 @@ function Stepper(props: {
         </Pressable>
         <Pressable
           onPress={() => props.onChange(count + 1)}
-          style={[styles.stepButton, styles.stepPlus]}
+          disabled={full}
+          style={[styles.stepButton, styles.stepPlus, full && styles.off]}
           testID="bad-stepper-plus"
           accessibilityRole="button"
           accessibilityLabel={`One more ${name}, ${countLabel}`}
           accessibilityLiveRegion="polite"
+          accessibilityState={{ disabled: full }}
         >
           <Text style={[styles.stepGlyph, styles.stepPlusGlyph]}>+</Text>
         </Pressable>

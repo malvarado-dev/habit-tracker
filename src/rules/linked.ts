@@ -5,9 +5,22 @@
 // and changes nothing else, so it can never make the bar easier (decided 2026-10-25).
 // Plain TypeScript, no screens.
 
-import { slipCount, type BadHabit, type SlipCounts } from './badHabits';
+import { slipCount, type BadHabit, type BadHabitDesign, type SlipCounts } from './badHabits';
 import type { DateKey } from './dates';
-import { logCount, timesPerDay, type Habit, type LogCounts } from './habits';
+import { existsOn, logCount, timesPerDay, type Habit, type LogCounts } from './habits';
+
+/** Maximum linked slips after good logs. Unpaired slips have no daily limit. */
+export function linkedSlipLimit(
+  bad: BadHabit,
+  habits: Habit[],
+  log: LogCounts,
+  date: DateKey,
+  design: BadHabitDesign = 'design1',
+): number | undefined {
+  if (design === 'design2') return undefined;
+  const partner = habits.find((h) => h.id === bad.pairedWith && existsOn(h, date));
+  return partner ? Math.max(0, timesPerDay(partner) - logCount(log, date, partner.id)) : undefined;
+}
 
 /** Habits skipped for today, keyed by date. */
 export type Skips = Record<DateKey, string[]>;
