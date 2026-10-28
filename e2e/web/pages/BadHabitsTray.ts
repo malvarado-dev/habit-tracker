@@ -4,14 +4,12 @@ import { expect, type Locator, type Page } from '@playwright/test';
 export class BadHabitsTray {
   readonly tray: Locator;
   readonly stepper: Locator;
-  readonly stepperCount: Locator;
   readonly plus: Locator;
   readonly minus: Locator;
 
   constructor(readonly page: Page) {
     this.tray = page.getByTestId('bad-habits-section');
     this.stepper = page.getByTestId('bad-stepper');
-    this.stepperCount = page.getByTestId('bad-stepper-count');
     this.plus = page.getByTestId('bad-stepper-plus');
     this.minus = page.getByTestId('bad-stepper-minus');
   }
@@ -24,9 +22,17 @@ export class BadHabitsTray {
     return this.page.getByTestId(`bad-badge-${id}`);
   }
 
-  /** One tap counts one slip. */
+  /** One tap opens the controls without changing the count. */
   async tap(id: string): Promise<void> {
     await this.chip(id).click();
+    await expect(this.stepper).toBeVisible();
+  }
+
+  /** Record one slip through the popup, then return to Today. */
+  async countSlip(id: string): Promise<void> {
+    await this.tap(id);
+    await this.plus.click();
+    await this.closeStepper();
   }
 
   /** Hold the chip until the stepper opens (the app waits tuning.badHabits.longPressMs). */

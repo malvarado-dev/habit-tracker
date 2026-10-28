@@ -246,6 +246,7 @@ export function HabitSheet({
       countOf={slips}
       onSlip={(bad) => setSlips(bad, slips(bad.id) + 1)}
       onSetCount={setSlips}
+      tapOpensStepper
       floating={!!floating}
     />
   );

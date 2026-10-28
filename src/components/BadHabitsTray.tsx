@@ -1,8 +1,8 @@
 // The Bad habits tray (PRD-15 Standalone bad habits, P2-09). A lilac tray under the habit cards
 // with dark chips, so a slip is never mistaken for a habit card. Every chip keeps its count badge,
-// muted "0" or lemon above 0, so chips never change size. Tap adds 1 (the badge bumps) and the
-// sheet shows the Undo bar. Long-press opens a dark popover stepper (minus, count, plus) pointing
-// at the chip; tapping outside closes it. Screen readers get the stepper as increment and
+// muted "0" or lemon above 0, so chips never change size. Tap opens dark minus/plus controls;
+// the chip badge shows the count, and an edit shows the Undo bar. Long-press also opens the
+// controls; tapping outside closes them. Screen readers get increment and
 // decrement actions on the chip, so long-press always has a non-gesture route.
 
 import { useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
@@ -31,7 +31,7 @@ type Props = {
   onSetCount: (bad: BadHabit, count: number) => void;
   /** History before day edits (P2-18a): chips only show counts; taps are off. */
   readOnly?: boolean;
-  /** History (P2-18b): a tap opens the stepper instead of counting a slip. */
+  /** Today and History: a tap opens the stepper instead of counting a slip. */
   tapOpensStepper?: boolean;
   /** Called when the stepper closes. */
   onStepperClose?: () => void;
@@ -57,7 +57,7 @@ export function BadHabitsTray(props: Props) {
       </Text>
       {readOnly ? null : (
         <Text style={styles.hint}>
-          {tapOpensStepper ? 'Tap to change a count' : 'Tap to count a slip'}
+          {tapOpensStepper ? 'Tap to adjust slips.' : 'Tap to count a slip'}
         </Text>
       )}
       <View style={styles.chips}>
@@ -138,7 +138,11 @@ function Chip(props: {
       testID={`bad-chip-${b.id}`}
       accessibilityRole="adjustable"
       accessibilityLabel={`${name}, ${count} ${count === 1 ? 'slip' : 'slips'} today`}
-      accessibilityHint="Tap to count a slip. Long-press to change the count."
+      accessibilityHint={
+        props.tapOpensStepper
+          ? 'Tap to adjust slips.'
+          : 'Tap to count a slip. Long-press to change the count.'
+      }
       aria-valuemin={0}
       aria-valuenow={count}
       accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
@@ -153,7 +157,12 @@ function Chip(props: {
         style={[styles.badge, count > 0 ? styles.badgeOn : styles.badgeOff, bumpStyle]}
         testID={`bad-badge-${b.id}`}
       >
-        <Text style={[styles.badgeText, count > 0 && styles.badgeTextOn]}>{count}</Text>
+        <Text
+          style={[styles.badgeText, count > 0 && styles.badgeTextOn]}
+          accessibilityLiveRegion="polite"
+        >
+          {count}
+        </Text>
       </Animated.View>
     </Pressable>
   );
@@ -169,13 +178,14 @@ function Stepper(props: {
   const styles = useStyles();
   const { width: screenWidth } = useWindowDimensions();
   const { anchor, count } = props;
-  const width = STEPPER_WIDTH;
+  const width = tuning.badHabits.stepperWidth;
   const left = Math.min(
     Math.max(space.sm, anchor.x + anchor.width / 2 - width / 2),
     screenWidth - width - space.sm,
   );
   const top = Math.max(space.sm, anchor.y - STEPPER_HEIGHT - space.sm);
   const name = anchor.bad.name || 'Bad habit';
+  const countLabel = `${count} ${count === 1 ? 'slip' : 'slips'}`;
 
   return (
     <Modal transparent visible animationType="none" onRequestClose={props.onClose}>
@@ -192,20 +202,19 @@ function Stepper(props: {
           style={[styles.stepButton, count <= 0 && styles.off]}
           testID="bad-stepper-minus"
           accessibilityRole="button"
-          accessibilityLabel={`One less ${name}`}
+          accessibilityLabel={`One less ${name}, ${countLabel}`}
+          accessibilityLiveRegion="polite"
           accessibilityState={{ disabled: count <= 0 }}
         >
           <Text style={styles.stepGlyph}>−</Text>
         </Pressable>
-        <Text style={styles.stepCount} testID="bad-stepper-count" accessibilityLiveRegion="polite">
-          {count}
-        </Text>
         <Pressable
           onPress={() => props.onChange(count + 1)}
           style={[styles.stepButton, styles.stepPlus]}
           testID="bad-stepper-plus"
           accessibilityRole="button"
-          accessibilityLabel={`One more ${name}`}
+          accessibilityLabel={`One more ${name}, ${countLabel}`}
+          accessibilityLiveRegion="polite"
         >
           <Text style={[styles.stepGlyph, styles.stepPlusGlyph]}>+</Text>
         </Pressable>
@@ -214,7 +223,6 @@ function Stepper(props: {
   );
 }
 
-const STEPPER_WIDTH = 168;
 const STEPPER_HEIGHT = MIN_TAP_SIZE + space.sm * 2;
 const BADGE = 22;
 
@@ -279,5 +287,4 @@ const makeStyles = (c: ThemeColors) =>
     off: { opacity: 0.4 },
     stepGlyph: { ...textStyle('title'), color: c.onInverse },
     stepPlusGlyph: { color: c.onPrimary },
-    stepCount: { ...textStyle('habitName', '700'), color: c.onInverse },
   });
