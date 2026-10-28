@@ -332,10 +332,10 @@ function MenuItem(props: { label: string; onPress: () => void; testID: string })
 }
 
 /** The letter placeholder in a tinted circle, until the icon sheet. */
-/** A once-a-day habit's ring in History: one segment, gold if done, slate if slipped. */
+/** A once-a-day History ring shows a linked slip before a good log. */
 function onceRing(count: number, slate: number) {
-  const gold = Math.min(count, 1);
-  const slateFill = gold ? 0 : Math.min(slate, 1);
+  const slateFill = Math.min(slate, 1);
+  const gold = slateFill ? 0 : Math.min(count, 1);
   const filled = gold + slateFill;
   return { segments: 1, filled, gold, slate: slateFill, label: `${filled}/1` };
 }
