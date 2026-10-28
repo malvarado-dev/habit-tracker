@@ -59,14 +59,15 @@ test('add a bad habit, then edit its name and pairing and reload (#132)', async 
   ).toBeVisible();
   await page.getByTestId('add-bad-confirm').click();
   const chip = page.getByTestId('habits-bad-box').getByRole('button');
-  await expect(chip).toHaveText('Soda On its own');
+  await expect(chip).toHaveText('Soda');
+  await expect(chip.getByTestId('habits-bad-subtitle')).toHaveCount(0);
   await chip.click();
   await page.getByTestId('edit-bad-name').fill('Soft drinks');
   await page.getByTestId('edit-bad-pair-water').click();
   await page.getByTestId('edit-bad-back').click();
-  await expect(chip).toContainText('Paired with Water');
+  await expect(chip).toContainText('With Water');
   await page.reload();
-  await expect(chip).toHaveText('Soft drinks Paired with Water');
+  await expect(chip).toHaveText('Soft drinks With Water');
   await chip.click();
   await page.getByTestId('edit-bad-name').fill('Sleep');
   await expect(page.getByTestId('edit-bad-name-hint')).toContainText('already have');
@@ -107,13 +108,16 @@ test('remove and Undo keep the position, pairing and slips after reload (#132)',
   await expect(page.getByTestId('bad-chip-soda')).toHaveCount(0);
 });
 
-test('a removed partner becomes On its own; removing the final bad habit hides the box (#132)', async ({
+test('a removed partner has no subtitle; removing the final bad habit hides the box (#132)', async ({
   page,
 }) => {
   await openWithSave(page, saveWith(HABITS, [BAD[1]!]), 'habits');
   await page.getByTestId('habits-row-sleep').click();
   await page.getByTestId('edit-habit-remove').click();
-  await expect(page.getByTestId('habits-bad-bad-poor-sleep-1')).toContainText('On its own');
+  await expect(page.getByTestId('habits-bad-bad-poor-sleep-1')).toHaveText('Poor Sleep');
+  await expect(
+    page.getByTestId('habits-bad-bad-poor-sleep-1').getByTestId('habits-bad-subtitle'),
+  ).toHaveCount(0);
   await page.getByTestId('habits-bad-bad-poor-sleep-1').click();
   await expect(page.getByTestId('edit-bad-pair-none')).toHaveAttribute('aria-checked', 'true');
   await page.getByTestId('edit-bad-remove').click();
@@ -130,7 +134,7 @@ test('Design 2 manages hidden habits and saved frequency without clearing pairin
   await tools.pickDesign('design2');
   await page.goto('habits');
   await expect(page.getByTestId('habits-row-water')).toContainText('3x per day');
-  await expect(page.getByTestId('habits-bad-bad-poor-sleep-1')).toContainText('Paired with Sleep');
+  await expect(page.getByTestId('habits-bad-bad-poor-sleep-1')).toContainText('With Sleep');
   await page.getByTestId('habits-bad-bad-poor-sleep-1').click();
   await expect(page.getByRole('radiogroup', { name: 'Pair with' })).toHaveCount(0);
   await page.getByTestId('edit-bad-name').fill('Restless sleep');
@@ -139,7 +143,7 @@ test('Design 2 manages hidden habits and saved frequency without clearing pairin
   await expect(page.getByTestId('habits-bad-bad-poor-sleep-1')).toContainText('Restless sleep');
   await page.reload();
   await expect(page.getByTestId('habits-bad-bad-poor-sleep-1')).toHaveText(
-    'Restless sleep Paired with Sleep',
+    'Restless sleep With Sleep',
   );
   await page.goto('test-tools');
   await tools.pickDesign('design1');
@@ -199,6 +203,6 @@ test('Test edits and Undo never change the Real save (#132)', async ({ page }) =
   await page.goto('test-tools');
   await page.getByTestId('mode-real').click();
   await page.goto('habits');
-  await expect(page.getByTestId('habits-bad-soda')).toHaveText('Soda On its own');
+  await expect(page.getByTestId('habits-bad-soda')).toHaveText('Soda');
   await expect(page.getByTestId('habits-undo')).toHaveCount(0);
 });

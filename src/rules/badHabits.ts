@@ -43,7 +43,7 @@ export function isPaired(bad: BadHabit, habits: Habit[]): boolean {
 /** Management shows the saved partner in either design; missing partners are standalone. */
 export function pairingLine(bad: BadHabit, habits: Habit[]): string {
   const partner = habits.find((h) => h.id === bad.pairedWith);
-  return partner ? `Paired with ${partner.name}` : 'On its own';
+  return partner ? `With ${partner.name}` : '';
 }
 
 /**

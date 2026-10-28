@@ -337,6 +337,9 @@ export const tuning = {
   },
 
   habits: {
+    /** Room for Urbanist descenders in the Manage habits title on Android. */
+    titleLineHeight: 40,
+    titleBottomPadding: 4,
     /** Feedback when pressing management and bad-habit form controls. */
     pressedOpacity: 0.7,
     /** How long the Undo bar stays after a log or a remove. */

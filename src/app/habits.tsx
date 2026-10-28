@@ -133,11 +133,18 @@ export default function HabitsScreen() {
                     style={({ pressed }) => [styles.badChip, pressed && styles.pressed]}
                     testID={`habits-bad-${habit.id}`}
                     accessibilityRole="button"
-                    accessibilityLabel={`${habit.name} ${line}`}
+                    accessibilityLabel={line ? `${habit.name} ${line}` : habit.name}
                     accessibilityHint="Edit this bad habit"
                   >
-                    <Text style={styles.badName}>{habit.name} </Text>
-                    <Text style={styles.badLine}>{line}</Text>
+                    <Text style={styles.badName}>
+                      {habit.name}
+                      {line ? ' ' : ''}
+                    </Text>
+                    {line ? (
+                      <Text style={styles.badLine} testID="habits-bad-subtitle">
+                        {line}
+                      </Text>
+                    ) : null}
                   </Pressable>
                 );
               })}
@@ -211,7 +218,13 @@ const makeStyles = (c: ThemeColors) =>
     },
     back: { minHeight: MIN_TAP_SIZE, justifyContent: 'center', alignSelf: 'flex-start' },
     backText: { ...textStyle('habitName'), color: c.onSurface },
-    title: { ...textStyle('display'), color: c.onSurface, marginBottom: space.sm },
+    title: {
+      ...textStyle('display'),
+      lineHeight: tuning.habits.titleLineHeight,
+      paddingBottom: tuning.habits.titleBottomPadding,
+      color: c.onSurface,
+      marginBottom: space.sm,
+    },
     list: { gap: space.md },
     badBox: {
       backgroundColor: bad.tray,
